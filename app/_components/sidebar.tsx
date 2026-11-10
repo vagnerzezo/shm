@@ -93,12 +93,10 @@ function LogoutButton({ onClick, className }: { onClick?: () => void; className:
 
 // Só no mobile: o menu abre numa gaveta lateral que fecha ao arrastar para a direita.
 function MobileMenu({
-  area,
   links,
   address,
   badges,
 }: {
-  area: Area;
   links: readonly NavLink[];
   address: string[];
   badges: Badges;
@@ -141,9 +139,7 @@ function MobileMenu({
                 itemClassName="h-12 px-4 text-sm"
               />
 
-              {area === "admin" && (
-                <LogoutButton onClick={() => setOpen(false)} className="h-12 px-4 text-sm" />
-              )}
+              <LogoutButton onClick={() => setOpen(false)} className="h-12 px-4 text-sm" />
 
               <Address lines={address} className="mt-auto" />
             </Drawer.Content>
@@ -183,7 +179,7 @@ export function Sidebar({
         />
       </Link>
 
-      <MobileMenu area={area} links={links} address={address} badges={badges} />
+      <MobileMenu links={links} address={address} badges={badges} />
 
       <NavLinks
         links={links}
@@ -192,7 +188,7 @@ export function Sidebar({
         itemClassName={`justify-center ${size}`}
       />
 
-      {area === "admin" && <LogoutButton className={`hidden justify-center lg:flex ${size}`} />}
+      <LogoutButton className={`hidden justify-center lg:flex ${size}`} />
 
       <Address lines={address} className="hidden text-center lg:block" />
     </aside>

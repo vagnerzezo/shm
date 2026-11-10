@@ -12,12 +12,14 @@ import {
   type Template,
   type User,
 } from "./db";
+import { appUrl, sendEmail as sendRawEmail } from "./email";
 import { contentToHtml, emailReadyHtml, escapeHtml, htmlToText, renderHtmlTemplate } from "./email-html";
 import { renderTemplate, sampleValues, type VariableKey } from "./marketing-template";
 import { isPast } from "./reservations";
 import { catalogOf } from "./catalog";
 import { getStudio, studioOf } from "./studio";
 import { findService, type Service } from "./services";
+import { unsubscribeTokenFor, unsubscribeUrl } from "./unsubscribe";
 
 // Envios automáticos de marketing. Cada canal tem suas próprias regras; o
 // motor só junta os dois para rodar numa passada. A cada execução ele:
@@ -29,13 +31,7 @@ import { findService, type Service } from "./services";
 /** Envio que ficou "enviando" além disso foi interrompido (ex.: servidor reiniciou). */
 const STALE_SENDING_MS = 10 * 60 * 1000;
 
-export function appUrl() {
-  return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-}
-
-export function emailProviderReady() {
-  return Boolean(process.env.RESEND_API_KEY && process.env.MARKETING_EMAIL_FROM);
-}
+export { appUrl, emailProviderReady } from "./email";
 
 type Visit = { reservation: StoredReservation; hasUpcoming: boolean };
 
@@ -91,41 +87,42 @@ function renderEmailBody(body: string, values: Record<string, string>) {
   return renderHtmlTemplate(contentToHtml(body), values);
 }
 
-async function sendEmailContent(to: string, subject: string, body: string, idempotencyKey: string) {
-  if (!emailProviderReady()) {
-    throw new Error("Provedor de e-mail não configurado (RESEND_API_KEY e MARKETING_EMAIL_FROM).");
-  }
+/** `customerId` ausente (e-mail de teste): o rodapé aponta para "Meus dados" em vez do link de descadastro. */
+async function sendEmailContent(
+  to: string,
+  subject: string,
+  body: string,
+  idempotencyKey: string,
+  customerId?: string,
+) {
   const studio = (await getStudio()).name;
-  const footer = `Você recebe este e-mail porque autorizou comunicações do ${studio}. Para deixar de receber, acesse ${appUrl()}/conta.`;
+  const token = customerId ? await unsubscribeTokenFor(customerId) : null;
+  const leaveUrl = token ? unsubscribeUrl(token) : `${appUrl()}/conta`;
+  const footer = `Você recebe este e-mail porque autorizou comunicações do ${studio}. Para deixar de receber, acesse ${leaveUrl}`;
   // `body` já é HTML filtrado (ou texto puro de templates antigos).
   const content = emailReadyHtml(contentToHtml(body), appUrl());
   const text = `${htmlToText(body)}\n\n—\n${footer}`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#121212">${content}<hr style="margin:24px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">${escapeHtml(footer)}</p></div>`;
+  const footerHtml = `Você recebe este e-mail porque autorizou comunicações do ${escapeHtml(studio)}. <a href="${escapeHtml(leaveUrl)}" style="color:#666">Deixar de receber</a>`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#121212">${content}<hr style="margin:24px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">${footerHtml}</p></div>`;
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-      // Se a mesma requisição for repetida, o Resend não envia de novo.
-      "Idempotency-Key": idempotencyKey,
-    },
-    body: JSON.stringify({
-      from: process.env.MARKETING_EMAIL_FROM,
-      to: [to],
-      subject,
-      text,
-      html,
-    }),
-    signal: AbortSignal.timeout(15_000),
+  await sendRawEmail({
+    to,
+    subject,
+    text,
+    html,
+    idempotencyKey,
+    // Botão "Cancelar inscrição" do Gmail/Outlook: um clique faz POST nesse endereço.
+    headers: token
+      ? {
+          "List-Unsubscribe": `<${appUrl()}/api/descadastrar?t=${encodeURIComponent(token)}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        }
+      : undefined,
   });
-  if (!response.ok) {
-    throw new Error(`Resend respondeu ${response.status}: ${(await response.text()).slice(0, 200)}`);
-  }
 }
 
 async function sendEmail(dispatch: Dispatch, to: string) {
-  return sendEmailContent(to, dispatch.subject ?? "", dispatch.body ?? "", dispatch.id);
+  return sendEmailContent(to, dispatch.subject ?? "", dispatch.body ?? "", dispatch.id, dispatch.customerId);
 }
 
 export async function sendTemplateTest(template: Template, to: string) {

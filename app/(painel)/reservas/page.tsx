@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarIcon, CheckIcon } from "@/app/_components/icons";
+import { CalendarIcon, CheckIcon, SwapIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import {
   formatLongDate,
@@ -45,11 +45,20 @@ function ReservationCard({ reservation, past }: { reservation: Reservation; past
             )}
           </div>
           {!past && (
-            <CancelButton
-              id={id}
-              serviceName={service.name}
-              when={`${formatWeekday(date)}, ${formatLongDate(date)} às ${time}`}
-            />
+            <div className="flex shrink-0 flex-wrap justify-end gap-x-4 gap-y-1">
+              <Link
+                href={`/reservas/${id}/remarcar`}
+                className="flex shrink-0 items-center gap-1.5 pt-1 text-sm font-semibold text-black hover:text-black/60"
+              >
+                <SwapIcon className="size-4" />
+                Remarcar
+              </Link>
+              <CancelButton
+                id={id}
+                serviceName={service.name}
+                when={`${formatWeekday(date)}, ${formatLongDate(date)} às ${time}`}
+              />
+            </div>
           )}
         </div>
         <p className="mt-1 text-sm text-black/70">

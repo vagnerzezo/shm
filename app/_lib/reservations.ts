@@ -100,14 +100,15 @@ export function findConflict(
 /**
  * Horários ocupados para o agendamento do cliente: as reservas dele (bloqueiam
  * tudo) e as dos outros clientes (bloqueiam só o mesmo profissional).
- * Sem `userId` (visitante), só as dos outros.
+ * Sem `userId` (visitante), só as dos outros. `ignoreId`: a reserva que está
+ * sendo remarcada, para o horário atual dela não bloquear os vizinhos.
  */
-export async function getBookingBusy(userId?: string): Promise<Busy[]> {
+export async function getBookingBusy(userId?: string, ignoreId?: string): Promise<Busy[]> {
   const db = await readDb();
   const { services } = catalogOf(db);
   const today = nowInStudio().date;
   return db.reservations.flatMap((r) => {
-    if (r.date < today) return [];
+    if (r.date < today || r.id === ignoreId) return [];
     const service = findService(services, r.serviceId);
     if (!service) return [];
     const start = toMinutes(r.time);

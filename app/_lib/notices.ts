@@ -10,6 +10,8 @@ export const notices = {
   "cliente-criado": "Cliente cadastrado.",
   "cliente-excluido": "Dados do cliente excluídos.",
   "servico-salvo": "Serviço salvo.",
+  "senha-redefinida": "Senha alterada. Você já está conectado.",
+  "conta-excluida": "Sua conta e seus dados foram excluídos.",
 } as const;
 
 export type NoticeKey = keyof typeof notices;

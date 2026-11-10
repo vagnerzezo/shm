@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
+import { FlashToast } from "./_components/flash-toast";
+import { Toaster } from "./_components/toaster";
 import { CalendarGridIcon, ChatIcon, HistoryIcon, UserIcon } from "./_components/icons";
 import { navByArea } from "./_components/nav";
 import { getCurrentUser } from "./_lib/auth";
@@ -87,6 +90,11 @@ export default async function Home() {
           RS, 93040-090, Brasil
         </address>
       </section>
+      {/* Avisos que chegam aqui por redirecionamento (ex.: conta excluída). */}
+      <Toaster />
+      <Suspense>
+        <FlashToast />
+      </Suspense>
     </main>
   );
 }

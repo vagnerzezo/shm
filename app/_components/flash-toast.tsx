@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { notices } from "@/app/_lib/notices";
 import { toast } from "./toaster";
 
@@ -11,9 +11,16 @@ export function FlashToast() {
   const pathname = usePathname();
   const router = useRouter();
   const key = params.get("aviso");
+  // O React (em desenvolvimento) roda o efeito duas vezes: sem isto, o aviso aparece em dobro.
+  const shown = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!key) return;
+    if (!key) {
+      shown.current = null;
+      return;
+    }
+    if (shown.current === key) return;
+    shown.current = key;
     const message = notices[key as keyof typeof notices];
     if (message) toast(message);
     const rest = new URLSearchParams(params);

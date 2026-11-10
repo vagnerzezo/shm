@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DeleteAccountForm, PasswordForm } from "@/app/_components/account-forms";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { signOut } from "@/app/_lib/actions";
 import { requireUser } from "@/app/_lib/auth";
@@ -26,7 +27,11 @@ export default async function ContaPage() {
           email={customer.email}
           consent={customer.consent}
         />
-        <form action={signOut} className="mt-6 max-w-xl">
+        <div className="mt-5 flex max-w-xl flex-col gap-5">
+          <PasswordForm />
+          {customer.role === "cliente" && <DeleteAccountForm />}
+        </div>
+        <form action={signOut} className="mt-6 mb-2 max-w-xl">
           <button
             type="submit"
             className="text-sm font-semibold text-black underline underline-offset-4 hover:text-black/60"

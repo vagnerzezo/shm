@@ -32,12 +32,21 @@ type Props = {
   suggested: DaySlots[];
   /** Itens já escolhidos antes deste serviço. */
   carry: string[];
+  /** Remarcando uma reserva: os horários levam à confirmação da troca, não ao carrinho. */
+  reschedule?: { id: string; currentLabel: string };
 };
 
 const outlineButton =
   "flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-black bg-white px-5 text-sm font-semibold text-black transition hover:bg-black hover:text-white";
 
-function slotHref(carry: string[], serviceId: string, date: string, time: string) {
+function slotHref(
+  carry: string[],
+  serviceId: string,
+  date: string,
+  time: string,
+  reschedule?: Props["reschedule"],
+) {
+  if (reschedule) return `/reservas/${reschedule.id}/remarcar?data=${date}&hora=${time}`;
   return withItems("/agendamento/confirmacao", [...carry, itemKey(serviceId, date, time)]);
 }
 
@@ -59,10 +68,12 @@ function ServiceSummary({
   service,
   carry,
   action,
+  reschedule,
 }: {
   service: Service;
   carry: string[];
   action: ReactNode;
+  reschedule?: Props["reschedule"];
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-black/10 bg-white/85 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -80,14 +91,21 @@ function ServiceSummary({
             <span>{formatDuration(service.durationMinutes)}</span>
             <span aria-hidden="true">·</span>
             <span className="font-semibold text-black">{formatPrice(service.priceCents)}</span>
-            <Link
-              href={withItems("/agendamento", carry)}
-              className="ml-1 flex items-center gap-1.5 font-semibold text-black underline underline-offset-2 hover:text-black/70"
-            >
-              <SwapIcon className="size-3.5" />
-              Alterar
-            </Link>
+            {!reschedule && (
+              <Link
+                href={withItems("/agendamento", carry)}
+                className="ml-1 flex items-center gap-1.5 font-semibold text-black underline underline-offset-2 hover:text-black/70"
+              >
+                <SwapIcon className="size-3.5" />
+                Alterar
+              </Link>
+            )}
           </p>
+          {reschedule && (
+            <p className="mt-1 text-sm text-black/70">
+              Horário atual: <span className="font-semibold text-black">{reschedule.currentLabel}</span>
+            </p>
+          )}
         </div>
       </div>
       {action}
@@ -116,7 +134,7 @@ function DateField({ date, active, onClick }: { date: string; active: boolean; o
   );
 }
 
-export function TimePicker({ service, now, busy, rules, suggested, carry }: Props) {
+export function TimePicker({ service, now, busy, rules, suggested, carry, reschedule }: Props) {
   const [picking, setPicking] = useState(false);
   const [date, setDate] = useState("");
   const [month, setMonth] = useState(now.date.slice(0, 7));
@@ -137,11 +155,19 @@ export function TimePicker({ service, now, busy, rules, suggested, carry }: Prop
         <ServiceSummary
           service={service}
           carry={carry}
+          reschedule={reschedule}
           action={
-            <button type="button" className={outlineButton}>
-              <PlusIcon className="size-4" />
-              Fila de espera
-            </button>
+            reschedule ? (
+              <Link href="/reservas" className={outlineButton}>
+                <ArrowLeftIcon className="size-4" />
+                Minhas reservas
+              </Link>
+            ) : (
+              <button type="button" className={outlineButton}>
+                <PlusIcon className="size-4" />
+                Fila de espera
+              </button>
+            )
           }
         />
 
@@ -167,7 +193,7 @@ export function TimePicker({ service, now, busy, rules, suggested, carry }: Prop
               </div>
               <div className="flex flex-wrap gap-2.5">
                 {day.times.map((time) => (
-                  <SlotLink key={time} time={time} href={slotHref(carry, service.id, day.date, time)} />
+                  <SlotLink key={time} time={time} href={slotHref(carry, service.id, day.date, time, reschedule)} />
                 ))}
               </div>
             </li>
@@ -184,6 +210,7 @@ export function TimePicker({ service, now, busy, rules, suggested, carry }: Prop
       <ServiceSummary
         service={service}
         carry={carry}
+        reschedule={reschedule}
         action={
           <button type="button" onClick={() => setPicking(false)} className={outlineButton}>
             <ArrowLeftIcon className="size-4" />
@@ -210,17 +237,19 @@ export function TimePicker({ service, now, busy, rules, suggested, carry }: Prop
           {times.length > 0 ? (
             <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {times.map((time) => (
-                <SlotLink key={time} large time={time} href={slotHref(carry, service.id, date, time)} />
+                <SlotLink key={time} large time={time} href={slotHref(carry, service.id, date, time, reschedule)} />
               ))}
             </div>
           ) : (
             <p className="mt-3 text-sm text-black/60">Selecione um dia disponível no calendário.</p>
           )}
 
-          <p className="mt-6 text-sm text-black/70">
-            Não achou um horário? Entre na <strong className="text-black">fila de espera</strong> e
-            avisamos se abrir uma vaga.
-          </p>
+          {!reschedule && (
+            <p className="mt-6 text-sm text-black/70">
+              Não achou um horário? Entre na <strong className="text-black">fila de espera</strong> e
+              avisamos se abrir uma vaga.
+            </p>
+          )}
         </div>
       </div>
     </>

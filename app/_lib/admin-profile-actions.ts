@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createSession, getCurrentUser, hashPassword, verifyPassword } from "./auth";
-import { readDb, updateDb } from "./db";
+import { getCurrentUser } from "./auth";
+import { updateDb } from "./db";
 import { readProfile } from "./profile";
 
 export type AdminProfileState = { error: string | null; saved: boolean };
@@ -26,32 +26,5 @@ export async function updateAdminProfile(_prev: AdminProfileState, formData: For
     return true;
   });
   if (!ok) return { error: "Esse e-mail já está em uso em outra conta.", saved: false };
-  return { error: null, saved: true };
-}
-
-/** Troca a própria senha. Encerra as outras sessões e mantém esta aberta. */
-export async function changeAdminPassword(_prev: AdminProfileState, formData: FormData): Promise<AdminProfileState> {
-  const admin = await requireAdminUser();
-  const current = String(formData.get("atual") ?? "");
-  const password = String(formData.get("senha") ?? "");
-  const confirm = String(formData.get("confirmacao") ?? "");
-
-  const user = (await readDb()).users.find((u) => u.id === admin.id);
-  if (!user || !(await verifyPassword(current, user.passwordHash))) {
-    return { error: "A senha atual está incorreta.", saved: false };
-  }
-  if (password.length < 8 || password.length > 100) {
-    return { error: "A nova senha precisa ter de 8 a 100 caracteres.", saved: false };
-  }
-  if (password !== confirm) return { error: "As duas senhas novas não são iguais.", saved: false };
-  if (password === current) return { error: "A nova senha precisa ser diferente da atual.", saved: false };
-
-  const passwordHash = await hashPassword(password);
-  await updateDb((db) => {
-    const u = db.users.find((u) => u.id === admin.id);
-    if (u) u.passwordHash = passwordHash;
-    db.sessions = db.sessions.filter((s) => s.userId !== admin.id);
-  });
-  await createSession(admin.id);
   return { error: null, saved: true };
 }

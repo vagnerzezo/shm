@@ -22,6 +22,17 @@ export type User = {
   adminNote?: string;
   /** Preenchido quando o admin desativa a conta: não entra, não marca, não recebe marketing. */
   disabledAt?: string;
+  /** Código do link "deixar de receber" dos e-mails de marketing. */
+  unsubscribeToken?: string;
+};
+
+/** Pedido de "esqueci minha senha". Guarda só o hash do código enviado por e-mail. */
+export type PasswordReset = {
+  tokenHash: string;
+  userId: string;
+  createdAt: number;
+  expiresAt: number;
+  usedAt?: number;
 };
 
 /** Funcionamento do estúdio, editável em /admin/configuracoes. */
@@ -183,6 +194,7 @@ type Db = {
   services?: StoredService[];
   professionals?: StoredProfessional[];
   studio?: StudioInfo;
+  passwordResets?: PasswordReset[];
 };
 
 // Chaves que vieram depois: arquivos antigos não as têm.
@@ -222,4 +234,14 @@ export function updateDb<T>(change: (db: Db) => T): Promise<T> {
   });
   queue = run.catch(() => {});
   return run;
+}
+
+/** Remove o cliente e tudo ligado a ele (LGPD). Chamar dentro de `updateDb`. */
+export function purgeUser(db: Db, userId: string) {
+  db.users = db.users.filter((u) => u.id !== userId);
+  db.sessions = db.sessions.filter((s) => s.userId !== userId);
+  db.reservations = db.reservations.filter((r) => r.userId !== userId);
+  db.messages = db.messages.filter((m) => m.customerId !== userId);
+  db.dispatches = db.dispatches.filter((d) => d.customerId !== userId);
+  if (db.passwordResets) db.passwordResets = db.passwordResets.filter((r) => r.userId !== userId);
 }

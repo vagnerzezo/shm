@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser, hashPassword, roleOf } from "./auth";
-import { updateDb } from "./db";
+import { purgeUser, updateDb } from "./db";
 import { withNotice } from "./notices";
 import { readProfile } from "./profile";
 
@@ -122,11 +122,7 @@ export async function deleteCustomer(formData: FormData) {
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === id);
     if (!user || roleOf(user) !== "cliente") return;
-    db.users = db.users.filter((u) => u.id !== id);
-    db.sessions = db.sessions.filter((s) => s.userId !== id);
-    db.reservations = db.reservations.filter((r) => r.userId !== id);
-    db.messages = db.messages.filter((m) => m.customerId !== id);
-    db.dispatches = db.dispatches.filter((d) => d.customerId !== id);
+    purgeUser(db, id);
   });
   redirect(withNotice("/admin/clientes", "cliente-excluido"));
 }

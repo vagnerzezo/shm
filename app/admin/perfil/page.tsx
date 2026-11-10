@@ -3,7 +3,8 @@ import { PanelHeader } from "@/app/_components/panel-header";
 import { PageTitle, scrollArea } from "@/app/_components/ui";
 import { requireAdmin } from "@/app/_lib/auth";
 import { formatPhone } from "@/app/_lib/format";
-import { AdminProfileForm, PasswordForm } from "./profile-forms";
+import { PasswordForm } from "@/app/_components/account-forms";
+import { AdminProfileForm } from "./profile-forms";
 
 export const metadata: Metadata = {
   title: "Perfil | Studio Heitor Macks",

@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { FlashToast } from "./_components/flash-toast";
 import { Toaster } from "./_components/toaster";
 import { CalendarGridIcon, ChatIcon, HistoryIcon, UserIcon } from "./_components/icons";
-import { navByArea } from "./_components/nav";
 import { getCurrentUser } from "./_lib/auth";
 import { getCustomerUnreadCount } from "./_lib/chat";
 
@@ -13,6 +13,8 @@ const buttonClass =
 
 export default async function Home() {
   const user = await getCurrentUser();
+  // O admin tem o Início próprio no painel, com o resumo do dia.
+  if (user?.role === "admin") redirect("/admin");
   const unread = user?.role === "cliente" ? await getCustomerUnreadCount(user.id) : 0;
 
   return (
@@ -37,41 +39,27 @@ export default async function Home() {
         />
 
         <nav className="flex w-full flex-col gap-7">
-          {user?.role === "admin" ? (
-            // Admin vê o menu do painel dele, sem as opções do cliente.
-            navByArea.admin
-              .filter((l) => l.href !== "/")
-              .map(({ href, label, Icon }) => (
-                <Link key={href} href={href} className={buttonClass}>
-                  <Icon className="size-6" />
-                  {label}
-                </Link>
-              ))
-          ) : (
-            <>
-              <Link href="/agendamento" className={buttonClass}>
-                <HistoryIcon className="size-6" />
-                Novo agendamento
-              </Link>
-              <Link href="/reservas" className={buttonClass}>
-                <CalendarGridIcon className="size-6" />
-                Minhas reservas
-              </Link>
-              {user && (
-                <Link href="/mensagens" className={buttonClass}>
-                  <ChatIcon className="size-6" />
-                  Mensagens
-                  {unread > 0 && (
-                    <span
-                      aria-label={`${unread} não ${unread === 1 ? "lida" : "lidas"}`}
-                      className="min-w-6 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-xs font-bold text-white"
-                    >
-                      {unread > 99 ? "99+" : unread}
-                    </span>
-                  )}
-                </Link>
+          <Link href="/agendamento" className={buttonClass}>
+            <HistoryIcon className="size-6" />
+            Novo agendamento
+          </Link>
+          <Link href="/reservas" className={buttonClass}>
+            <CalendarGridIcon className="size-6" />
+            Minhas reservas
+          </Link>
+          {user && (
+            <Link href="/mensagens" className={buttonClass}>
+              <ChatIcon className="size-6" />
+              Mensagens
+              {unread > 0 && (
+                <span
+                  aria-label={`${unread} não ${unread === 1 ? "lida" : "lidas"}`}
+                  className="min-w-6 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+                >
+                  {unread > 99 ? "99+" : unread}
+                </span>
               )}
-            </>
+            </Link>
           )}
           <Link
             href={user ? "/conta" : "/login"}

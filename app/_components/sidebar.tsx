@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "@/app/_lib/actions";
+import { cn } from "@/lib/utils";
 import { LogOutIcon, MenuIcon, XIcon } from "./icons";
 import { isActiveLink, navByArea, type Area } from "./nav";
 
@@ -167,15 +168,22 @@ export function Sidebar({
   const size = compact ? "h-11 text-sm" : "h-[62px] text-base";
 
   return (
-    <aside className="relative z-10 flex w-full shrink-0 items-center justify-between gap-x-4 rounded-2xl border border-black/15 bg-white/45 px-5 py-3 backdrop-blur-xl lg:w-[400px] lg:flex-col lg:gap-6 lg:px-9 lg:py-12">
-      <Link href="/" aria-label="Início" className="lg:contents">
+    <aside
+      className={cn(
+        "relative z-10 flex w-full shrink-0 items-center justify-between gap-x-4 rounded-2xl border border-black/15 bg-white/45 px-5 py-3 backdrop-blur-xl lg:w-[400px] lg:flex-col lg:px-9",
+        // Telas baixas: o menu rola dentro do cartão em vez de vazar por baixo.
+        "lg:overflow-y-auto lg:[scrollbar-width:thin]",
+        compact ? "lg:gap-5 lg:py-8" : "lg:gap-6 lg:py-12",
+      )}
+    >
+      <Link href={area === "admin" ? "/admin" : "/"} aria-label="Início" className="lg:contents">
         <Image
           src="/img/logo.png"
           alt={studioName}
           width={300}
           height={200}
           preload
-          className="h-auto w-28 lg:mt-4 lg:w-full lg:max-w-[340px]"
+          className={cn("h-auto w-28 lg:w-full", compact ? "lg:max-w-[240px]" : "lg:mt-4 lg:max-w-[340px]")}
         />
       </Link>
 

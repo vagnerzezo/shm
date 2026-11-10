@@ -48,7 +48,43 @@ export function StudioForm({ studio }: { studio: StudioInfo }) {
           ))}
         </div>
       </fieldset>
-      <p className="text-xs text-black/60">O nome também vai no rodapé dos e-mails e na variável {"{{estudio}}"}.</p>
+      <label>
+        <span className={labelClass}>E-mail de contato (rodapé dos e-mails)</span>
+        <input
+          name="email"
+          type="email"
+          maxLength={120}
+          defaultValue={studio.email ?? ""}
+          placeholder="contato@seuestudio.com.br"
+          className={cn(fieldClass, "mt-1.5")}
+        />
+      </label>
+      <fieldset>
+        <legend className={labelClass}>Redes sociais (link completo; deixe vazio para não mostrar)</legend>
+        <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
+          {(
+            [
+              ["instagram", "Instagram", "https://instagram.com/seuestudio"],
+              ["facebook", "Facebook", "https://facebook.com/seuestudio"],
+              ["linkedin", "LinkedIn", "https://linkedin.com/company/seuestudio"],
+            ] as const
+          ).map(([network, label, placeholder]) => (
+            <input
+              key={network}
+              name={network}
+              type="url"
+              maxLength={200}
+              defaultValue={studio.social?.[network] ?? ""}
+              placeholder={placeholder}
+              aria-label={label}
+              className={fieldClass}
+            />
+          ))}
+        </div>
+      </fieldset>
+      <p className="text-xs text-black/60">
+        O nome, o endereço, o contato e as redes vão no rodapé dos e-mails. O nome também é a variável {"{{estudio}}"}.
+      </p>
       <FormError message={state.error} />
       <div>
         <button type="submit" disabled={pending} className={primaryButton}>

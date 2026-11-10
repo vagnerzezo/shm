@@ -13,11 +13,11 @@ import {
 
 const checkbox = "mt-0.5 size-4 shrink-0 accent-[#121212]";
 
-function NotifyField({ defaultChecked = true }: { defaultChecked?: boolean }) {
+function NotifyField({ defaultChecked = true, email = false }: { defaultChecked?: boolean; email?: boolean }) {
   return (
     <label className="flex items-start gap-2 text-sm text-black">
       <input type="checkbox" name="avisar" defaultChecked={defaultChecked} className={checkbox} />
-      Avisar o cliente pelo chat
+      {email ? "Avisar o cliente pelo chat e por e-mail" : "Avisar o cliente pelo chat"}
     </label>
   );
 }
@@ -166,7 +166,7 @@ export function ReservationActions({
             confirmLabel="Cancelar reserva"
             extra={
               <div className="flex flex-col gap-3">
-                <NotifyField />
+                <NotifyField email />
                 <label>
                   <span className={labelClass}>Motivo (opcional, vai na mensagem)</span>
                   <input name="motivo" maxLength={200} placeholder="Ex.: profissional doente" className={cn(fieldClass, "mt-1")} />

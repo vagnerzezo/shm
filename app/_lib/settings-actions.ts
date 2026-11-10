@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "./auth";
 import { addDays, nowInStudio, STEP_OPTIONS, toMinutes } from "./availability";
 import { getCatalog } from "./catalog";
-import { updateDb } from "./db";
+import { updateDb, type SocialNetwork } from "./db";
+import { emailProviderReady, sendEmail } from "./email";
+import { buildSample, isEmailKind } from "./email-templates/preview";
+import { getStudio } from "./studio";
 
 export type SettingsState = { error: string | null; saved: boolean };
 
@@ -96,7 +99,7 @@ export async function saveSchedule(_prev: SettingsState, formData: FormData): Pr
   return { error: null, saved: true };
 }
 
-/** Nome, endereço e telefone do estúdio (sidebar e e-mails). */
+/** Nome, endereço, contato e redes do estúdio (sidebar e e-mails). */
 export async function saveStudio(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   await assertAdmin();
   const name = text(formData, "nome");
@@ -111,9 +114,51 @@ export async function saveStudio(_prev: SettingsState, formData: FormData): Prom
   if (address.some((line) => line.length > 80)) return { error: "Cada linha do endereço pode ter até 80 caracteres.", saved: false };
   if (phone && (phone.length < 10 || phone.length > 11)) return { error: "Informe um telefone com DDD.", saved: false };
 
+  const email = text(formData, "email").toLowerCase();
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: "Informe um e-mail de contato válido.", saved: false };
+
+  const social: Partial<Record<SocialNetwork, string>> = {};
+  for (const network of ["instagram", "facebook", "linkedin"] as const) {
+    const url = text(formData, network);
+    if (!url) continue;
+    if (!/^https:\/\/\S+\.\S+$/.test(url) || url.length > 200) {
+      return { error: `O link do ${network} precisa ser um endereço completo, começando com https://.`, saved: false };
+    }
+    social[network] = url;
+  }
+
   await updateDb((db) => {
-    db.studio = { name, address, phone };
+    db.studio = { name, address, phone, email: email || undefined, social };
   });
   refresh();
   return { error: null, saved: true };
+}
+
+export type TestEmailState = { error: string | null; sentTo: string | null };
+
+/** Admin manda para si mesmo (ou outro endereço) um exemplo de e-mail do sistema. */
+export async function sendSystemEmailTest(_prev: TestEmailState, formData: FormData): Promise<TestEmailState> {
+  const admin = await getCurrentUser();
+  if (admin?.role !== "admin") redirect("/login?next=%2Fadmin%2Fmarketing%2Ftemplates");
+  const kind = text(formData, "modelo");
+  const to = text(formData, "email").toLowerCase();
+  if (!isEmailKind(kind)) return { error: "Escolha um modelo.", sentTo: null };
+  if (!/^\S+@\S+\.\S+$/.test(to)) return { error: "Informe um e-mail válido.", sentTo: null };
+  if (!emailProviderReady()) {
+    return { error: "Resend não configurado: defina RESEND_API_KEY e MARKETING_EMAIL_FROM.", sentTo: null };
+  }
+  const email = await buildSample(kind, admin, await getStudio());
+  try {
+    await sendEmail({
+      to,
+      subject: `[Teste] ${email.subject}`,
+      html: email.html,
+      text: email.text,
+      attachments: email.attachments,
+      idempotencyKey: `teste-sistema:${crypto.randomUUID()}`,
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao enviar.", sentTo: null };
+  }
+  return { error: null, sentTo: to };
 }

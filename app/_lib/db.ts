@@ -166,7 +166,13 @@ export type StudioInfo = {
   /** Até três linhas. */
   address: string[];
   phone: string;
+  /** Contato exibido no rodapé dos e-mails. */
+  email?: string;
+  /** Links completos das redes (https://...). Ausente = não aparece nos e-mails. */
+  social?: Partial<Record<SocialNetwork, string>>;
 };
+
+export type SocialNetwork = "instagram" | "facebook" | "linkedin";
 
 /** Mensagem da conversa entre o estúdio e um cliente. */
 export type ChatMessage = {

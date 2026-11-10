@@ -191,7 +191,7 @@ export function NewReservationForm({
 
       <label className="flex items-start gap-2 text-sm text-black">
         <input type="checkbox" name="avisar" defaultChecked className="mt-0.5 size-4 shrink-0 accent-[#121212]" />
-        Enviar confirmação ao cliente pelo chat
+        Enviar confirmação ao cliente pelo chat e por e-mail
       </label>
 
       <FormError message={state.error} />

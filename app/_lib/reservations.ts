@@ -44,10 +44,13 @@ export function statusOf(r: Pick<StoredReservation, "date" | "time" | "attendanc
   return r.attendance === "faltou" ? "faltou" : "realizado";
 }
 
+/** Devolve os ids criados, na mesma ordem. */
 export async function addReservations(reservations: Omit<StoredReservation, "id">[]) {
+  const created = reservations.map((r) => ({ id: crypto.randomUUID(), ...r }));
   await updateDb((db) => {
-    db.reservations.push(...reservations.map((r) => ({ id: crypto.randomUUID(), ...r })));
+    db.reservations.push(...created);
   });
+  return created.map((r) => r.id);
 }
 
 export async function removeReservation(userId: string, id: string) {

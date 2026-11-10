@@ -1,8 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
-import { appUrl, emailProviderReady, sendEmail } from "./email";
-import { escapeHtml } from "./email-html";
+import { appUrl, emailProviderReady } from "./email";
+import { sendPasswordResetEmail } from "./email-templates/send";
 import { readDb, updateDb } from "./db";
-import { getStudio } from "./studio";
 
 // "Esqueci minha senha": um link por e-mail com código de uso único que vale
 // 1 hora. O banco guarda só o hash do código.
@@ -42,19 +41,7 @@ export async function startPasswordReset(email: string) {
     return;
   }
 
-  const studio = (await getStudio()).name;
-  const first = user.name.split(" ")[0];
-  try {
-    await sendEmail({
-      to: user.email,
-      subject: `Redefinir sua senha — ${studio}`,
-      text: `Olá, ${first}!\n\nPara criar uma nova senha, acesse:\n${link}\n\nO link vale por 1 hora e só pode ser usado uma vez. Se você não pediu, ignore este e-mail: sua senha continua a mesma.`,
-      html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#121212"><p>Olá, ${escapeHtml(first)}!</p><p>Para criar uma nova senha, clique no botão abaixo.</p><p><a href="${escapeHtml(link)}" style="display:inline-block;background:#121212;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Criar nova senha</a></p><p style="font-size:13px;color:#666">O link vale por 1 hora e só pode ser usado uma vez. Se você não pediu, ignore este e-mail: sua senha continua a mesma.</p></div>`,
-      idempotencyKey: `redefinir-senha:${hashToken(token)}`,
-    });
-  } catch (error) {
-    console.error("[redefinir-senha] Falha ao enviar:", error);
-  }
+  await sendPasswordResetEmail(user, link, TTL_MS / 60_000, `redefinir-senha:${hashToken(token)}`);
 }
 
 /** Dono de um link ainda válido, ou `null`. */

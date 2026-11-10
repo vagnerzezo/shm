@@ -17,9 +17,11 @@ export type OutgoingEmail = {
   /** Se a mesma requisição for repetida com a mesma chave, o Resend não envia de novo. */
   idempotencyKey: string;
   headers?: Record<string, string>;
+  /** Imagens embutidas (`<img src="cid:...">`), com o arquivo em base64. */
+  attachments?: { filename: string; content: string; content_id: string }[];
 };
 
-export async function sendEmail({ to, subject, text, html, idempotencyKey, headers }: OutgoingEmail) {
+export async function sendEmail({ to, subject, text, html, idempotencyKey, headers, attachments }: OutgoingEmail) {
   if (!emailProviderReady()) {
     throw new Error("Provedor de e-mail não configurado (RESEND_API_KEY e MARKETING_EMAIL_FROM).");
   }
@@ -37,6 +39,7 @@ export async function sendEmail({ to, subject, text, html, idempotencyKey, heade
       text,
       html,
       ...(headers && { headers }),
+      ...(attachments?.length && { attachments }),
     }),
     signal: AbortSignal.timeout(15_000),
   });

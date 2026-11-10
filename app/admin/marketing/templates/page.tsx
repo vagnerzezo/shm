@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { Badge, card, linkButton, primaryButton } from "../ui";
 import { TemplateForm } from "./template-form";
 import { TemplateTestButton } from "./template-test-button";
+import { requireAdmin } from "@/app/_lib/auth";
+import { isEmailKind } from "@/app/_lib/email-templates/preview";
+import { SystemEmailList, SystemEmailPreview } from "./system-emails";
 
 function TemplateCard({ template, usedBy }: { template: Template; usedBy: number }) {
   const t = template;
@@ -62,7 +65,11 @@ function TemplateCard({ template, usedBy }: { template: Template; usedBy: number
 }
 
 export default async function TemplatesPage(props: PageProps<"/admin/marketing/templates">) {
-  const { canal, novo, editar } = await props.searchParams;
+  const { canal, novo, editar, sistema, largura } = await props.searchParams;
+  const admin = await requireAdmin("/admin/marketing/templates");
+  if (isEmailKind(sistema)) {
+    return <SystemEmailPreview kind={sistema} mobile={largura === "celular"} viewer={admin} />;
+  }
   const { templates, rules } = await getMarketingData();
   const channel: Channel = channelOf(canal) ?? channelOf(novo) ?? "email";
   const editing = typeof editar === "string" ? templates.find((t) => t.id === editar) : undefined;
@@ -97,11 +104,11 @@ export default async function TemplatesPage(props: PageProps<"/admin/marketing/t
         </Link>
       </div>
 
-      {!list.some((t) => t.isDefault) && list.length > 0 && (
-        <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Nenhum template padrão de {channelLabel[channel].toLowerCase()}. Regras sem template próprio vão falhar até
-          você definir um.
-        </p>
+      {channel === "email" && (
+        <>
+          <h2 className="mt-6 text-lg font-bold text-black">Templates de marketing</h2>
+          <p className="mt-1 text-sm text-black/70">Usados pelas regras de envio, só para quem autorizou receber e-mails.</p>
+        </>
       )}
 
       {list.length === 0 ? (
@@ -123,6 +130,8 @@ export default async function TemplatesPage(props: PageProps<"/admin/marketing/t
           ))}
         </ul>
       )}
+
+      {channel === "email" && <SystemEmailList viewer={admin} />}
     </>
   );
 }

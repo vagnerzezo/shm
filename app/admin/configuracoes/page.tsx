@@ -179,7 +179,12 @@ export default async function ConfiguracoesPage() {
         </section>
 
         <section className={cn(card, "mb-1")}>
-          <h2 className="text-lg font-bold text-black">Dados do estúdio</h2>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h2 className="text-lg font-bold text-black">Dados do estúdio</h2>
+            <Link href="/admin/marketing/templates?canal=email" className={linkButton}>
+              Ver e-mails do sistema
+            </Link>
+          </div>
           <p className="mt-1 mb-4 text-sm text-black/70">Aparecem no menu lateral e nos e-mails enviados aos clientes.</p>
           <StudioForm studio={studio} />
         </section>

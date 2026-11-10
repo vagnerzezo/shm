@@ -2,11 +2,13 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { agendaHref } from "./agenda";
 import { getCurrentUser, roleOf } from "./auth";
 import { formatLongDate, isClosed, nowInStudio } from "./availability";
 import { catalogOf } from "./catalog";
 import { addMessage } from "./chat";
+import { sendBookingCancelledEmail, sendBookingConfirmedEmail } from "./email-templates/send";
 import { readDb, updateDb, type Attendance } from "./db";
 import { withNotice } from "./notices";
 import { findConflict, isPast } from "./reservations";
@@ -86,6 +88,7 @@ export async function createReservationByAdmin(
       "admin",
       `Olá, ${customer.name.split(" ")[0]}! Marcamos ${service.name} para ${formatLongDate(date)} às ${time}. Até lá!`,
     );
+    after(() => sendBookingConfirmedEmail(customerId, [id]));
   }
   redirect(withNotice(agendaHref("dia", date, id), "reserva-criada"));
 }
@@ -143,6 +146,7 @@ export async function cancelReservationByAdmin(formData: FormData) {
       "admin",
       `Seu horário de ${service?.name ?? "atendimento"} em ${formatLongDate(target.date)} às ${target.time} foi cancelado pelo estúdio.${reason ? ` Motivo: ${reason}.` : ""} Se quiser, marque um novo horário pelo site ou responda por aqui.`,
     );
+    after(() => sendBookingCancelledEmail(target.userId, target, { byStudio: true, reason: reason || undefined }));
   }
   redirect(withNotice(agendaHref("dia", target.date), "reserva-cancelada"));
 }

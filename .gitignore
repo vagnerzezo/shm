@@ -42,3 +42,4 @@ next-env.d.ts
 
 # banco simulado local
 /.data/
+!.env.example

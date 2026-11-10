@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import {
   createSession,
   deleteSession,
@@ -18,6 +19,7 @@ import { readDb, updateDb } from "./db";
 import { readProfile } from "./profile";
 import { getBookableServices } from "./catalog";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
+import { sendBookingCancelledEmail, sendBookingConfirmedEmail, sendWelcomeEmail } from "./email-templates/send";
 import { addReservations, getBookingBusy, getReservations, isPast, removeReservation } from "./reservations";
 import { getAvailabilityRules } from "./schedule";
 
@@ -40,6 +42,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   if (!userId) return { error: "Já existe uma conta com esse e-mail. Use a aba Entrar." };
 
   await createSession(userId);
+  after(() => sendWelcomeEmail(userId));
   redirect(safeNext(formData.get("next"), homeOf(profile)));
 }
 
@@ -75,7 +78,7 @@ export async function confirmBooking(_prev: FormState, formData: FormData): Prom
   }
 
   const note = String(formData.get("observacao") ?? "").trim().slice(0, 300);
-  await addReservations(
+  const ids = await addReservations(
     items.map((i) => ({
       userId: user.id,
       serviceId: i.service.id,
@@ -85,6 +88,7 @@ export async function confirmBooking(_prev: FormState, formData: FormData): Prom
       note: note || undefined,
     })),
   );
+  after(() => sendBookingConfirmedEmail(user.id, ids));
   redirect(`/reservas?nova=${items.length}`);
 }
 
@@ -96,6 +100,7 @@ export async function cancelReservation(formData: FormData) {
   // Só dá para cancelar o que ainda não aconteceu.
   if (!target || isPast(target, nowInStudio())) return;
   await removeReservation(user.id, id);
+  after(() => sendBookingCancelledEmail(user.id, target, { byStudio: false }));
   // Recarrega a lista (senão a reserva cancelada continua na tela) e tira o
   // "Reserva confirmada!" que pode ter ficado no endereço.
   redirect("/reservas");

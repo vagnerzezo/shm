@@ -10,6 +10,8 @@ servers:
   - url: /api/v1
 tags:
   - name: Studio
+  - name: Auth
+  - name: Conta
 components:
   securitySchemes:
     bearer:
@@ -50,6 +52,32 @@ components:
             instagram: { type: string }
             facebook: { type: string }
             linkedin: { type: string }
+    User:
+      type: object
+      required: [id, name, phone, email, role, consent]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        phone: { type: string, description: Só dígitos, com DDD. }
+        email: { type: string }
+        role: { type: string, enum: [cliente, barbeiro, admin] }
+        consent:
+          type: object
+          description: Autorizações para comunicações de marketing.
+          required: [email, mensagem]
+          properties:
+            email: { type: boolean }
+            mensagem: { type: boolean }
+        professional:
+          type: string
+          description: Nome do profissional ligado à conta (barbeiro, ou admin que também atende).
+    Session:
+      type: object
+      required: [token, expiresAt, user]
+      properties:
+        token: { type: string, description: Enviar em `Authorization Bearer`. Vale 30 dias e se renova com o uso. }
+        expiresAt: { type: integer, description: Validade em milissegundos (epoch). }
+        user: { $ref: "#/components/schemas/User" }
   responses:
     Error:
       description: Erro no formato padrão.
@@ -67,3 +95,55 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Studio" }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Entrar
+      description: >
+        E-mail inexistente e senha errada devolvem o mesmo erro. Depois de 10 erros em 15 minutos
+        para o mesmo e-mail, responde 429 até o prazo passar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+            example: { email: cliente@exemplo.com, password: minha-senha }
+      responses:
+        "200":
+          description: Sessão criada.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Sair (encerra a sessão atual)
+      security: [{ bearer: [] }]
+      responses:
+        "204": { description: Sessão encerrada. }
+        "401": { $ref: "#/components/responses/Error" }
+  /me:
+    get:
+      tags: [Conta]
+      summary: Dados do usuário logado
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: Usuário.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Error" }

@@ -161,3 +161,14 @@ export const settings = pgTable("settings", {
   key: text().primaryKey(),
   value: jsonb().notNull(),
 });
+
+/** Erros de senha recentes, por e-mail, para limitar tentativas de login. */
+export const loginAttempts = pgTable(
+  "login_attempts",
+  {
+    seq: integer().generatedAlwaysAsIdentity().primaryKey(),
+    email: text().notNull(),
+    at: bigint({ mode: "number" }).notNull(),
+  },
+  (t) => [index().on(t.email)],
+);

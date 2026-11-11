@@ -17,7 +17,8 @@ const toItem = ([name, method, path, o = {}]) => {
       : []),
   ];
   const header = [];
-  if (o.auth) header.push({ key: "Authorization", value: o.auth.includes(" ") || o.auth.startsWith("=") ? o.auth.replace(/^=/, "") : `Bearer {{${o.auth}}}` });
+  // `auth: "variavel"` manda Bearer {{variavel}}; `auth: "=texto"` manda o cabeçalho cru.
+  if (o.auth) header.push({ key: "Authorization", value: o.auth.startsWith("=") ? o.auth.slice(1) : `Bearer {{${o.auth}}}` });
   if (o.body !== undefined) header.push({ key: "Content-Type", value: "application/json" });
   const [pathname, query] = path.split("?");
   return {

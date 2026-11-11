@@ -52,3 +52,10 @@ export async function readBody(request: Request): Promise<Record<string, unknown
 
 export const created = (data: unknown) => Response.json(data, { status: 201 });
 export const noContent = () => new Response(null, { status: 204 });
+
+/** Campo de texto obrigatório do corpo. */
+export function requireString(body: Record<string, unknown>, field: string, message: string): string {
+  const value = body[field];
+  if (typeof value !== "string" || value === "") throw new DomainError("validation", message, { [field]: message });
+  return value;
+}

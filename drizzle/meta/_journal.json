@@ -15,6 +15,13 @@
       "when": 1794433862555,
       "tag": "0001_hash_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794434028205,
+      "tag": "0002_login_attempts",
+      "breakpoints": true
     }
   ]
 }

@@ -11,11 +11,12 @@ import {
   homeOf,
   loginHref,
   safeNext,
-  verifyPassword,
 } from "./auth";
 import { nowInStudio, pickProfessional } from "./availability";
 import { parseItems, toKeys, withItems } from "./booking";
-import { readDb, updateDb } from "./db";
+import { updateDb } from "./db";
+import { authenticate } from "./domain/account";
+import { messageOf } from "./errors";
 import { readProfile } from "./profile";
 import { getBookableServices } from "./catalog";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
@@ -47,15 +48,12 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
 }
 
 export async function signIn(_prev: FormState, formData: FormData): Promise<FormState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("senha") ?? "");
-  const user = (await readDb()).users.find((u) => u.email === email);
-  // Mesma mensagem nos dois casos, para não revelar quais e-mails têm conta.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return { error: "E-mail ou senha incorretos." };
+  let user;
+  try {
+    user = await authenticate(String(formData.get("email") ?? ""), String(formData.get("senha") ?? ""));
+  } catch (error) {
+    return { error: messageOf(error) };
   }
-  // Só depois da senha certa, para não revelar a situação de contas alheias.
-  if (user.disabledAt) return { error: "Sua conta está desativada. Fale com o estúdio." };
   await createSession(user.id);
   redirect(safeNext(formData.get("next"), homeOf(user)));
 }

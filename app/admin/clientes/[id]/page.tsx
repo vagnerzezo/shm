@@ -10,7 +10,7 @@ import { requireAdmin } from "@/app/_lib/auth";
 import { formatLongDate, formatWeekday, nowInStudio } from "@/app/_lib/availability";
 import { initials } from "@/app/_lib/chat-format";
 import { getCustomer } from "@/app/_lib/customers";
-import { getAgenda, isPast, statusOf, type AgendaReservation } from "@/app/_lib/reservations";
+import { getAgenda, isCancelled, isPast, statusOf, type AgendaReservation } from "@/app/_lib/reservations";
 import { formatPrice } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
 import { AccessCard } from "./access-card";
@@ -50,7 +50,13 @@ function ReservationList({
             </span>
             <span className="flex shrink-0 items-center gap-2">
               {statusOf(r, now) === "faltou" && <Badge tone="red">Faltou</Badge>}
-              <span className={cn("font-semibold text-black", statusOf(r, now) === "faltou" && "text-black/40 line-through")}>
+              {statusOf(r, now) === "cancelada" && <Badge tone="outline">Cancelada</Badge>}
+              <span
+                className={cn(
+                  "font-semibold text-black",
+                  (statusOf(r, now) === "faltou" || statusOf(r, now) === "cancelada") && "text-black/40 line-through",
+                )}
+              >
                 {formatPrice(r.service.priceCents)}
               </span>
             </span>
@@ -68,9 +74,10 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
   if (!customer) notFound();
 
   const now = nowInStudio();
-  const reservations = (await getAgenda()).filter((r) => r.customer.id === id);
-  const upcoming = reservations.filter((r) => !isPast(r, now));
-  const past = reservations.filter((r) => isPast(r, now)).reverse();
+  const reservations = (await getAgenda(undefined, undefined, { includeCancelled: true })).filter((r) => r.customer.id === id);
+  // Canceladas ficam com as passadas, como registro; os próximos são só os que vão acontecer.
+  const upcoming = reservations.filter((r) => !isPast(r, now) && !isCancelled(r));
+  const past = reservations.filter((r) => isPast(r, now) || isCancelled(r)).reverse();
 
   return (
     <>
@@ -132,7 +139,14 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
           <Stat
             label="VISITAS"
             value={String(customer.visits)}
-            hint={customer.missed > 0 ? `${customer.missed} ${customer.missed === 1 ? "falta" : "faltas"}` : undefined}
+            hint={
+              [
+                customer.missed > 0 && `${customer.missed} ${customer.missed === 1 ? "falta" : "faltas"}`,
+                customer.cancelled > 0 && `${customer.cancelled} ${customer.cancelled === 1 ? "cancelamento" : "cancelamentos"}`,
+              ]
+                .filter(Boolean)
+                .join(" · ") || undefined
+            }
           />
           <Stat label="TOTAL GASTO" value={formatPrice(customer.spentCents)} />
           <Stat

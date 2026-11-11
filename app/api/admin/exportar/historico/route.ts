@@ -4,7 +4,7 @@ import { csvMoney, csvResponse, toCsv } from "@/app/_lib/csv";
 import { filterHistory, parseFilters } from "@/app/_lib/history";
 import { getAgenda, statusOf } from "@/app/_lib/reservations";
 
-const statusLabel = { agendado: "Agendado", realizado: "Realizado", faltou: "Faltou" } as const;
+const statusLabel = { agendado: "Agendado", realizado: "Realizado", faltou: "Faltou", cancelada: "Cancelada" } as const;
 
 /** Histórico em CSV, com os mesmos filtros da tela (vêm na URL). */
 export async function GET(request: Request) {
@@ -13,10 +13,10 @@ export async function GET(request: Request) {
 
   const params = Object.fromEntries(new URL(request.url).searchParams);
   const now = nowInStudio();
-  const rows = filterHistory(await getAgenda(), parseFilters(params), now);
+  const rows = filterHistory(await getAgenda(undefined, undefined, { includeCancelled: true }), parseFilters(params), now);
 
   const csv = toCsv(
-    ["Data", "Horário", "Cliente", "Telefone", "E-mail", "Serviço", "Profissional", "Valor (R$)", "Situação", "Observação"],
+    ["Data", "Horário", "Cliente", "Telefone", "E-mail", "Serviço", "Profissional", "Valor (R$)", "Situação", "Observação", "Motivo do cancelamento"],
     rows.map((r) => [
       r.date.split("-").reverse().join("/"),
       r.time,
@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       csvMoney(r.service.priceCents),
       statusLabel[statusOf(r, now)],
       r.note ?? "",
+      r.cancelReason ?? "",
     ]),
   );
   return csvResponse(csv, `historico-${now.date}.csv`);

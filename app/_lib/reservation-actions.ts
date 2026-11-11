@@ -5,13 +5,13 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { agendaHref } from "./agenda";
 import { getCurrentUser, roleOf } from "./auth";
-import { formatLongDate, isClosed, nowInStudio } from "./availability";
+import { formatLongDate, freeProfessionals, isClosed, nowInStudio, toMinutes } from "./availability";
 import { catalogOf } from "./catalog";
 import { addMessage } from "./chat";
 import { sendBookingCancelledEmail, sendBookingConfirmedEmail } from "./email-templates/send";
 import { readDb, updateDb, type Attendance } from "./db";
 import { withNotice } from "./notices";
-import { findConflict, isPast } from "./reservations";
+import { busyFrom, isCancelled, isPast, keepOrPick, markCancelled, professionalOf } from "./reservations";
 import { getAvailabilityRules } from "./schedule";
 import { findService } from "./services";
 
@@ -28,24 +28,45 @@ async function assertAdmin() {
   if (user?.role !== "admin") redirect("/login?next=%2Fadmin%2Fagenda");
 }
 
-/** Valida dia e horário de uma reserva (nova ou remarcada). Devolve a mensagem de erro, se houver. */
-async function checkSlot(serviceId: string, date: string, time: string, ignoreId?: string) {
-  if (!DATE_RE.test(date)) return "Escolha a data.";
-  if (!TIME_RE.test(time)) return "Escolha o horário.";
+/**
+ * Valida dia e horário de uma reserva (nova ou remarcada) e escolhe quem
+ * atende. `current`: profissional atual, mantido na remarcação se estiver livre.
+ */
+async function checkSlot(
+  serviceId: string,
+  date: string,
+  time: string,
+  { ignoreId, current }: { ignoreId?: string; current?: string } = {},
+): Promise<{ error: string } | { professional: string | undefined }> {
+  if (!DATE_RE.test(date)) return { error: "Escolha a data." };
+  if (!TIME_RE.test(time)) return { error: "Escolha o horário." };
   const db = await readDb();
   const { services } = catalogOf(db);
   const service = findService(services, serviceId);
-  if (!service) return "Serviço não encontrado.";
+  if (!service) return { error: "Serviço não encontrado." };
   const rules = await getAvailabilityRules();
   if (isClosed(date, rules, service.professional)) {
-    return `A agenda está fechada nesse dia${service.professional ? ` para ${service.professional}` : ""}. Reabra o período em Configurações se precisar.`;
+    return {
+      error: `A agenda está fechada nesse dia${service.professional ? ` para ${service.professional}` : ""}. Reabra o período em Configurações se precisar.`,
+    };
   }
-  const conflict = findConflict(db.reservations, services, { serviceId, date, time, ignoreId });
-  if (conflict) {
-    const who = db.users.find((u) => u.id === conflict.userId)?.name ?? "outro cliente";
-    return `Esse horário bate com a reserva de ${who} às ${conflict.time}${service.professional ? ` com ${service.professional}` : ""}.`;
+  const busy = busyFrom(db.reservations, services, { ignoreId });
+  const start = toMinutes(time);
+  if (freeProfessionals(service, date, start, start + service.durationMinutes, busy, rules).length === 0) {
+    const conflict = db.reservations.find((r) => {
+      const other = findService(services, r.serviceId);
+      if (r.id === ignoreId || isCancelled(r) || r.date !== date || !other) return false;
+      if (service.professional && professionalOf(r, other) !== service.professional) return false;
+      const otherStart = toMinutes(r.time);
+      return start < otherStart + other.durationMinutes && otherStart < start + service.durationMinutes;
+    });
+    const who = db.users.find((u) => u.id === conflict?.userId)?.name ?? "outro cliente";
+    if (service.professional) {
+      return { error: `Esse horário bate com a reserva de ${who} às ${conflict?.time ?? time} com ${service.professional}.` };
+    }
+    return { error: "Nenhum profissional está livre nesse horário (agenda cheia ou período fechado). Escolha outro." };
   }
-  return null;
+  return { professional: keepOrPick(current, service, date, time, busy, rules) };
 }
 
 export async function createReservationByAdmin(
@@ -66,8 +87,8 @@ export async function createReservationByAdmin(
   const service = findService(catalogOf(db).services, serviceId);
   if (!service || service.active === false) return { error: "Escolha um serviço ativo." };
 
-  const error = await checkSlot(serviceId, date, time);
-  if (error) return { error };
+  const slot = await checkSlot(serviceId, date, time);
+  if ("error" in slot) return slot;
 
   const id = crypto.randomUUID();
   await updateDb((db) => {
@@ -76,6 +97,7 @@ export async function createReservationByAdmin(
       userId: customerId,
       serviceId,
       priceCents: service.priceCents,
+      professional: slot.professional,
       date,
       time,
       note: note || undefined,
@@ -104,16 +126,16 @@ export async function rescheduleReservation(
 
   const db = await readDb();
   const current = db.reservations.find((r) => r.id === id);
-  if (!current) return { error: "Reserva não encontrada." };
+  if (!current || isCancelled(current)) return { error: "Reserva não encontrada." };
   if (isPast(current, nowInStudio())) return { error: "Esse horário já passou e não pode ser remarcado." };
   if (current.date === date && current.time === time) return { error: "Escolha um dia ou horário diferente." };
 
-  const error = await checkSlot(current.serviceId, date, time, id);
-  if (error) return { error };
+  const slot = await checkSlot(current.serviceId, date, time, { ignoreId: id, current: current.professional });
+  if ("error" in slot) return slot;
 
   await updateDb((db) => {
     const r = db.reservations.find((r) => r.id === id);
-    if (r) Object.assign(r, { date, time });
+    if (r) Object.assign(r, { date, time, professional: slot.professional });
   });
   if (formData.get("avisar") === "on") {
     const service = findService(catalogOf(db).services, current.serviceId);
@@ -132,11 +154,8 @@ export async function cancelReservationByAdmin(formData: FormData) {
   const reason = text(formData, "motivo").slice(0, 200);
 
   const db = await readDb();
-  const target = db.reservations.find((r) => r.id === id);
+  const target = await markCancelled(id, "admin", { reason });
   if (!target) return;
-  await updateDb((db) => {
-    db.reservations = db.reservations.filter((r) => r.id !== id);
-  });
 
   const upcoming = !isPast(target, nowInStudio());
   if (upcoming && formData.get("avisar") === "on") {
@@ -161,7 +180,7 @@ export async function setAttendance(formData: FormData) {
   await updateDb((db) => {
     const r = db.reservations.find((r) => r.id === id);
     // Só depois do horário dá para saber se o cliente veio.
-    if (!r || !isPast(r, now)) return;
+    if (!r || isCancelled(r) || !isPast(r, now)) return;
     if (attendance) r.attendance = attendance;
     else delete r.attendance;
   });

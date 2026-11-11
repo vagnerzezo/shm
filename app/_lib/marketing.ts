@@ -40,6 +40,7 @@ function visitsOf(reservations: StoredReservation[], now: { date: string; minute
   const visits = new Map<string, Visit>();
   const upcoming = new Set<string>();
   for (const r of reservations) {
+    if (r.cancelledAt) continue;
     if (!isPast(r, now)) {
       upcoming.add(r.userId);
       continue;

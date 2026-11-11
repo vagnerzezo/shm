@@ -30,6 +30,7 @@ export const metadata: Metadata = {
 function StatusBadge({ status }: { status: ReservationStatus }) {
   if (status === "agendado") return <Badge tone="dark">Agendado</Badge>;
   if (status === "faltou") return <Badge tone="red">Faltou</Badge>;
+  if (status === "cancelada") return <Badge tone="outline">Cancelada</Badge>;
   return <Badge>Realizado</Badge>;
 }
 
@@ -38,7 +39,7 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
   const filters = parseFilters(await props.searchParams);
   const now = nowInStudio();
 
-  const all = await getAgenda();
+  const all = await getAgenda(undefined, undefined, { includeCancelled: true });
   const { professionals } = await getCatalog();
   const rows = filterHistory(all, filters, now);
   const stats = summarize(rows, now);
@@ -148,7 +149,7 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
         )}
 
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <Stat label="HORÁRIOS" value={String(stats.total)} />
+          <Stat label="HORÁRIOS" value={String(stats.total)} hint={stats.cancelled > 0 ? `${stats.cancelled} ${stats.cancelled === 1 ? "cancelado" : "cancelados"} fora da conta` : undefined} />
           <Stat label="CLIENTES" value={String(stats.customers)} />
           <Stat label="REALIZADOS" value={String(stats.done)} />
           <Stat label="FALTAS" value={String(stats.missed)} hint={stats.done + stats.missed > 0 ? `${Math.round((stats.missed / (stats.done + stats.missed)) * 100)}% dos atendimentos passados` : undefined} />
@@ -215,7 +216,7 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
                         <span className="text-black">{r.service.name}</span>
                         {r.note && <span className="block italic text-black/60">“{r.note}”</span>}
                       </td>
-                      <td className={cn("font-semibold text-black md:px-4 md:py-3", status === "faltou" && "text-black/40 line-through")}>
+                      <td className={cn("font-semibold text-black md:px-4 md:py-3", (status === "faltou" || status === "cancelada") && "text-black/40 line-through")}>
                         {formatPrice(r.service.priceCents)}
                       </td>
                       <td className="text-right md:px-4 md:py-3 md:text-left">

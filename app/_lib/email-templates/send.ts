@@ -35,13 +35,14 @@ async function deliver(to: string, email: BuiltEmail, idempotencyKey: string, ki
   }
 }
 
-export function toBookingInfo(r: Pick<StoredReservation, "date" | "time" | "priceCents">, service: Service): BookingInfo {
+export function toBookingInfo(r: Pick<StoredReservation, "date" | "time" | "priceCents" | "professional">, service: Service): BookingInfo {
   return {
     serviceName: service.name,
     date: r.date,
     time: r.time,
     durationMinutes: service.durationMinutes,
-    professional: service.professional,
+    // Quem atende nesta reserva (serviços sem profissional fixo recebem um na marcação).
+    professional: r.professional ?? service.professional,
     // Preço combinado na reserva; reservas antigas usam o do catálogo.
     priceCents: r.priceCents ?? service.priceCents,
   };
@@ -76,10 +77,10 @@ export async function sendBookingConfirmedEmail(userId: string, reservationIds: 
   await deliver(user.email, email, `agendamento:${[...reservationIds].sort().join(",")}`, "agendamento");
 }
 
-/** A reserva já foi apagada do banco quando isto roda: quem chama passa os dados dela. */
+/** Quem chama passa os dados da reserva como estavam antes de cancelar. */
 export async function sendBookingCancelledEmail(
   userId: string,
-  reservation: Pick<StoredReservation, "id" | "serviceId" | "date" | "time" | "priceCents">,
+  reservation: Pick<StoredReservation, "id" | "serviceId" | "date" | "time" | "priceCents" | "professional">,
   options: { byStudio: boolean; reason?: string },
 ) {
   const db = await readDb();

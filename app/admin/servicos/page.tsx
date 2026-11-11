@@ -6,6 +6,7 @@ import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card, dangerLink, EmptyState, linkButton, PageTitle, primaryButton, scrollArea } from "@/app/_components/ui";
 import { colorDot } from "@/app/_lib/agenda";
 import { requireAdmin } from "@/app/_lib/auth";
+import { nowInStudio } from "@/app/_lib/availability";
 import { getCatalog } from "@/app/_lib/catalog";
 import { deleteService, toggleService } from "@/app/_lib/catalog-actions";
 import { readDb } from "@/app/_lib/db";
@@ -27,6 +28,7 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
 
   const { services, professionals } = await getCatalog();
   const { reservations } = await readDb();
+  const today = nowInStudio().date;
   const used = new Map<string, number>();
   for (const r of reservations) used.set(r.serviceId, (used.get(r.serviceId) ?? 0) + 1);
   const editing = services.find((s) => s.id === editId);
@@ -132,6 +134,8 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
             ...p,
             dot: colorDot(p.color),
             services: services.filter((s) => s.professional === p.name).length,
+            // Atendimentos futuros atribuídos a ele (inclui serviços sem profissional fixo).
+            upcoming: reservations.filter((r) => r.professional === p.name && !r.cancelledAt && r.date >= today).length,
           }))}
         />
       </div>

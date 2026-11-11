@@ -142,6 +142,16 @@ export type StoredReservation = {
   priceCents?: number;
   /** Reserva criada pelo estúdio (cliente ligou ou chegou sem marcar). */
   createdBy?: "admin";
+  /**
+   * Quem atende. Gravado na marcação; nos serviços sem profissional fixo, é o
+   * escolhido entre os livres. Ausente em reservas antigas: vale o do serviço.
+   */
+  professional?: string;
+  /** Cancelada: sai da agenda e libera o horário, mas fica no histórico. */
+  cancelledAt?: string;
+  cancelledBy?: Role;
+  /** Motivo informado pelo estúdio. */
+  cancelReason?: string;
 };
 
 export type StoredService = {

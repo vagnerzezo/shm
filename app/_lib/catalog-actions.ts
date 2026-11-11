@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "./auth";
+import { nowInStudio } from "./availability";
 import { catalogOf } from "./catalog";
 import { updateDb, type ProfessionalColor } from "./db";
 import { normalize } from "./format";
@@ -145,6 +146,7 @@ export async function saveProfessional(_prev: CatalogFormState, formData: FormDa
       if (original !== name) {
         for (const s of services) if (s.professional === original) s.professional = name;
         for (const c of db.closures) if (c.professional === original) c.professional = name;
+        for (const r of db.reservations) if (r.professional === original) r.professional = name;
       }
     } else {
       professionals.push({ name, color });
@@ -163,6 +165,9 @@ export async function deleteProfessional(formData: FormData) {
     const { services, professionals } = ensureCatalog(db);
     // Com serviços ligados, a tela nem oferece a exclusão; aqui é só a garantia.
     if (services.some((s) => s.professional === name)) return;
+    // Nem com atendimentos futuros atribuídos a ele (serviços sem profissional fixo).
+    const today = nowInStudio().date;
+    if (db.reservations.some((r) => r.professional === name && !r.cancelledAt && r.date >= today)) return;
     db.professionals = professionals.filter((p) => p.name !== name);
   });
   refresh();

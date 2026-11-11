@@ -13,14 +13,14 @@ import {
   safeNext,
   verifyPassword,
 } from "./auth";
-import { nowInStudio } from "./availability";
+import { nowInStudio, pickProfessional } from "./availability";
 import { parseItems, toKeys, withItems } from "./booking";
 import { readDb, updateDb } from "./db";
 import { readProfile } from "./profile";
 import { getBookableServices } from "./catalog";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
 import { sendBookingCancelledEmail, sendBookingConfirmedEmail, sendWelcomeEmail } from "./email-templates/send";
-import { addReservations, getBookingBusy, getReservations, isPast, removeReservation } from "./reservations";
+import { addReservations, getBookingBusy, getReservations, isPast, markCancelled } from "./reservations";
 import { getAvailabilityRules } from "./schedule";
 
 export type FormState = { error: string | null };
@@ -72,7 +72,9 @@ export async function confirmBooking(_prev: FormState, formData: FormData): Prom
 
   // Revalida tudo no servidor: o horário pode ter passado ou conflitar com
   // uma reserva feita em outra aba.
-  const items = parseItems(keys, nowInStudio(), await getBookingBusy(user.id), await getAvailabilityRules(), await getBookableServices());
+  const busy = await getBookingBusy(user.id);
+  const rules = await getAvailabilityRules();
+  const items = parseItems(keys, nowInStudio(), busy, rules, await getBookableServices());
   if (items.length === 0 || items.length !== keys.length) {
     return { error: "Um dos horários não está mais disponível. Remova-o e escolha outro." };
   }
@@ -83,6 +85,8 @@ export async function confirmBooking(_prev: FormState, formData: FormData): Prom
       userId: user.id,
       serviceId: i.service.id,
       priceCents: i.service.priceCents,
+      // parseItems já garantiu que há alguém livre; sem fixo, vai o livre com menos atendimentos no dia.
+      professional: pickProfessional(i.service, i.date, i.time, busy, rules) ?? undefined,
       date: i.date,
       time: i.time,
       note: note || undefined,
@@ -99,7 +103,7 @@ export async function cancelReservation(formData: FormData) {
   const target = (await getReservations(user.id)).find((r) => r.id === id);
   // Só dá para cancelar o que ainda não aconteceu.
   if (!target || isPast(target, nowInStudio())) return;
-  await removeReservation(user.id, id);
+  if (!(await markCancelled(id, "cliente", { userId: user.id }))) redirect("/reservas");
   after(() => sendBookingCancelledEmail(user.id, target, { byStudio: false }));
   // Recarrega a lista (senão a reserva cancelada continua na tela) e tira o
   // "Reserva confirmada!" que pode ter ficado no endereço.

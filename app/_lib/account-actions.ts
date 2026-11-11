@@ -8,7 +8,7 @@ import { addMessage } from "./chat";
 import { purgeUser, readDb, updateDb } from "./db";
 import { withNotice } from "./notices";
 import { completePasswordReset, startPasswordReset } from "./password-reset";
-import { getBookingBusy, isPast } from "./reservations";
+import { getBookingBusy, isCancelled, isPast, keepOrPick } from "./reservations";
 import { getAvailabilityRules } from "./schedule";
 import { findService } from "./services";
 import { unsubscribeByToken } from "./unsubscribe";
@@ -96,7 +96,7 @@ export async function rescheduleMyReservation(_prev: RescheduleState, formData: 
 
   const current = (await readDb()).reservations.find((r) => r.id === id && r.userId === me.id);
   const now = nowInStudio();
-  if (!current) return { error: "Reserva não encontrada." };
+  if (!current || isCancelled(current)) return { error: "Reserva não encontrada." };
   if (isPast(current, now)) return { error: "Esse horário já passou e não pode ser remarcado." };
   if (current.date === date && current.time === time) return { error: "Escolha um dia ou horário diferente." };
 
@@ -104,14 +104,16 @@ export async function rescheduleMyReservation(_prev: RescheduleState, formData: 
   if (!service) return { error: "Esse serviço não está mais disponível para remarcar. Fale com o estúdio." };
   // Revalida no servidor: o horário pode ter sido ocupado depois que a tela abriu.
   const busy = await getBookingBusy(me.id, id);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !getSlots(service, date, now, busy, await getAvailabilityRules()).includes(time)) {
+  const rules = await getAvailabilityRules();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !getSlots(service, date, now, busy, rules).includes(time)) {
     return { error: "Esse horário não está mais disponível. Escolha outro." };
   }
+  const professional = keepOrPick(current.professional, service, date, time, busy, rules);
 
   const moved = await updateDb((db) => {
     const r = db.reservations.find((r) => r.id === id && r.userId === me.id);
-    if (!r || r.date !== current.date || r.time !== current.time) return false;
-    Object.assign(r, { date, time });
+    if (!r || isCancelled(r) || r.date !== current.date || r.time !== current.time) return false;
+    Object.assign(r, { date, time, professional });
     return true;
   });
   if (!moved) return { error: "A reserva mudou enquanto você escolhia. Abra de novo e tente outra vez." };

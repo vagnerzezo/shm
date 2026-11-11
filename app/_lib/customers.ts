@@ -2,7 +2,7 @@ import { roleOf } from "./auth";
 import { nowInStudio } from "./availability";
 import { readDb, type Consent } from "./db";
 import { catalogOf } from "./catalog";
-import { isDone, isPast } from "./reservations";
+import { isCancelled, isDone, isPast } from "./reservations";
 import { findService } from "./services";
 
 /** Cliente visto pelo admin, com os números das reservas dele. */
@@ -18,6 +18,8 @@ export type CustomerSummary = {
   visits: number;
   /** Faltas marcadas pelo admin. */
   missed: number;
+  /** Reservas canceladas (pelo cliente ou pelo estúdio). */
+  cancelled: number;
   spentCents: number;
   lastVisit: { date: string; time: string; serviceName: string } | null;
   nextBooking: { date: string; time: string; serviceName: string } | null;
@@ -34,9 +36,10 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
   return db.users
     .filter((u) => roleOf(u) === "cliente")
     .map((u) => {
-      const reservations = (byUser.get(u.id) ?? []).sort((a, b) =>
-        `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`),
-      );
+      const all = byUser.get(u.id) ?? [];
+      const reservations = all
+        .filter((r) => !isCancelled(r))
+        .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
       const past = reservations.filter((r) => isDone(r, now));
       const missed = reservations.filter((r) => isPast(r, now) && r.attendance === "faltou").length;
       const upcoming = reservations.filter((r) => !isPast(r, now));
@@ -53,6 +56,7 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
         disabledAt: u.disabledAt ?? null,
         visits: past.length,
         missed,
+        cancelled: all.length - reservations.length,
         spentCents: past.reduce((sum, r) => sum + (r.priceCents ?? getService(r.serviceId)?.priceCents ?? 0), 0),
         lastVisit: brief(past.at(-1)),
         nextBooking: brief(upcoming[0]),

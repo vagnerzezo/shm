@@ -14,8 +14,8 @@
 1. **Existe um único sistema**: uma aplicação web monolítica (Next.js) que reúne o site de agendamento do cliente e o painel administrativo do estúdio. Não há outros serviços, bancos ou repositórios neste diretório.
 2. **Quase toda a lógica é interna ao Next.js**: 47 Server Actions fazem as gravações e as páginas leem o banco direto no servidor. Só existem 6 rotas HTTP, todas de apoio (exportar CSV, imagens, cron, descadastro).
 3. **O banco é um arquivo JSON** (`.data/db.json`), sem transações, índices nem restrições. É o maior impedimento para produção e para qualquer API pública.
-4. **A disponibilidade de horários é simulada**: o cliente só enxerga cerca de 1 em cada 6 horários da grade, escolhidos por um cálculo fixo, e não pela ocupação real. Isso precisa de uma decisão de negócio antes de virar contrato de API.
-5. **Cancelar apaga a reserva**: não existe situação "cancelada" nem histórico de cancelamentos.
+4. **Disponibilidade pela ocupação real** (desde 2026-11-11): o cliente vê todos os horários livres. Antes, um sorteio do protótipo mostrava só cerca de 1 em cada 6.
+5. **Cancelar guarda a reserva como "cancelada"** (desde 2026-11-11), com quem cancelou, quando e o motivo. Antes, a reserva era apagada.
 6. **Integração externa real, só uma**: Resend (envio de e-mail). Pagamento, WhatsApp/SMS e calendário externo não existem.
 
 ---
@@ -199,12 +199,10 @@ Um horário é oferecido ao cliente quando **todas** as condições valem:
 1. o dia está entre hoje e a janela máxima;
 2. o dia é de funcionamento e não está em fechamento (do estúdio ou do profissional do serviço);
 3. o horário respeita a antecedência mínima, se for hoje;
-4. não bate com outra reserva do mesmo cliente (qualquer serviço) nem com reserva de outro cliente com o mesmo profissional;
-5. **o horário passa por um sorteio fixo**: `hash(serviço + dia + minuto) % 6 === 0`.
+4. não bate com outra reserva do mesmo cliente (qualquer serviço);
+5. algum profissional que faz o serviço está livre e sem fechamento nesse intervalo: o profissional fixo do serviço ou, num serviço sem profissional fixo, qualquer um do estúdio.
 
-> **Atenção — item 5.** Essa regra é um resquício da fase de protótipo ("disponibilidade simulada até existir um backend", em `availability.ts`). Na prática, o cliente vê só cerca de 1/6 dos horários livres, sempre os mesmos para cada serviço e dia. O admin não passa por esse filtro. É preciso decidir se isso continua antes de definir o contrato de disponibilidade.
-
-Serviços sem profissional só conflitam entre si; não ocupam a agenda de Heitor ou Jimmy.
+Toda reserva guarda quem atende (`professional`). Num serviço sem profissional fixo, ele é escolhido na marcação: o livre com menos atendimentos no dia. Na remarcação, continua o mesmo se estiver livre. Reservas antigas sem `professional` usam o do serviço; as de serviço sem profissional fixo ocupam "um lugar" entre os livres, sem saber qual. Reservas canceladas não ocupam horário. Regras em `availability.ts` (`getSlots`, `freeProfessionals`, `pickProfessional`).
 
 ### 4.6 Agendamento pelo cliente
 
@@ -218,14 +216,14 @@ Serviços sem profissional só conflitam entre si; não ocupam a agenda de Heito
 ### 4.7 Reservas
 
 - **Situação é calculada, não gravada**: `agendado` (ainda não passou), `realizado` (passou e não foi marcado como falta) ou `faltou` (admin marcou).
-- **Cancelar** (cliente): só reservas futuras e próprias. A reserva é **apagada**. Dispara e-mail de cancelamento.
+- **Cancelar** (cliente): só reservas futuras e próprias. A reserva fica com situação **cancelada** (`cancelledAt`, `cancelledBy`), sai da lista do cliente e libera o horário. Dispara e-mail de cancelamento.
 - **Remarcar** (cliente): só reservas futuras, para um horário disponível do mesmo serviço. Avisa o estúdio por mensagem automática no chat. Não envia e-mail.
 - Não há prazo mínimo para cancelar ou remarcar, nem limite de reservas por cliente.
 
 ### 4.8 Agenda do estúdio
 
 - Visões dia, semana e mês; cores por profissional; linha da hora atual.
-- **Criar reserva** para um cliente (ativo) em qualquer horário, desde que o dia não esteja fechado e não haja conflito com o mesmo profissional. Não se aplicam a janela, a antecedência, o horário de funcionamento nem o sorteio do item 4.5. Pode ser em data passada. Marca `createdBy: "admin"`.
+- **Criar reserva** para um cliente (ativo) em qualquer horário, desde que o dia não esteja fechado e haja um profissional livre (o do serviço ou, sem fixo, qualquer um, escolhido como no item 4.5). Não se aplicam a janela, a antecedência nem o horário de funcionamento. Pode ser em data passada. Marca `createdBy: "admin"`.
 - **Remarcar** e **cancelar** (com motivo opcional de até 200 caracteres).
 - Em cada operação, o admin escolhe se avisa o cliente. Ao avisar: mensagem no chat e, em criação e cancelamento, também e-mail. Remarcação avisa só pelo chat.
 - **Compareceu / faltou**: só depois do horário. Falta não entra no faturamento nem conta como visita.
@@ -349,7 +347,7 @@ Nenhum desses vínculos é garantido pelo banco; a integridade depende do códig
 | Fila de escrita só em memória | Não protege com mais de um processo ou instância |
 | Validação de horário fora da gravação | Duas confirmações simultâneas do mesmo horário podem passar (ver 9.1) |
 | Profissional identificado pelo nome | Precisa virar entidade com id |
-| Reserva sem situação, sem `createdAt`, e apagada ao cancelar | Não há histórico de cancelamentos nem auditoria |
+| Reserva sem `createdAt` | Não há auditoria de quando foi marcada (cancelamento já guarda `cancelledAt`) |
 | Reserva não guarda nome nem duração do serviço | Mudar a duração de um serviço altera a leitura de reservas antigas |
 | Token de sessão em texto puro | Vazamento do arquivo expõe sessões ativas |
 | Datas em formatos mistos | `date`/`time` como texto local, `createdAt` em ISO UTC, `expiresAt` em milissegundos |
@@ -435,9 +433,9 @@ Admin abre `/admin/agenda/nova` → escolhe cliente (ou cadastra um e volta), se
 
 | Quem | Operação | Efeito no banco | Chat | E-mail |
 |---|---|---|---|---|
-| Cliente | cancelar | apaga a reserva | — | cancelamento |
+| Cliente | cancelar | marca como cancelada | — | cancelamento |
 | Cliente | remarcar | troca data e hora | mensagem automática ao estúdio | — |
-| Admin | cancelar | apaga a reserva | se "avisar" e a reserva for futura | se "avisar" e a reserva for futura |
+| Admin | cancelar | marca como cancelada (com motivo) | se "avisar" e a reserva for futura | se "avisar" e a reserva for futura |
 | Admin | remarcar | troca data e hora | se "avisar" | — |
 
 ### 7.4 Ciclo do marketing
@@ -491,7 +489,7 @@ As 47 Server Actions são, na prática, a "API interna" de hoje. Campos entre pa
 | `resetPassword` | `account-actions.ts` | público (token) | `token`, `senha`, `confirmacao` | troca a senha, encerra sessões, entra |
 | `unsubscribe` | `account-actions.ts` | público (token) | `t` | desliga e-mail de marketing |
 | `confirmBooking` | `actions.ts` | cliente | `item[]`, `observacao` | cria reservas; e-mail |
-| `cancelReservation` | `actions.ts` | cliente (dono) | `id` | apaga reserva futura; e-mail |
+| `cancelReservation` | `actions.ts` | cliente (dono) | `id` | marca reserva futura como cancelada; e-mail |
 | `rescheduleMyReservation` | `account-actions.ts` | cliente (dono) | `id`, `data`, `hora` | troca data e hora; mensagem no chat |
 | `updateProfile` | `actions.ts` | logado | dados do perfil | atualiza dados e autorizações |
 | `changePassword` | `account-actions.ts` | logado | `atual`, `senha`, `confirmacao` | troca a senha |
@@ -538,8 +536,8 @@ Todas as actions de admin conferem o perfil no início.
 |---|---|---|
 | 1 | Trocar o JSON por banco relacional com transações | Base de tudo; ver 5.4 |
 | 2 | Reserva atômica | Hoje a validação do horário acontece antes e fora da gravação; duas requisições simultâneas podem ocupar o mesmo horário. Vale para cliente, admin e remarcação |
-| 3 | Decidir a regra de disponibilidade | O sorteio de 1/6 (4.5) não pode ir para um contrato sem decisão |
-| 4 | Decidir o modelo de cancelamento | Apagar ou manter com situação "cancelada" muda o contrato de reservas, o histórico e o faturamento |
+| 3 | ~~Decidir a regra de disponibilidade~~ | Feito em 2026-11-11: todos os horários livres (4.5) |
+| 4 | ~~Decidir o modelo de cancelamento~~ | Feito em 2026-11-11: situação "cancelada", mantida no histórico |
 | 5 | Profissional como entidade com id | Hoje a chave é o nome |
 | 6 | Autenticação para API | O cookie de sessão e os redirecionamentos de `requireUser`/`requireAdmin` servem para a interface web, não para integrações |
 | 7 | Extrair a lógica das Server Actions | Validação, gravação e redirecionamento estão misturados; a API precisa chamar a mesma regra sem duplicar |
@@ -637,15 +635,17 @@ A lista de endpoints propostos (§6 daquele documento) continua útil como ponto
 
 ---
 
-## 11. Decisões pendentes para a próxima fase
+## 11. Decisões para a próxima fase
 
-1. **Disponibilidade**: manter o sorteio de horários ou oferecer todos os horários livres?
-2. **Cancelamento**: continuar apagando ou manter a reserva com situação "cancelada"?
-3. **Quem vai consumir a API**: só a própria interface, um aplicativo, parceiros, automações? Isso define autenticação e o que precisa ser público.
-4. **Banco e hospedagem**: qual banco relacional e onde o sistema vai rodar (servidor contínuo ou serverless)? Afeta o agendador de marketing e o armazenamento de imagens.
-5. **Canal "mensagem"**: continua sendo o chat interno ou vira WhatsApp/SMS?
-6. **Pagamento online**: entra no escopo?
-7. **Agenda por profissional**: serviços sem profissional fixo devem ocupar a agenda de alguém?
+Decididas em 2026-11-11.
+
+1. **Disponibilidade**: o cliente vê **todos os horários livres**, os mesmos que o admin vê. O sorteio do protótipo sai.
+2. **Cancelamento**: a reserva **fica guardada com situação "cancelada"**, junto com quem cancelou, quando e o motivo. Sai da agenda e libera o horário, mas continua no histórico e nas contagens por cliente.
+3. **Quem vai consumir a API**: o **próprio site** e um **app de celular próprio**. Por isso o login precisa funcionar por cookie (site) e por token (app). Não haverá API pública para parceiros nem chaves para automações nesta fase.
+4. **Banco e hospedagem**: **Postgres gerenciado (ex.: Neon) e o site na Vercel**, em modo serverless. O temporizador do marketing vira um cron a cada 15 min, e as imagens dos templates vão para um armazenamento em nuvem.
+5. **Canal "mensagem"**: continua sendo **o chat interno**. A API já deve prever outros canais, e o WhatsApp entra numa fase própria.
+6. **Pagamento online**: **fica fora** desta fase. A reserva continua guardando só o preço.
+7. **Agenda por profissional**: um serviço sem profissional fixo **passa a ser atribuído a um profissional livre** no momento da marcação e ocupa a agenda dele. Se ninguém estiver livre, o horário não aparece.
 
 ---
 

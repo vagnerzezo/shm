@@ -9,7 +9,7 @@ import type { ProfessionalColor } from "@/app/_lib/db";
 import { PROFESSIONAL_COLORS } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
 
-type Row = { name: string; color: ProfessionalColor; dot: string; services: number };
+type Row = { name: string; color: ProfessionalColor; dot: string; services: number; upcoming: number };
 
 const swatch: Record<ProfessionalColor, string> = {
   blue: "bg-blue-500",
@@ -133,7 +133,7 @@ export function ProfessionalsCard({ professionals }: { professionals: Row[] }) {
                 <button type="button" onClick={() => setEditing(p.name)} className={linkButton}>
                   Editar
                 </button>
-                {p.services === 0 ? (
+                {p.services === 0 && p.upcoming === 0 ? (
                   <ConfirmButton
                     action={deleteProfessional}
                     fields={{ nome: p.name }}
@@ -146,8 +146,11 @@ export function ProfessionalsCard({ professionals }: { professionals: Row[] }) {
                     Remover
                   </ConfirmButton>
                 ) : (
-                  <span className="text-xs text-black/40" title="Mova ou exclua os serviços dele antes">
-                    Tem serviços
+                  <span
+                    className="text-xs text-black/40"
+                    title={p.services > 0 ? "Mova ou exclua os serviços dele antes" : "Remarque ou cancele os horários dele antes"}
+                  >
+                    {p.services > 0 ? "Tem serviços" : "Tem horários marcados"}
                   </span>
                 )}
               </div>

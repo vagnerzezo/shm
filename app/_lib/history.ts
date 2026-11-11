@@ -11,9 +11,10 @@ export const statuses = [
   { id: "realizados", label: "Realizados" },
   { id: "proximos", label: "Próximos" },
   { id: "faltas", label: "Faltas" },
+  { id: "canceladas", label: "Canceladas" },
 ] as const;
 
-const statusFilter = { realizados: "realizado", proximos: "agendado", faltas: "faltou" } as const;
+const statusFilter = { realizados: "realizado", proximos: "agendado", faltas: "faltou", canceladas: "cancelada" } as const;
 
 export type HistoryFilters = {
   q: string;
@@ -88,9 +89,12 @@ export function filterHistory(
 
 export function summarize(reservations: AgendaReservation[], now: { date: string; minutes: number }) {
   const done = reservations.filter((r) => isDone(r, now));
+  const cancelled = reservations.filter((r) => statusOf(r, now) === "cancelada").length;
   return {
-    total: reservations.length,
-    customers: new Set(reservations.map((r) => r.customer.id)).size,
+    // Canceladas aparecem na lista, mas não contam como horário marcado.
+    total: reservations.length - cancelled,
+    cancelled,
+    customers: new Set(reservations.filter((r) => statusOf(r, now) !== "cancelada").map((r) => r.customer.id)).size,
     done: done.length,
     missed: reservations.filter((r) => statusOf(r, now) === "faltou").length,
     // Só o que já foi realizado conta como faturado (faltas ficam de fora).

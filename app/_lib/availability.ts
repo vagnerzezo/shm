@@ -1,6 +1,6 @@
-// Disponibilidade simulada até existir um backend: gera horários
-// determinísticos por serviço + dia, dentro do funcionamento configurado em
-// /admin/configuracoes (dias, horário e períodos fechados).
+// Horários livres para marcar: todos os inícios dentro do funcionamento
+// configurado em /admin/configuracoes (dias, horário e períodos fechados) em
+// que o cliente está livre e algum profissional que faz o serviço também está.
 
 import type { Closure, ScheduleSettings } from "./db";
 import type { Service } from "./services";
@@ -18,7 +18,12 @@ export const DEFAULT_SCHEDULE: ScheduleSettings = {
 };
 
 /** Tudo o que decide se um horário existe. Vem do banco e vai até o navegador. */
-export type AvailabilityRules = { settings: ScheduleSettings; closures: Closure[] };
+export type AvailabilityRules = {
+  settings: ScheduleSettings;
+  closures: Closure[];
+  /** Nomes dos profissionais do estúdio: quem pode atender um serviço sem profissional fixo. */
+  professionals: string[];
+};
 
 /** Intervalos possíveis entre um horário e o próximo, em minutos. */
 export const STEP_OPTIONS = [15, 20, 30, 45, 60];
@@ -28,19 +33,13 @@ export type DaySlots = { date: string; times: string[] };
 /**
  * Intervalo ocupado (em minutos do dia). Sem `professional`: é do próprio
  * cliente e bloqueia qualquer serviço (ele não está em dois lugares). Com
- * `professional`: é de outro cliente e só bloqueia o mesmo profissional
- * (`null` = serviços sem profissional fixo).
+ * `professional`: ocupa esse profissional. `null`: reserva antiga de serviço
+ * sem profissional fixo, que ainda não tem ninguém atribuído; ocupa um lugar
+ * entre os profissionais livres.
  */
 export type Busy = { date: string; start: number; end: number; professional?: string | null };
 
-function hash(text: string) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+type SlotService = Pick<Service, "professional" | "durationMinutes">;
 
 export function toMinutes(time: string) {
   const [h, m] = time.split(":").map(Number);
@@ -105,8 +104,52 @@ export function nowInStudio(now = new Date()) {
   };
 }
 
+/**
+ * Profissionais que podem atender `service` em `date`, de `start` a `end`
+ * (minutos do dia), sem contar o próprio cliente. Vazio = ninguém livre.
+ * `[null]` só quando o estúdio não tem profissionais cadastrados.
+ */
+export function freeProfessionals(
+  service: SlotService,
+  date: string,
+  start: number,
+  end: number,
+  busy: Busy[],
+  rules: AvailabilityRules,
+): (string | null)[] {
+  const taken = busy.filter((b) => b.professional !== undefined && b.date === date && b.start < end && start < b.end);
+  if (service.professional) {
+    return taken.some((b) => b.professional === service.professional) ? [] : [service.professional];
+  }
+  const unassigned = taken.filter((b) => b.professional === null).length;
+  if (rules.professionals.length === 0) return unassigned > 0 ? [] : [null];
+  const free = rules.professionals.filter(
+    (p) => !closureOn(date, rules, p) && !taken.some((b) => b.professional === p),
+  );
+  // Reservas antigas sem ninguém atribuído ocupam um dos livres, sem saber qual.
+  return free.length > unassigned ? free : [];
+}
+
+/**
+ * Quem vai atender: o profissional fixo do serviço ou, sem ele, o livre com
+ * menos atendimentos no dia. `undefined` = ninguém livre nesse horário.
+ */
+export function pickProfessional(
+  service: SlotService,
+  date: string,
+  time: string,
+  busy: Busy[],
+  rules: AvailabilityRules,
+): string | null | undefined {
+  const start = toMinutes(time);
+  const free = freeProfessionals(service, date, start, start + service.durationMinutes, busy, rules);
+  if (free.length <= 1) return free[0];
+  const load = (p: string | null) => busy.filter((b) => b.date === date && b.professional === p).length;
+  return free.reduce((best, p) => (load(p) < load(best) ? p : best));
+}
+
 export function getSlots(
-  service: Pick<Service, "id" | "professional" | "durationMinutes">,
+  service: SlotService,
   date: string,
   now: { date: string; minutes: number },
   busy: Busy[],
@@ -117,21 +160,21 @@ export function getSlots(
   if (isClosed(date, rules, service.professional)) return [];
 
   const duration = service.durationMinutes;
-  const taken = busy.filter(
-    (b) => b.date === date && (b.professional === undefined || b.professional === (service.professional ?? null)),
-  );
+  const dayBusy = busy.filter((b) => b.date === date);
+  const mine = dayBusy.filter((b) => b.professional === undefined);
   const times: string[] = [];
   const last = toMinutes(settings.lastStartTime);
   for (let m = toMinutes(settings.openTime); m <= last; m += settings.stepMinutes) {
     if (date === now.date && m <= now.minutes + settings.minNoticeMinutes) continue;
-    if (taken.some((b) => m < b.end && b.start < m + duration)) continue;
-    if (hash(`${service.id}|${date}|${m}`) % 6 === 0) times.push(toTime(m));
+    if (mine.some((b) => m < b.end && b.start < m + duration)) continue;
+    if (freeProfessionals(service, date, m, m + duration, dayBusy, rules).length === 0) continue;
+    times.push(toTime(m));
   }
   return times;
 }
 
 export function getSuggestedDays(
-  service: Pick<Service, "id" | "professional" | "durationMinutes">,
+  service: SlotService,
   now: { date: string; minutes: number },
   busy: Busy[],
   rules: AvailabilityRules,

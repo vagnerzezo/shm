@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { FlashToast } from "./_components/flash-toast";
 import { Toaster } from "./_components/toaster";
-import { CalendarGridIcon, ChatIcon, HistoryIcon, UserIcon } from "./_components/icons";
+import { ClientHome } from "./_components/client-home";
+import { CalendarGridIcon, HistoryIcon, UserIcon } from "./_components/icons";
+import { PanelFrame } from "./_components/panel-frame";
 import { getCurrentUser } from "./_lib/auth";
-import { getCustomerUnreadCount } from "./_lib/chat";
 
 const buttonClass =
   "flex h-[72px] w-full items-center justify-center gap-3 rounded-xl border border-black bg-white text-lg font-semibold text-black transition hover:bg-black hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
@@ -15,7 +16,14 @@ export default async function Home() {
   const user = await getCurrentUser();
   // O admin tem o Início próprio no painel, com o resumo do dia.
   if (user?.role === "admin") redirect("/admin");
-  const unread = user?.role === "cliente" ? await getCustomerUnreadCount(user.id) : 0;
+  // Cliente logado: Início dentro do painel, com o mesmo menu das outras telas.
+  if (user) {
+    return (
+      <PanelFrame area="cliente">
+        <ClientHome customer={user} />
+      </PanelFrame>
+    );
+  }
 
   return (
     <main className="relative flex min-h-screen w-full bg-black p-4 sm:p-6">
@@ -47,26 +55,13 @@ export default async function Home() {
             <CalendarGridIcon className="size-6" />
             Minhas reservas
           </Link>
-          {user && (
-            <Link href="/mensagens" className={buttonClass}>
-              <ChatIcon className="size-6" />
-              Mensagens
-              {unread > 0 && (
-                <span
-                  aria-label={`${unread} não ${unread === 1 ? "lida" : "lidas"}`}
-                  className="min-w-6 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-xs font-bold text-white"
-                >
-                  {unread > 99 ? "99+" : unread}
-                </span>
-              )}
-            </Link>
-          )}
+          {/* Só visitantes chegam aqui: quem está logado vê o Início do painel. */}
           <Link
-            href={user ? "/conta" : "/login"}
+            href="/login"
             className="flex items-center justify-center gap-2 text-base font-semibold text-black underline underline-offset-4 hover:text-black/70"
           >
             <UserIcon className="size-5" />
-            {user ? `Olá, ${user.name.split(" ")[0]} · Meus dados` : "Entrar ou criar conta"}
+            Entrar ou criar conta
           </Link>
         </nav>
 

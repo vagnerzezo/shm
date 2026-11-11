@@ -1,9 +1,11 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { eq, getTableColumns, getTableName, inArray, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { PgTable } from "drizzle-orm/pg-core";
+import { Pool } from "pg";
 import { DEFAULT_SCHEDULE } from "./availability";
+import * as t from "./db-schema";
 
-// Banco simulado num arquivo JSON até existir um backend. Funciona em
-// `next dev` / `next start` com disco local; não serve para serverless.
+// Tipos do banco e acesso ao Postgres. Tabelas em `db-schema.ts`.
 
 export type Role = "admin" | "cliente";
 
@@ -213,43 +215,168 @@ type Db = {
   passwordResets?: PasswordReset[];
 };
 
-// Chaves que vieram depois: arquivos antigos não as têm.
-const empty = (): Db => ({
-  users: [],
-  sessions: [],
-  reservations: [],
-  messages: [],
-  templates: [],
-  rules: [],
-  dispatches: [],
-  marketing: { email: { enabled: false }, mensagem: { enabled: false } },
-  schedule: DEFAULT_SCHEDULE,
-  closures: [],
-});
+const DEFAULT_MARKETING: MarketingSettings = { email: { enabled: false }, mensagem: { enabled: false } };
 
-const FILE = path.join(process.cwd(), ".data", "db.json");
+// ---------------------------------------------------------------------------
+// Armazenamento no Postgres (Neon). `readDb` monta o banco inteiro numa
+// consulta só; `updateDb` roda a mudança numa transação com trava e grava só
+// as linhas que mudaram. As telas e ações continuam usando o formato `Db`.
 
-export async function readDb(): Promise<Db> {
-  try {
-    return { ...empty(), ...(JSON.parse(await fs.readFile(FILE, "utf8")) as Partial<Db>) };
-  } catch {
-    return empty();
+const g = globalThis as unknown as { shmPool?: Pool };
+// Um pool por processo (o `next dev` recarrega módulos, então fica no globalThis).
+const pool = (g.shmPool ??= new Pool({ connectionString: process.env.DATABASE_URL, max: 5 }));
+const orm = drizzle(pool, { casing: "snake_case" });
+type Tx = Parameters<Parameters<typeof orm.transaction>[0]>[0];
+
+type ListField =
+  | "users"
+  | "sessions"
+  | "passwordResets"
+  | "services"
+  | "professionals"
+  | "reservations"
+  | "messages"
+  | "templates"
+  | "rules"
+  | "dispatches"
+  | "closures";
+
+/** Ordem de gravação: tabelas de quem os outros dependem primeiro (exclusões vão na ordem inversa). */
+const LISTS: { field: ListField; table: PgTable; key: string; nulls?: string[] }[] = [
+  { field: "users", table: t.users, key: "id" },
+  { field: "sessions", table: t.sessions, key: "token" },
+  { field: "passwordResets", table: t.passwordResets, key: "tokenHash" },
+  { field: "services", table: t.services, key: "id" },
+  { field: "professionals", table: t.professionals, key: "name" },
+  { field: "reservations", table: t.reservations, key: "id" },
+  { field: "messages", table: t.messages, key: "id" },
+  { field: "templates", table: t.templates, key: "id" },
+  // `templateId` é `null` (não ausente) quando a regra usa o template padrão.
+  { field: "rules", table: t.rules, key: "id", nulls: ["templateId"] },
+  { field: "dispatches", table: t.dispatches, key: "id" },
+  { field: "closures", table: t.closures, key: "id" },
+];
+
+const SETTINGS = ["schedule", "marketing", "studio"] as const;
+
+const snake = (name: string) => name.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
+const fieldsOf = (table: PgTable) => Object.entries(getTableColumns(table)).filter(([prop]) => prop !== "seq");
+
+/** Uma consulta que devolve todas as tabelas como JSON, já com os nomes das propriedades. */
+const READ_SQL = (() => {
+  const lists = LISTS.map(({ field, table }) => {
+    const pairs = fieldsOf(table).map(([prop]) => `'${prop}', x.${quote(snake(prop))}`).join(", ");
+    return `'${field}', (select coalesce(json_agg(json_build_object(${pairs}) order by x.seq), '[]'::json) from ${quote(getTableName(table))} x)`;
+  });
+  return `select json_build_object(${lists.join(", ")}, 'settings', (select coalesce(json_object_agg(key, value), '{}'::json) from settings)) as db`;
+})();
+
+type Row = Record<string, unknown>;
+
+/** Linha do banco -> objeto do sistema: sem campos nulos e datas em ISO, como no JSON antigo. */
+function fromRow(table: PgTable, row: Row, nulls: string[] = []) {
+  const out: Row = {};
+  for (const [prop, column] of fieldsOf(table)) {
+    const value = row[prop];
+    if (value === null || value === undefined) {
+      if (nulls.includes(prop)) out[prop] = null;
+      continue;
+    }
+    out[prop] = column.columnType === "PgTimestamp" ? new Date(value as string).toISOString() : value;
+  }
+  return out;
+}
+
+/** Objeto do sistema -> valores das colunas. */
+function toRow(table: PgTable, obj: Row) {
+  const out: Row = {};
+  for (const [prop, column] of fieldsOf(table)) {
+    const value = obj[prop];
+    out[prop] = value === undefined || value === null ? null : column.columnType === "PgTimestamp" ? new Date(value as string) : value;
+  }
+  return out;
+}
+
+/** JSON com chaves em ordem e sem `undefined`, para comparar antes e depois. */
+function stable(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stable(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+async function load(runner: Pick<Tx, "execute"> = orm): Promise<Db> {
+  const result = await runner.execute(sql.raw(READ_SQL));
+  const raw = (result.rows[0] as { db: Record<string, unknown> }).db;
+  const lists = Object.fromEntries(
+    LISTS.map(({ field, table, nulls }) => [field, (raw[field] as Row[]).map((row) => fromRow(table, row, nulls))]),
+  ) as Record<ListField, unknown[]>;
+  const settings = raw.settings as Partial<Pick<Db, (typeof SETTINGS)[number]>>;
+  return {
+    ...(lists as unknown as Pick<Db, Exclude<ListField, "services" | "professionals" | "passwordResets">>),
+    passwordResets: lists.passwordResets as PasswordReset[],
+    // Catálogo vazio = ainda não salvo: valem os padrões de `catalog.ts`.
+    services: lists.services.length ? (lists.services as StoredService[]) : undefined,
+    professionals: lists.professionals.length ? (lists.professionals as StoredProfessional[]) : undefined,
+    schedule: settings.schedule ?? DEFAULT_SCHEDULE,
+    marketing: settings.marketing ?? DEFAULT_MARKETING,
+    studio: settings.studio,
+  };
+}
+
+/** Grava a diferença entre `before` e `after`. */
+async function save(tx: Tx, before: Db, after: Db) {
+  const removals: (() => Promise<unknown>)[] = [];
+  for (const { field, table, key } of LISTS) {
+    const keyColumn = getTableColumns(table)[key];
+    const old = new Map(((before[field] ?? []) as Row[]).map((r) => [String(r[key]), stable(r)]));
+    const now = (after[field] ?? []) as Row[];
+    const kept = new Set<string>();
+    for (const obj of now) {
+      const id = String(obj[key]);
+      kept.add(id);
+      const previous = old.get(id);
+      if (previous === undefined) await tx.insert(table).values(toRow(table, obj));
+      else if (previous !== stable(obj)) await tx.update(table).set(toRow(table, obj)).where(eq(keyColumn, id));
+    }
+    const gone = [...old.keys()].filter((id) => !kept.has(id));
+    if (gone.length) removals.unshift(() => tx.delete(table).where(inArray(keyColumn, gone)));
+  }
+  for (const remove of removals) await remove();
+
+  for (const name of SETTINGS) {
+    const value = after[name];
+    if (stable(value) === stable(before[name])) continue;
+    if (value === undefined) await tx.delete(t.settings).where(eq(t.settings.key, name));
+    else {
+      await tx
+        .insert(t.settings)
+        .values({ key: name, value })
+        .onConflictDoUpdate({ target: t.settings.key, set: { value } });
+    }
   }
 }
 
-// Escritas em fila, para duas requisições não sobrescreverem uma à outra.
-let queue: Promise<unknown> = Promise.resolve();
+export async function readDb(): Promise<Db> {
+  return load();
+}
 
+/**
+ * Aplica `change` ao banco numa transação. A trava faz as gravações
+ * acontecerem uma de cada vez, mesmo com vários servidores (serverless).
+ */
 export function updateDb<T>(change: (db: Db) => T): Promise<T> {
-  const run = queue.then(async () => {
-    const db = await readDb();
+  return orm.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(7243001)`);
+    const before = await load(tx);
+    const db = structuredClone(before);
     const result = change(db);
-    await fs.mkdir(path.dirname(FILE), { recursive: true });
-    await fs.writeFile(FILE, JSON.stringify(db, null, 2));
+    await save(tx, before, db);
     return result;
   });
-  queue = run.catch(() => {});
-  return run;
 }
 
 /** Remove o cliente e tudo ligado a ele (LGPD). Chamar dentro de `updateDb`. */

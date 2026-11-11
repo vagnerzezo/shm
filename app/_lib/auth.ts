@@ -1,11 +1,10 @@
-import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { readDb, updateDb, type Consent, type Role, type User } from "./db";
 
-const scryptAsync = promisify(scrypt) as (pw: string, salt: string, len: number) => Promise<Buffer>;
+export { hashPassword, verifyPassword } from "./passwords";
 
 const SESSION_COOKIE = "shm_sessao";
 const SESSION_DAYS = 30;
@@ -32,19 +31,6 @@ export function roleOf(user: Pick<User, "email" | "role">): Role {
 /** Para onde cada perfil vai quando não há um `next`. */
 export function homeOf(user: Pick<User, "email" | "role">) {
   return roleOf(user) === "admin" ? "/admin" : "/reservas";
-}
-
-export async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const hash = await scryptAsync(password, salt, 64);
-  return `${salt}:${hash.toString("hex")}`;
-}
-
-export async function verifyPassword(password: string, stored: string) {
-  const [salt, hash] = stored.split(":");
-  const expected = Buffer.from(hash, "hex");
-  const actual = await scryptAsync(password, salt, expected.length);
-  return timingSafeEqual(actual, expected);
 }
 
 /** Só em Server Actions: grava a sessão e o cookie. */

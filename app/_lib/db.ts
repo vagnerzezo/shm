@@ -225,7 +225,7 @@ const DEFAULT_MARKETING: MarketingSettings = { email: { enabled: false }, mensag
 const g = globalThis as unknown as { shmPool?: Pool };
 // Um pool por processo (o `next dev` recarrega módulos, então fica no globalThis).
 const pool = (g.shmPool ??= new Pool({ connectionString: process.env.DATABASE_URL, max: 5 }));
-const orm = drizzle(pool, { casing: "snake_case" });
+export const orm = drizzle(pool, { casing: "snake_case" });
 type Tx = Parameters<Parameters<typeof orm.transaction>[0]>[0];
 
 type ListField =

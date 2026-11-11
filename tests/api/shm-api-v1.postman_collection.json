@@ -1,0 +1,69 @@
+{
+  "info": {
+    "name": "SHM API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Studio",
+      "item": [
+        {
+          "name": "Dados do estúdio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"tem nome e endereço\", () => { pm.expect(json.name).to.be.a(\"string\"); pm.expect(json.address).to.be.an(\"array\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/studio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "studio"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Método não suportado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 405\", () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/studio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "studio"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

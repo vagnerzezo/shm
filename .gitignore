@@ -43,3 +43,9 @@ next-env.d.ts
 # banco simulado local
 /.data/
 !.env.example
+
+# rascunho do plano em execução
+.superpowers
+# banco e servidor de teste
+.env.test
+.next-test

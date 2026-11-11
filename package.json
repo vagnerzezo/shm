@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --env-file=.env.test --test tests/*.test.ts",
+    "test:migrate": "node --env-file=.env.test node_modules/drizzle-kit/bin.cjs migrate",
+    "test:reset": "tsx --env-file=.env.test scripts/test-reset.ts",
+    "test:server": "sh scripts/test-server.sh",
+    "test:api": "pnpm run test:reset && node tests/api/build-collection.mjs && postman collection run tests/api/shm-api-v1.postman_collection.json -e tests/api/local.postman_environment.json"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

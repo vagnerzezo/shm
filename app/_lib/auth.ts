@@ -1,46 +1,17 @@
-import { randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { readDb, updateDb, type Consent, type Role, type User } from "./db";
+import type { Customer } from "./roles";
+import { createSessionToken, findSessionUser, revokeSession } from "./sessions";
 
 export { hashPassword, verifyPassword } from "./passwords";
+export { homeOf, roleOf, type Customer } from "./roles";
 
 const SESSION_COOKIE = "shm_sessao";
-const SESSION_DAYS = 30;
-
-/** Dados do cliente que podem ir para a tela (sem senha). */
-export type Customer = {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  role: Role;
-  consent: Consent;
-};
-
-/** E-mails em `ADMIN_EMAILS` (separados por vírgula) também entram como admin. */
-export function roleOf(user: Pick<User, "email" | "role">): Role {
-  const admins = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return user.role === "admin" || admins.includes(user.email) ? "admin" : "cliente";
-}
-
-/** Para onde cada perfil vai quando não há um `next`. */
-export function homeOf(user: Pick<User, "email" | "role">) {
-  return roleOf(user) === "admin" ? "/admin" : "/reservas";
-}
 
 /** Só em Server Actions: grava a sessão e o cookie. */
 export async function createSession(userId: string) {
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  await updateDb((db) => {
-    db.sessions = db.sessions.filter((s) => s.expiresAt > Date.now());
-    db.sessions.push({ token, userId, expiresAt });
-  });
+  const { token, expiresAt } = await createSessionToken(userId);
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -54,26 +25,23 @@ export async function createSession(userId: string) {
 export async function deleteSession() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (token) await updateDb((db) => void (db.sessions = db.sessions.filter((s) => s.token !== token)));
+  if (token) await revokeSession(token);
   store.delete(SESSION_COOKIE);
 }
 
+/** Token da requisição: `Authorization: Bearer <token>` (app) tem prioridade sobre o cookie (site). */
+export async function currentToken(): Promise<string | null> {
+  const authorization = (await headers()).get("authorization");
+  if (authorization !== null) {
+    const match = /^Bearer\s+(\S+)$/i.exec(authorization.trim());
+    return match ? match[1] : null;
+  }
+  return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
+}
+
 export const getCurrentUser = cache(async (): Promise<Customer | null> => {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const db = await readDb();
-  const session = db.sessions.find((s) => s.token === token && s.expiresAt > Date.now());
-  const user = session && db.users.find((u) => u.id === session.userId);
-  // Conta desativada perde o acesso mesmo com sessão aberta.
-  if (!user || user.disabledAt) return null;
-  return {
-    id: user.id,
-    name: user.name,
-    phone: user.phone,
-    email: user.email,
-    role: roleOf(user),
-    consent: user.consent ?? { email: false, mensagem: false },
-  };
+  const token = await currentToken();
+  return token ? findSessionUser(token) : null;
 });
 
 /** Aceita só caminhos internos, para o `next` não virar redirecionamento aberto. */

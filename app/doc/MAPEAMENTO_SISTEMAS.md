@@ -13,7 +13,7 @@
 
 1. **Existe um único sistema**: uma aplicação web monolítica (Next.js) que reúne o site de agendamento do cliente e o painel administrativo do estúdio. Não há outros serviços, bancos ou repositórios neste diretório.
 2. **Quase toda a lógica é interna ao Next.js**: 47 Server Actions fazem as gravações e as páginas leem o banco direto no servidor. Só existem 6 rotas HTTP, todas de apoio (exportar CSV, imagens, cron, descadastro).
-3. **O banco é um arquivo JSON** (`.data/db.json`), sem transações, índices nem restrições. É o maior impedimento para produção e para qualquer API pública.
+3. **Banco no Postgres (Neon, projeto `shm-app`) desde 2026-11-11.** Antes era um arquivo JSON (`.data/db.json`), sem transações, índices nem restrições. Ver 5.1. É o maior impedimento para produção e para qualquer API pública.
 4. **Disponibilidade pela ocupação real** (desde 2026-11-11): o cliente vê todos os horários livres. Antes, um sorteio do protótipo mostrava só cerca de 1 em cada 6.
 5. **Cancelar guarda a reserva como "cancelada"** (desde 2026-11-11), com quem cancelou, quando e o motivo. Antes, a reserva era apagada.
 6. **Integração externa real, só uma**: Resend (envio de e-mail). Pagamento, WhatsApp/SMS e calendário externo não existem.
@@ -54,7 +54,7 @@ Serviço externo usado: **Resend** (e-mail). Repositório remoto: `github.com/va
 ### 2.3 Subsistemas de apoio
 
 - **Agendador interno**: `instrumentation.ts` liga um temporizador (`marketing-scheduler.ts`) que roda o motor de marketing 30 s após o servidor subir e depois a cada 15 min (`MARKETING_INTERVAL_MINUTES`).
-- **Scripts**: `scripts/criar-contas-teste.mjs` (cria contas de teste e grava as senhas em `.data/contas-teste.txt`) e `scripts/gerar-icones-email.mjs` (gera os PNG de `public/img/email/`).
+- **Scripts**: `scripts/criar-contas-teste.ts` (cria contas de teste no Postgres e grava as senhas em `.data/contas-teste.txt`), `scripts/importar-json.ts` (copia um `db.json` antigo para o Postgres, uso único) e `scripts/gerar-icones-email.mjs` (gera os PNG de `public/img/email/`).
 - **Componentes de interface**: `app/_components/` (moldura do painel, menu, toasts, chat, filtros) e `components/ui/` (shadcn).
 
 ---
@@ -92,7 +92,7 @@ flowchart LR
     D[Lógica de domínio app/_lib]
     T[Temporizador de marketing]
   end
-  DB[(.data/db.json)]
+  DB[(Postgres - Neon)]
   UP[(.data/uploads/marketing)]
   R[Resend API]
   CRON[Cron externo - opcional]
@@ -126,7 +126,8 @@ app/
 components/ui/             componentes shadcn
 scripts/                   utilitários de linha de comando
 public/img/                logo, fundo do login, ícones dos e-mails
-.data/                     banco e uploads (fora do git)
+drizzle/                   migrações do banco (Drizzle)
+.data/                     uploads, contas de teste e o db.json antigo (fora do git)
 ```
 
 ### 3.4 Padrões usados no código
@@ -295,10 +296,13 @@ Não saem por e-mail: remarcação (cliente ou admin), cadastro feito pelo admin
 
 ### 5.1 Como funciona hoje
 
-- Um arquivo: `.data/db.json`. Cada leitura carrega o arquivo inteiro; cada gravação reescreve o arquivo inteiro.
-- As gravações passam por uma fila em memória (`updateDb`), que evita sobreposição **dentro de um mesmo processo**.
-- Imagens enviadas pelo editor ficam em `.data/uploads/marketing/`.
-- A pasta `.data/` está fora do git. Não há rotina de backup nem migrações.
+- **Postgres no Neon** (projeto `shm-app`, região `aws-us-east-1`), uma tabela por coleção. Esquema em `app/_lib/db-schema.ts` (Drizzle), migrações em `drizzle/` (`npx drizzle-kit generate` / `npx drizzle-kit migrate`). O `.env` tem `DATABASE_URL` (com pooler, usado pelo app) e `DATABASE_URL_UNPOOLED` (direto, para migrações).
+- **Camada de transição** em `app/_lib/db.ts`: o código continua usando `readDb()` e `updateDb()` com o mesmo formato de antes. `readDb` monta o banco inteiro numa consulta; `updateDb` roda numa transação com `pg_advisory_xact_lock`, compara antes e depois e grava só as linhas alteradas. A trava vale entre processos e instâncias.
+- Custo conhecido: cada leitura ainda traz todas as tabelas. Trocar por consultas sob medida faz parte da etapa da API (7.x).
+- Chaves estrangeiras com `on delete cascade` de sessões, pedidos de senha, reservas, mensagens e envios para `users`. Reservas não apontam para `services`: se a tabela de serviços estiver vazia, vale o catálogo padrão do código (a importação já grava o padrão).
+- Uma coluna `seq` em cada tabela guarda a ordem de inserção (as listas dependem dela). Renomear um profissional o leva para o fim da lista.
+- Imagens enviadas pelo editor ainda ficam em `.data/uploads/marketing/` (vão para armazenamento em nuvem na etapa da Vercel).
+- Backup: o Neon guarda o histórico e permite restaurar a um ponto no tempo (janela conforme o plano).
 
 ### 5.2 Entidades
 
@@ -342,9 +346,7 @@ Nenhum desses vínculos é garantido pelo banco; a integridade depende do códig
 
 | Ponto | Consequência |
 |---|---|
-| Erro de leitura é tratado como "banco vazio" (`readDb`) | Se o arquivo estiver corrompido ou inacessível, a próxima gravação pode sobrescrever tudo com um banco quase vazio |
-| Gravação direta no arquivo, sem arquivo temporário | Queda no meio da escrita pode corromper o JSON |
-| Fila de escrita só em memória | Não protege com mais de um processo ou instância |
+| ~~Erro de leitura tratado como "banco vazio"; gravação sem transação; fila só em memória~~ | Resolvido com o Postgres (2026-11-11): erro de leitura agora falha, gravações são transações com trava |
 | Validação de horário fora da gravação | Duas confirmações simultâneas do mesmo horário podem passar (ver 9.1) |
 | Profissional identificado pelo nome | Precisa virar entidade com id |
 | Reserva sem `createdAt` | Não há auditoria de quando foi marcada (cancelamento já guarda `cancelledAt`) |
@@ -406,7 +408,7 @@ sequenceDiagram
   actor U as Cliente
   participant W as Páginas
   participant S as confirmBooking
-  participant DB as db.json
+  participant DB as Postgres
   participant R as Resend
   U->>W: /agendamento (escolhe serviço)
   U->>W: /agendamento/horario?servico=…
@@ -534,7 +536,7 @@ Todas as actions de admin conferem o perfil no início.
 
 | # | Necessidade | Por quê |
 |---|---|---|
-| 1 | Trocar o JSON por banco relacional com transações | Base de tudo; ver 5.4 |
+| 1 | ~~Trocar o JSON por banco relacional com transações~~ | Feito em 2026-11-11: Postgres no Neon (5.1). Falta trocar o `readDb` geral por consultas sob medida |
 | 2 | Reserva atômica | Hoje a validação do horário acontece antes e fora da gravação; duas requisições simultâneas podem ocupar o mesmo horário. Vale para cliente, admin e remarcação |
 | 3 | ~~Decidir a regra de disponibilidade~~ | Feito em 2026-11-11: todos os horários livres (4.5) |
 | 4 | ~~Decidir o modelo de cancelamento~~ | Feito em 2026-11-11: situação "cancelada", mantida no histórico |

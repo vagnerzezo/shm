@@ -1,13 +1,20 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createSession, deleteSession, getCurrentUser, hashPassword, homeOf, loginHref, verifyPassword } from "./auth";
+import { createSession, currentToken, deleteSession, getCurrentUser, homeOf, loginHref } from "./auth";
 import { formatLongDate, getSlots, nowInStudio } from "./availability";
 import { getBookableServices } from "./catalog";
 import { addMessage } from "./chat";
-import { purgeUser, readDb, updateDb } from "./db";
+import { readDb, updateDb } from "./db";
+import {
+  assertCurrentPassword,
+  changeOwnPassword,
+  deleteOwnAccount as deleteAccount,
+  requestPasswordResetFor,
+  resetPasswordWithToken,
+} from "./domain/account";
+import { messageOf } from "./errors";
 import { withNotice } from "./notices";
-import { completePasswordReset, startPasswordReset } from "./password-reset";
 import { getBookingBusy, isCancelled, isPast, keepOrPick } from "./reservations";
 import { getAvailabilityRules } from "./schedule";
 import { findService } from "./services";
@@ -15,27 +22,28 @@ import { unsubscribeByToken } from "./unsubscribe";
 
 export type AccountState = { error: string | null; saved: boolean };
 
-const PASSWORD_RULE = "A senha precisa ter de 8 a 100 caracteres.";
-const validPassword = (p: string) => p.length >= 8 && p.length <= 100;
-
 /** "Esqueci minha senha". Sempre responde igual, para não revelar quais e-mails têm conta. */
 export async function requestPasswordReset(_prev: AccountState, formData: FormData): Promise<AccountState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Informe um e-mail válido.", saved: false };
-  await startPasswordReset(email);
+  try {
+    await requestPasswordResetFor(formData.get("email"));
+  } catch (error) {
+    return { error: messageOf(error), saved: false };
+  }
   return { error: null, saved: true };
 }
 
 /** Nova senha pelo link do e-mail. Encerra as outras sessões e já entra na conta. */
 export async function resetPassword(_prev: AccountState, formData: FormData): Promise<AccountState> {
-  const token = String(formData.get("token") ?? "");
   const password = String(formData.get("senha") ?? "");
-  if (!validPassword(password)) return { error: PASSWORD_RULE, saved: false };
-  if (password !== String(formData.get("confirmacao") ?? "")) {
+  if (password.length >= 8 && password.length <= 100 && password !== String(formData.get("confirmacao") ?? "")) {
     return { error: "As duas senhas não são iguais.", saved: false };
   }
-  const user = await completePasswordReset(token, await hashPassword(password));
-  if (!user) return { error: "Este link expirou ou já foi usado. Peça um novo.", saved: false };
+  let user;
+  try {
+    user = await resetPasswordWithToken(String(formData.get("token") ?? ""), password);
+  } catch (error) {
+    return { error: messageOf(error), saved: false };
+  }
   await createSession(user.id);
   redirect(withNotice(homeOf(user), "senha-redefinida"));
 }
@@ -46,24 +54,17 @@ export async function changePassword(_prev: AccountState, formData: FormData): P
   if (!me) redirect(loginHref("/conta"));
   const current = String(formData.get("atual") ?? "");
   const password = String(formData.get("senha") ?? "");
-
-  const user = (await readDb()).users.find((u) => u.id === me.id);
-  if (!user || !(await verifyPassword(current, user.passwordHash))) {
-    return { error: "A senha atual está incorreta.", saved: false };
+  const confirmation = String(formData.get("confirmacao") ?? "");
+  try {
+    // A confirmação só existe no formulário; conferida depois da senha atual e do tamanho, como antes.
+    if (password.length >= 8 && password.length <= 100 && password !== confirmation) {
+      await assertCurrentPassword(me.id, current);
+      return { error: "As duas senhas novas não são iguais.", saved: false };
+    }
+    await changeOwnPassword(me.id, current, password, await currentToken());
+  } catch (error) {
+    return { error: messageOf(error), saved: false };
   }
-  if (!validPassword(password)) return { error: PASSWORD_RULE, saved: false };
-  if (password !== String(formData.get("confirmacao") ?? "")) {
-    return { error: "As duas senhas novas não são iguais.", saved: false };
-  }
-  if (password === current) return { error: "A nova senha precisa ser diferente da atual.", saved: false };
-
-  const passwordHash = await hashPassword(password);
-  await updateDb((db) => {
-    const u = db.users.find((u) => u.id === me.id);
-    if (u) u.passwordHash = passwordHash;
-    db.sessions = db.sessions.filter((s) => s.userId !== me.id);
-  });
-  await createSession(me.id);
   return { error: null, saved: true };
 }
 
@@ -75,11 +76,11 @@ export async function deleteOwnAccount(_prev: AccountState, formData: FormData):
   if (String(formData.get("confirmacao") ?? "").trim().toUpperCase() !== "EXCLUIR") {
     return { error: "Digite EXCLUIR para confirmar.", saved: false };
   }
-  const user = (await readDb()).users.find((u) => u.id === me.id);
-  if (!user || !(await verifyPassword(String(formData.get("senha") ?? ""), user.passwordHash))) {
-    return { error: "Senha incorreta.", saved: false };
+  try {
+    await deleteAccount(me.id, String(formData.get("senha") ?? ""));
+  } catch (error) {
+    return { error: messageOf(error), saved: false };
   }
-  await updateDb((db) => purgeUser(db, me.id));
   await deleteSession();
   redirect(withNotice("/", "conta-excluida"));
 }

@@ -7,17 +7,15 @@ import {
   createSession,
   deleteSession,
   getCurrentUser,
-  hashPassword,
   homeOf,
   loginHref,
   safeNext,
 } from "./auth";
 import { nowInStudio, pickProfessional } from "./availability";
 import { parseItems, toKeys, withItems } from "./booking";
-import { updateDb } from "./db";
-import { authenticate } from "./domain/account";
-import { messageOf } from "./errors";
-import { readProfile } from "./profile";
+import { authenticate, registerCustomer, updateOwnProfile } from "./domain/account";
+import { DomainError, messageOf } from "./errors";
+import { profileInputOf } from "./profile";
 import { getBookableServices } from "./catalog";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
 import { sendBookingCancelledEmail, sendBookingConfirmedEmail, sendWelcomeEmail } from "./email-templates/send";
@@ -28,23 +26,19 @@ export type FormState = { error: string | null };
 export type ProfileState = { error: string | null; saved: boolean };
 
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
-  const profile = readProfile(formData);
-  if ("error" in profile) return profile;
-  const password = String(formData.get("senha") ?? "");
-  if (password.length < 8) return { error: "A senha precisa ter pelo menos 8 caracteres." };
-
-  const passwordHash = await hashPassword(password);
-  const userId = await updateDb((db) => {
-    if (db.users.some((u) => u.email === profile.email)) return null;
-    const id = crypto.randomUUID();
-    db.users.push({ id, ...profile, passwordHash, createdAt: new Date().toISOString() });
-    return id;
-  });
-  if (!userId) return { error: "Já existe uma conta com esse e-mail. Use a aba Entrar." };
-
+  let user;
+  try {
+    user = await registerCustomer(profileInputOf(formData), String(formData.get("senha") ?? ""));
+  } catch (error) {
+    if (error instanceof DomainError && error.code === "email_taken") {
+      return { error: "Já existe uma conta com esse e-mail. Use a aba Entrar." };
+    }
+    return { error: messageOf(error) };
+  }
+  const userId = user.id;
   await createSession(userId);
   after(() => sendWelcomeEmail(userId));
-  redirect(safeNext(formData.get("next"), homeOf(profile)));
+  redirect(safeNext(formData.get("next"), homeOf(user)));
 }
 
 export async function signIn(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -111,16 +105,11 @@ export async function cancelReservation(formData: FormData) {
 export async function updateProfile(_prev: ProfileState, formData: FormData): Promise<ProfileState> {
   const user = await getCurrentUser();
   if (!user) redirect(loginHref("/conta"));
-  const profile = readProfile(formData);
-  if ("error" in profile) return { error: profile.error, saved: false };
-
-  const ok = await updateDb((db) => {
-    if (db.users.some((u) => u.email === profile.email && u.id !== user.id)) return false;
-    const current = db.users.find((u) => u.id === user.id);
-    if (current) Object.assign(current, profile);
-    return true;
-  });
-  if (!ok) return { error: "Esse e-mail já está em uso em outra conta.", saved: false };
+  try {
+    await updateOwnProfile(user.id, profileInputOf(formData));
+  } catch (error) {
+    return { error: messageOf(error), saved: false };
+  }
   return { error: null, saved: true };
 }
 

@@ -43,7 +43,38 @@ const auth = [
   ["Sair sem token", "POST", "/auth/logout", { status: 401 }],
 ];
 
+const NEW = { name: "Novo Pelo App", phone: "51977776666", email: "novo.app@shm.test", password: "senha-do-app-1", consent: { email: false, mensagem: true } };
+const account = [
+  ["Cadastro", "POST", "/auth/register", {
+    body: NEW, status: 201,
+    tests: [
+      'pm.test("devolve sessão do novo cliente", () => { pm.expect(json.token).to.be.a("string"); pm.expect(json.user.email).to.eql("novo.app@shm.test"); pm.expect(json.user.role).to.eql("cliente"); pm.expect(json.user.consent).to.eql({ email: false, mensagem: true }); });',
+      'pm.collectionVariables.set("newToken", json.token);',
+    ],
+  }],
+  ["Cadastro com e-mail repetido", "POST", "/auth/register", { body: NEW, status: 409, tests: [isError("email_taken")] }],
+  ["Cadastro com senha curta", "POST", "/auth/register", { body: { ...NEW, email: "x@shm.test", password: "1234567" }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.password).to.be.a("string"));'] }],
+  ["Cadastro com nome de tipo errado", "POST", "/auth/register", { body: { ...NEW, email: "x@shm.test", name: 123 }, status: 400, tests: [isError("validation")] }],
+  ["Esqueci a senha (e-mail com conta)", "POST", "/auth/password/forgot", { body: { email: "novo.app@shm.test" }, status: 204, tests: ['pm.test("sem corpo", () => pm.expect(pm.response.text()).to.eql(""));'] }],
+  ["Esqueci a senha (e-mail sem conta)", "POST", "/auth/password/forgot", { body: { email: "ninguem@shm.test" }, status: 204, tests: ['pm.test("sem corpo", () => pm.expect(pm.response.text()).to.eql(""));'] }],
+  ["Esqueci a senha (e-mail inválido)", "POST", "/auth/password/forgot", { body: { email: "nada" }, status: 400, tests: [isError("validation")] }],
+  ["Redefinir com código inválido", "POST", "/auth/password/reset", { body: { token: "nao-existe", password: "outra-senha-1" }, status: 400, tests: [isError("validation")] }],
+  ["Trocar o nome", "PATCH", "/me", { auth: "newToken", body: { name: "Novo Renomeado" }, status: 200, tests: ['pm.test("nome novo, resto igual", () => { pm.expect(json.user.name).to.eql("Novo Renomeado"); pm.expect(json.user.email).to.eql("novo.app@shm.test"); pm.expect(json.user.phone).to.eql("51977776666"); });'] }],
+  ["Trocar para e-mail de outra conta", "PATCH", "/me", { auth: "newToken", body: { email: "cliente@shm.test" }, status: 409, tests: [isError("email_taken")] }],
+  ["Trocar dados sem token", "PATCH", "/me", { body: { name: "X Y" }, status: 401 }],
+  ["Trocar senha com a atual errada", "POST", "/me/password", { auth: "newToken", body: { current: "errada", password: "senha-do-app-2" }, status: 400, tests: [isError("validation")] }],
+  ["Trocar senha", "POST", "/me/password", { auth: "newToken", body: { current: NEW.password, password: "senha-do-app-2" }, status: 204 }],
+  ["Token atual continua valendo", "GET", "/me", { auth: "newToken", status: 200 }],
+  ["Login com a senha nova", "POST", "/auth/login", { body: { email: NEW.email, password: "senha-do-app-2" }, status: 200 }],
+  ["Login com a senha antiga", "POST", "/auth/login", { body: { email: NEW.email, password: NEW.password }, status: 401 }],
+  ["Admin não exclui a conta pela API", "DELETE", "/me", { auth: "adminToken", body: { password: PASSWORD }, status: 403, tests: [isError("forbidden")] }],
+  ["Excluir conta com senha errada", "DELETE", "/me", { auth: "newToken", body: { password: "errada" }, status: 400, tests: [isError("validation")] }],
+  ["Excluir conta", "DELETE", "/me", { auth: "newToken", body: { password: "senha-do-app-2" }, status: 204 }],
+  ["Token da conta excluída", "GET", "/me", { auth: "newToken", status: 401 }],
+];
+
 export const folders = [
   ["Studio", studio],
   ["Auth", auth],
+  ["Account", account],
 ];

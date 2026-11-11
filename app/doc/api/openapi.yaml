@@ -78,6 +78,17 @@ components:
         token: { type: string, description: Enviar em `Authorization Bearer`. Vale 30 dias e se renova com o uso. }
         expiresAt: { type: integer, description: Validade em milissegundos (epoch). }
         user: { $ref: "#/components/schemas/User" }
+    ProfileInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 2 }
+        phone: { type: string, description: WhatsApp com DDD (10 ou 11 dígitos; outros caracteres são ignorados). }
+        email: { type: string, maxLength: 120 }
+        consent:
+          type: object
+          properties:
+            email: { type: boolean }
+            mensagem: { type: boolean }
   responses:
     Error:
       description: Erro no formato padrão.
@@ -131,7 +142,128 @@ paths:
       responses:
         "204": { description: Sessão encerrada. }
         "401": { $ref: "#/components/responses/Error" }
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Criar conta de cliente
+      description: Envia o e-mail de boas-vindas. Avisa se o e-mail já está em uso (409).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: "#/components/schemas/ProfileInput" }
+                - type: object
+                  required: [name, phone, email, password]
+                  properties:
+                    password: { type: string, minLength: 8, maxLength: 100 }
+      responses:
+        "201":
+          description: Conta criada, já com sessão.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /auth/password/forgot:
+    post:
+      tags: [Auth]
+      summary: Pedir o link de redefinição de senha
+      description: Responde 204 exista ou não uma conta com o e-mail. O link vale 1 hora; até 3 pedidos por hora.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string }
+      responses:
+        "204": { description: Pedido aceito. }
+        "400": { $ref: "#/components/responses/Error" }
+  /auth/password/reset:
+    post:
+      tags: [Auth]
+      summary: Definir nova senha com o código do e-mail
+      description: Encerra todas as sessões da conta. Depois, entre com a senha nova.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string, description: Código que veio no link do e-mail. }
+                password: { type: string, minLength: 8, maxLength: 100 }
+      responses:
+        "204": { description: Senha trocada. }
+        "400": { $ref: "#/components/responses/Error" }
+  /me/password:
+    post:
+      tags: [Conta]
+      summary: Trocar a própria senha
+      description: Encerra as outras sessões; a atual continua valendo.
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current, password]
+              properties:
+                current: { type: string }
+                password: { type: string, minLength: 8, maxLength: 100 }
+      responses:
+        "204": { description: Senha trocada. }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
   /me:
+    patch:
+      tags: [Conta]
+      summary: Atualizar os próprios dados
+      description: Campos não enviados ficam como estão.
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "200":
+          description: Dados atualizados.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [Conta]
+      summary: Excluir a própria conta (LGPD)
+      description: Só para clientes. Apaga a conta, as reservas, as mensagens e as sessões. Não tem volta.
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        "204": { description: Conta excluída. }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
     get:
       tags: [Conta]
       summary: Dados do usuário logado

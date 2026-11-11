@@ -197,7 +197,7 @@ export type ChatMessage = {
   readAt?: string;
 };
 
-type Db = {
+export type Db = {
   users: User[];
   sessions: Session[];
   reservations: StoredReservation[];

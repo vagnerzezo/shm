@@ -58,15 +58,6 @@ export function statusOf(r: StatusFields, now: { date: string; minutes: number }
   return r.attendance === "faltou" ? "faltou" : "realizado";
 }
 
-/** Devolve os ids criados, na mesma ordem. */
-export async function addReservations(reservations: Omit<StoredReservation, "id">[]) {
-  const created = reservations.map((r) => ({ id: crypto.randomUUID(), ...r }));
-  await updateDb((db) => {
-    db.reservations.push(...created);
-  });
-  return created.map((r) => r.id);
-}
-
 /**
  * Marca a reserva como cancelada (não apaga: fica no histórico). Devolve a
  * reserva como estava antes, ou `null` se ela não existe ou já estava cancelada.

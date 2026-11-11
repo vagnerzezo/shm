@@ -2,10 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createSession, currentToken, deleteSession, getCurrentUser, homeOf, loginHref } from "./auth";
-import { formatLongDate, getSlots, nowInStudio } from "./availability";
-import { getBookableServices } from "./catalog";
+import { formatLongDate } from "./availability";
 import { addMessage } from "./chat";
-import { readDb, updateDb } from "./db";
 import {
   assertCurrentPassword,
   changeOwnPassword,
@@ -13,11 +11,9 @@ import {
   requestPasswordResetFor,
   resetPasswordWithToken,
 } from "./domain/account";
+import { rescheduleForCustomer } from "./domain/bookings";
 import { messageOf } from "./errors";
 import { withNotice } from "./notices";
-import { getBookingBusy, isCancelled, isPast, keepOrPick } from "./reservations";
-import { getAvailabilityRules } from "./schedule";
-import { findService } from "./services";
 import { unsubscribeByToken } from "./unsubscribe";
 
 export type AccountState = { error: string | null; saved: boolean };
@@ -95,34 +91,17 @@ export async function rescheduleMyReservation(_prev: RescheduleState, formData: 
   const me = await getCurrentUser();
   if (!me) redirect(loginHref(`/reservas/${id}/remarcar`));
 
-  const current = (await readDb()).reservations.find((r) => r.id === id && r.userId === me.id);
-  const now = nowInStudio();
-  if (!current || isCancelled(current)) return { error: "Reserva não encontrada." };
-  if (isPast(current, now)) return { error: "Esse horário já passou e não pode ser remarcado." };
-  if (current.date === date && current.time === time) return { error: "Escolha um dia ou horário diferente." };
-
-  const service = findService(await getBookableServices(), current.serviceId);
-  if (!service) return { error: "Esse serviço não está mais disponível para remarcar. Fale com o estúdio." };
-  // Revalida no servidor: o horário pode ter sido ocupado depois que a tela abriu.
-  const busy = await getBookingBusy(me.id, id);
-  const rules = await getAvailabilityRules();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !getSlots(service, date, now, busy, rules).includes(time)) {
-    return { error: "Esse horário não está mais disponível. Escolha outro." };
+  let moved;
+  try {
+    moved = await rescheduleForCustomer(me.id, id, date, time);
+  } catch (error) {
+    return { error: messageOf(error) };
   }
-  const professional = keepOrPick(current.professional, service, date, time, busy, rules);
-
-  const moved = await updateDb((db) => {
-    const r = db.reservations.find((r) => r.id === id && r.userId === me.id);
-    if (!r || isCancelled(r) || r.date !== current.date || r.time !== current.time) return false;
-    Object.assign(r, { date, time, professional });
-    return true;
-  });
-  if (!moved) return { error: "A reserva mudou enquanto você escolhia. Abra de novo e tente outra vez." };
-
+  const { before, serviceName } = moved;
   await addMessage(
     me.id,
     "cliente",
-    `Remarquei ${service.name}: de ${formatLongDate(current.date)} às ${current.time} para ${formatLongDate(date)} às ${time}.`,
+    `Remarquei ${serviceName}: de ${formatLongDate(before.date)} às ${before.time} para ${formatLongDate(date)} às ${time}.`,
   );
   redirect(withNotice("/reservas", "reserva-remarcada"));
 }

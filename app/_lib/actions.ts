@@ -11,16 +11,13 @@ import {
   loginHref,
   safeNext,
 } from "./auth";
-import { nowInStudio, pickProfessional } from "./availability";
-import { parseItems, toKeys, withItems } from "./booking";
+import { toKeys, withItems } from "./booking";
 import { authenticate, registerCustomer, updateOwnProfile } from "./domain/account";
+import { bookForCustomer, cancelForCustomer } from "./domain/bookings";
 import { DomainError, messageOf } from "./errors";
 import { profileInputOf } from "./profile";
-import { getBookableServices } from "./catalog";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
 import { sendBookingCancelledEmail, sendBookingConfirmedEmail, sendWelcomeEmail } from "./email-templates/send";
-import { addReservations, getBookingBusy, getReservations, isPast, markCancelled } from "./reservations";
-import { getAvailabilityRules } from "./schedule";
 
 export type FormState = { error: string | null };
 export type ProfileState = { error: string | null; saved: boolean };
@@ -62,40 +59,37 @@ export async function confirmBooking(_prev: FormState, formData: FormData): Prom
   const user = await getCurrentUser();
   if (!user) redirect(loginHref(withItems("/agendamento/confirmacao", keys)));
 
-  // Revalida tudo no servidor: o horário pode ter passado ou conflitar com
-  // uma reserva feita em outra aba.
-  const busy = await getBookingBusy(user.id);
-  const rules = await getAvailabilityRules();
-  const items = parseItems(keys, nowInStudio(), busy, rules, await getBookableServices());
-  if (items.length === 0 || items.length !== keys.length) {
-    return { error: "Um dos horários não está mais disponível. Remova-o e escolha outro." };
+  // A regra confere tudo de novo na hora de gravar: o horário pode ter passado
+  // ou sido ocupado em outra aba ou por outra pessoa.
+  const items = keys.map((key) => {
+    const [serviceId, date, time] = key.split("_");
+    return { serviceId, date, time };
+  });
+  let ids: string[];
+  try {
+    ids = await bookForCustomer(user.id, items, formData.get("observacao"));
+  } catch (error) {
+    if (error instanceof DomainError && error.code === "validation") {
+      return { error: "Um dos horários não está mais disponível. Remova-o e escolha outro." };
+    }
+    return { error: messageOf(error) };
   }
-
-  const note = String(formData.get("observacao") ?? "").trim().slice(0, 300);
-  const ids = await addReservations(
-    items.map((i) => ({
-      userId: user.id,
-      serviceId: i.service.id,
-      priceCents: i.service.priceCents,
-      // parseItems já garantiu que há alguém livre; sem fixo, vai o livre com menos atendimentos no dia.
-      professional: pickProfessional(i.service, i.date, i.time, busy, rules) ?? undefined,
-      date: i.date,
-      time: i.time,
-      note: note || undefined,
-    })),
-  );
   after(() => sendBookingConfirmedEmail(user.id, ids));
-  redirect(`/reservas?nova=${items.length}`);
+  redirect(`/reservas?nova=${ids.length}`);
 }
 
 export async function cancelReservation(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect(loginHref("/reservas"));
   const id = String(formData.get("id") ?? "");
-  const target = (await getReservations(user.id)).find((r) => r.id === id);
-  // Só dá para cancelar o que ainda não aconteceu.
-  if (!target || isPast(target, nowInStudio())) return;
-  if (!(await markCancelled(id, "cliente", { userId: user.id }))) redirect("/reservas");
+  let target;
+  try {
+    target = await cancelForCustomer(user.id, id);
+  } catch (error) {
+    // Reserva que não existe mais ou já passou: só recarrega a lista.
+    messageOf(error);
+    redirect("/reservas");
+  }
   after(() => sendBookingCancelledEmail(user.id, target, { byStudio: false }));
   // Recarrega a lista (senão a reserva cancelada continua na tela) e tira o
   // "Reserva confirmada!" que pode ter ficado no endereço.

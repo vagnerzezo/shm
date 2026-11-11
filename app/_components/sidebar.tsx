@@ -165,7 +165,7 @@ export function Sidebar({
   const links = navByArea[area];
   // Com muitos itens (admin), botões mais baixos para o endereço continuar cabendo.
   const compact = links.length > 4;
-  const size = compact ? "h-11 text-sm" : "h-[62px] text-base";
+  const size = compact ? "h-11 text-sm" : "h-14 text-base";
 
   return (
     <aside
@@ -192,7 +192,7 @@ export function Sidebar({
       <NavLinks
         links={links}
         badges={badges}
-        className={`hidden w-full grid-cols-1 lg:grid ${compact ? "gap-2" : "gap-5"}`}
+        className={`hidden w-full grid-cols-1 lg:grid ${compact ? "gap-2" : "gap-4"}`}
         itemClassName={`justify-center ${size}`}
       />
 

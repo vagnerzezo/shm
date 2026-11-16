@@ -73,8 +73,44 @@ const account = [
   ["Token da conta excluída", "GET", "/me", { auth: "newToken", status: 401 }],
 ];
 
+// Dia de consulta: daqui a 7 dias (o banco de teste abre todos os dias, 19 horários).
+const pickDays = [
+  'const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);',
+  'pm.collectionVariables.set("day", day(7)); pm.collectionVariables.set("day3", day(9)); pm.collectionVariables.set("day32", day(38));',
+];
+const catalog = [
+  ["Serviços", "GET", "/services", {
+    status: 200,
+    tests: [
+      'const all = json.categories.flatMap((c) => c.services);',
+      'pm.test("9 serviços ativos em categorias", () => { pm.expect(all).to.have.length(9); pm.expect(json.categories.map((c) => c.name)).to.eql(["Heitor", "Barbearia"]); });',
+      'pm.test("formato do serviço", () => pm.expect(all.find((s) => s.id === "corte-heitor")).to.eql({ id: "corte-heitor", name: "Corte com Heitor", durationMinutes: 45, priceCents: 7000, professional: "Heitor" }));',
+      'pm.test("sem profissional fixo vem null", () => pm.expect(all.find((s) => s.id === "corte-esfoliacao").professional).to.eql(null));',
+    ],
+  }],
+  ["Horários de um dia", "GET", "/availability?serviceId=corte-heitor&from={{day}}&to={{day}}", {
+    pre: pickDays,
+    status: 200,
+    tests: [
+      'pm.test("19 horários no dia", () => { pm.expect(json.serviceId).to.eql("corte-heitor"); pm.expect(json.days).to.have.length(1); pm.expect(json.days[0].date).to.eql(pm.collectionVariables.get("day")); pm.expect(json.days[0].times).to.have.length(19); pm.expect(json.days[0].times[0]).to.eql("09:00"); });',
+    ],
+  }],
+  ["Horários de três dias", "GET", "/availability?serviceId=corte-esfoliacao&from={{day}}&to={{day3}}", {
+    status: 200,
+    tests: ['pm.test("um item por dia", () => pm.expect(json.days.map((d) => d.date)).to.have.length(3));'],
+  }],
+  ["Horários sem serviceId", "GET", "/availability?from={{day}}&to={{day}}", { status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.serviceId).to.be.a("string"));'] }],
+  ["Horários de serviço inexistente", "GET", "/availability?serviceId=nao-existe&from={{day}}&to={{day}}", { status: 404, tests: [isError("not_found")] }],
+  ["Horários com data impossível", "GET", "/availability?serviceId=corte-heitor&from=2026-02-31&to=2026-03-01", { status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.from).to.be.a("string"));'] }],
+  ["Horários com 32 dias", "GET", "/availability?serviceId=corte-heitor&from={{day}}&to={{day32}}", { status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.to).to.be.a("string"));'] }],
+  ["Horários com from depois de to", "GET", "/availability?serviceId=corte-heitor&from={{day3}}&to={{day}}", { status: 400, tests: [isError("validation")] }],
+  ["Remarcar sem login", "GET", "/availability?serviceId=corte-heitor&from={{day}}&to={{day}}&rescheduleOf=qualquer", { status: 401, tests: [isError("unauthenticated")] }],
+  ["Remarcar reserva que não é do cliente", "GET", "/availability?serviceId=corte-heitor&from={{day}}&to={{day}}&rescheduleOf=nao-existe", { auth: "clientToken", status: 404, tests: [isError("not_found")] }],
+];
+
 export const folders = [
   ["Studio", studio],
   ["Auth", auth],
   ["Account", account],
+  ["Catalog", catalog],
 ];

@@ -12,6 +12,7 @@ tags:
   - name: Studio
   - name: Auth
   - name: Conta
+  - name: Catalog
 components:
   securitySchemes:
     bearer:
@@ -89,6 +90,31 @@ components:
           properties:
             email: { type: boolean }
             mensagem: { type: boolean }
+    Service:
+      type: object
+      required: [id, name, durationMinutes, priceCents, professional]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        durationMinutes: { type: integer }
+        priceCents: { type: integer, description: Preço em centavos de real. }
+        professional:
+          type: [string, "null"]
+          description: Profissional fixo do serviço; `null` quando qualquer profissional livre atende.
+    Availability:
+      type: object
+      required: [serviceId, days]
+      properties:
+        serviceId: { type: string }
+        days:
+          type: array
+          description: Um item por dia do intervalo, em ordem. Dia fechado, passado ou cheio vem com `times` vazio.
+          items:
+            type: object
+            required: [date, times]
+            properties:
+              date: { type: string, format: date }
+              times: { type: array, items: { type: string, example: "09:30" } }
   responses:
     Error:
       description: Erro no formato padrão.
@@ -96,6 +122,52 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
 paths:
+  /services:
+    get:
+      tags: [Catalog]
+      summary: Serviços ativos, por categoria
+      responses:
+        "200":
+          description: Categorias na ordem do catálogo.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [categories]
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, services]
+                      properties:
+                        name: { type: string }
+                        services: { type: array, items: { $ref: "#/components/schemas/Service" } }
+  /availability:
+    get:
+      tags: [Catalog]
+      summary: Horários livres de um serviço
+      description: >
+        Público. Com login, as reservas do próprio cliente também ocupam o horário (ele não está
+        em dois lugares). Até 31 dias por consulta.
+      security: [{}, { bearer: [] }]
+      parameters:
+        - { name: serviceId, in: query, required: true, schema: { type: string } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date }, description: Inclusive; no máximo 30 dias depois de `from`. }
+        - name: rescheduleOf
+          in: query
+          schema: { type: string }
+          description: Id de uma reserva do cliente logado que vai ser remarcada; ela não conta como ocupada. Exige login.
+      responses:
+        "200":
+          description: Horários por dia.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Availability" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /studio:
     get:
       tags: [Studio]

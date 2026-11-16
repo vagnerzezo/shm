@@ -1,5 +1,6 @@
 import type { StudioInfo } from "../db";
 import type { Customer } from "../roles";
+import type { Service } from "../services";
 
 // Formato público (JSON da API) dos objetos internos.
 
@@ -27,4 +28,14 @@ export function userJson(user: Customer) {
 /** Resposta de login e de cadastro. */
 export function sessionJson(session: { token: string; expiresAt: number }, user: Customer) {
   return { token: session.token, expiresAt: session.expiresAt, user: userJson(user) };
+}
+
+export function serviceJson(service: Service) {
+  return {
+    id: service.id,
+    name: service.name,
+    durationMinutes: service.durationMinutes,
+    priceCents: service.priceCents,
+    professional: service.professional ?? null,
+  };
 }

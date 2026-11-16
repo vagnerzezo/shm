@@ -1434,6 +1434,452 @@
           }
         }
       ]
+    },
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "Serviços",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "const all = json.categories.flatMap((c) => c.services);",
+                  "pm.test(\"9 serviços ativos em categorias\", () => { pm.expect(all).to.have.length(9); pm.expect(json.categories.map((c) => c.name)).to.eql([\"Heitor\", \"Barbearia\"]); });",
+                  "pm.test(\"formato do serviço\", () => pm.expect(all.find((s) => s.id === \"corte-heitor\")).to.eql({ id: \"corte-heitor\", name: \"Corte com Heitor\", durationMinutes: 45, priceCents: 7000, professional: \"Heitor\" }));",
+                  "pm.test(\"sem profissional fixo vem null\", () => pm.expect(all.find((s) => s.id === \"corte-esfoliacao\").professional).to.eql(null));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários de um dia",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set(\"day\", day(7)); pm.collectionVariables.set(\"day3\", day(9)); pm.collectionVariables.set(\"day32\", day(38));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"19 horários no dia\", () => { pm.expect(json.serviceId).to.eql(\"corte-heitor\"); pm.expect(json.days).to.have.length(1); pm.expect(json.days[0].date).to.eql(pm.collectionVariables.get(\"day\")); pm.expect(json.days[0].times).to.have.length(19); pm.expect(json.days[0].times[0]).to.eql(\"09:00\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-heitor&from={{day}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-heitor"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários de três dias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"um item por dia\", () => pm.expect(json.days.map((d) => d.date)).to.have.length(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-esfoliacao&from={{day}}&to={{day3}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-esfoliacao"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day3}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários sem serviceId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"aponta o campo\", () => pm.expect(json.error.fields.serviceId).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?from={{day}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários de serviço inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro not_found\", () => { pm.expect(json.error.code).to.eql(\"not_found\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=nao-existe&from={{day}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "nao-existe"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários com data impossível",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"aponta o campo\", () => pm.expect(json.error.fields.from).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-heitor&from=2026-02-31&to=2026-03-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-heitor"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-02-31"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-03-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários com 32 dias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"aponta o campo\", () => pm.expect(json.error.fields.to).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-heitor&from={{day}}&to={{day32}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-heitor"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day32}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Horários com from depois de to",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-heitor&from={{day3}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-heitor"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day3}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remarcar sem login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro unauthenticated\", () => { pm.expect(json.error.code).to.eql(\"unauthenticated\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-heitor&from={{day}}&to={{day}}&rescheduleOf=qualquer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-heitor"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "rescheduleOf",
+                  "value": "qualquer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remarcar reserva que não é do cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro not_found\", () => { pm.expect(json.error.code).to.eql(\"not_found\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/availability?serviceId=corte-heitor&from={{day}}&to={{day}}&rescheduleOf=nao-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "serviceId",
+                  "value": "corte-heitor"
+                },
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "rescheduleOf",
+                  "value": "nao-existe"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

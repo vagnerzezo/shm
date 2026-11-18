@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { EmptyState } from "@/app/_components/ui";
-import { requireUser } from "@/app/_lib/auth";
+import { keepBarberOut, requireUser } from "@/app/_lib/auth";
 import { formatLongDate, formatWeekday, getSlots, getSuggestedDays, nowInStudio } from "@/app/_lib/availability";
 import { getBookableServices } from "@/app/_lib/catalog";
 import { getBookingBusy, getReservations, isPast } from "@/app/_lib/reservations";
@@ -21,6 +21,7 @@ export default async function RemarcarPage(props: PageProps<"/reservas/[id]/rema
   const { id } = await props.params;
   const { data, hora } = await props.searchParams;
   const user = await requireUser(`/reservas/${id}/remarcar`);
+  keepBarberOut(user);
   const now = nowInStudio();
   const reservation = (await getReservations(user.id)).find((r) => r.id === id);
 

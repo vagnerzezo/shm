@@ -28,6 +28,7 @@ const auth = [
   login("cliente", "cliente@shm.test", "clientToken"),
   login("cliente 2", "cliente2@shm.test", "client2Token"),
   login("admin", "admin@shm.test", "adminToken"),
+  login("barbeiro", "heitor@shm.test", "barberToken"),
   login("descartável", "cliente@shm.test", "throwawayToken"),
   ["Login com senha errada", "POST", "/auth/login", { body: { email: "cliente@shm.test", password: "errada" }, status: 401, tests: [isError("invalid_credentials")] }],
   ["Login com e-mail inexistente", "POST", "/auth/login", { body: { email: "ninguem@shm.test", password: "errada" }, status: 401, tests: [isError("invalid_credentials")] }],
@@ -35,6 +36,8 @@ const auth = [
   ["Login com JSON quebrado", "POST", "/auth/login", { body: "{", status: 400, tests: [isError("validation")] }],
   ["Quem sou eu", "GET", "/me", { auth: "clientToken", status: 200, tests: ['pm.test("é o cliente", () => { pm.expect(json.user.email).to.eql("cliente@shm.test"); pm.expect(json.user.role).to.eql("cliente"); });'] }],
   ["Quem sou eu (admin)", "GET", "/me", { auth: "adminToken", status: 200, tests: ['pm.test("é admin", () => pm.expect(json.user.role).to.eql("admin"));'] }],
+  ["Quem sou eu (barbeiro)", "GET", "/me", { auth: "barberToken", status: 200, tests: ['pm.test("é barbeiro do Heitor", () => { pm.expect(json.user.role).to.eql("barbeiro"); pm.expect(json.user.professional).to.eql("Heitor"); });'] }],
+  ["Admin sem profissional não tem o campo", "GET", "/me", { auth: "adminToken", status: 200, tests: ['pm.test("sem professional", () => pm.expect(json.user).to.not.have.property("professional"));'] }],
   ["Quem sou eu sem token", "GET", "/me", { status: 401, tests: [isError("unauthenticated")] }],
   ["Quem sou eu com token inválido", "GET", "/me", { auth: "=Bearer lixo", status: 401, tests: [isError("unauthenticated")] }],
   ["Quem sou eu com cabeçalho sem Bearer", "GET", "/me", { auth: "=lixo", status: 401, tests: [isError("unauthenticated")] }],
@@ -150,6 +153,8 @@ const reservations = [
   ["Listar sem token", "GET", "/reservations", { status: 401, tests: [isError("unauthenticated")] }],
   ["Marcar sem token", "POST", "/reservations", { body: { items: [item("10:00")] }, status: 401, tests: [isError("unauthenticated")] }],
   ["Listar com token de admin", "GET", "/reservations", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
+  ["Marcar com token de barbeiro", "POST", "/reservations", { auth: "barberToken", body: { items: [item("10:00", "corte-jimmy")] }, status: 403, tests: [isError("forbidden")] }],
+  ["Listar com token de barbeiro", "GET", "/reservations", { auth: "barberToken", status: 403, tests: [isError("forbidden")] }],
   ["Marcar com token de admin", "POST", "/reservations", { auth: "adminToken", body: { items: [item("10:00")] }, status: 403, tests: [isError("forbidden")] }],
 ];
 
@@ -180,6 +185,8 @@ const messages = [
   ["Nada mais por ler", "GET", "/messages", { auth: "clientToken", status: 200, tests: ['pm.test("unread zero", () => pm.expect(json.unread).to.eql(0));'] }],
   ["Mensagens sem token", "GET", "/messages", { status: 401, tests: [isError("unauthenticated")] }],
   ["Mensagens com token de admin", "GET", "/messages", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
+  ["Mensagens com token de barbeiro", "GET", "/messages", { auth: "barberToken", status: 403, tests: [isError("forbidden")] }],
+  ["Barbeiro não exclui a conta pela API", "DELETE", "/me", { auth: "barberToken", body: { password: "Teste#12345" }, status: 403, tests: [isError("forbidden")] }],
   ["Enviar com token de admin", "POST", "/messages", { auth: "adminToken", body: { text: "oi" }, status: 403, tests: [isError("forbidden")] }],
   ["Marcar lidas com token de admin", "POST", "/messages/read", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
 ];

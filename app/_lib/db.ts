@@ -7,7 +7,7 @@ import * as t from "./db-schema";
 
 // Tipos do banco e acesso ao Postgres. Tabelas em `db-schema.ts`.
 
-export type Role = "admin" | "cliente";
+export type Role = "admin" | "barbeiro" | "cliente";
 
 export type User = {
   id: string;
@@ -26,6 +26,11 @@ export type User = {
   disabledAt?: string;
   /** Código do link "deixar de receber" dos e-mails de marketing. */
   unsubscribeToken?: string;
+  /**
+   * Profissional do cadastro ligado à conta. Obrigatório para `barbeiro`; num
+   * admin, dá acesso também à agenda desse profissional.
+   */
+  professional?: string;
 };
 
 /** Pedido de "esqueci minha senha". Guarda só o hash do código enviado por e-mail. */

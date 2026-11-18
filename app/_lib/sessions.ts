@@ -44,6 +44,7 @@ export async function findSessionUser(token: string): Promise<Customer | null> {
     ...row.user,
     role: (row.user.role ?? undefined) as Role | undefined,
     consent: (row.user.consent ?? undefined) as Consent | undefined,
+    professional: row.user.professional ?? undefined,
   });
 }
 

@@ -1,3 +1,5 @@
+import { DomainError } from "../app/_lib/errors";
+
 // Contas do banco de teste (branch `teste` do Neon). Só valem lá.
 
 export const PASSWORD = "Teste#12345";
@@ -27,3 +29,7 @@ export const SCHEDULE = {
   maxDaysAhead: 90,
   minNoticeMinutes: 0,
 };
+
+/** Para `assert.rejects`: erro de domínio com esse código (e, se dado, apontando o campo). */
+export const rejectsWith = (code: string, field?: string) => (e: unknown) =>
+  e instanceof DomainError && e.code === code && (!field || Boolean(e.fields?.[field]));

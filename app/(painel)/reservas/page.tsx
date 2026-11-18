@@ -9,7 +9,7 @@ import {
   nowInStudio,
 } from "@/app/_lib/availability";
 import { endTime } from "@/app/_lib/booking";
-import { requireUser } from "@/app/_lib/auth";
+import { keepBarberOut, requireUser } from "@/app/_lib/auth";
 import { getReservations, isPast, type Reservation } from "@/app/_lib/reservations";
 import { formatDuration, formatPrice } from "@/app/_lib/services";
 import { CancelButton } from "./cancel-button";
@@ -82,6 +82,7 @@ function ReservationCard({ reservation, past }: { reservation: Reservation; past
 export default async function ReservasPage(props: PageProps<"/reservas">) {
   const { nova } = await props.searchParams;
   const customer = await requireUser("/reservas");
+  keepBarberOut(customer);
   const reservations = await getReservations(customer.id);
   const now = nowInStudio();
   const upcoming = reservations.filter((r) => !isPast(r, now));

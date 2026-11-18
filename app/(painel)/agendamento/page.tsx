@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { nowInStudio } from "@/app/_lib/availability";
 import { parseItems } from "@/app/_lib/booking";
-import { getCurrentUser } from "@/app/_lib/auth";
+import { getCurrentUser, keepBarberOut } from "@/app/_lib/auth";
 import { getBookingBusy } from "@/app/_lib/reservations";
 import { getAvailabilityRules } from "@/app/_lib/schedule";
 import { getBookableServices } from "@/app/_lib/catalog";
@@ -16,6 +16,7 @@ export default async function AgendamentoPage(props: PageProps<"/agendamento">) 
   const { item } = await props.searchParams;
   // Itens já escolhidos, quando o cliente volta para adicionar outro serviço.
   const user = await getCurrentUser();
+  keepBarberOut(user);
   const booked = await getBookingBusy(user?.id);
   const services = await getBookableServices();
   const carry = parseItems(item, nowInStudio(), booked, await getAvailabilityRules(), services).map((i) => i.key);

@@ -10,12 +10,8 @@ import {
   updateOwnProfile,
 } from "../app/_lib/domain/account";
 import { createSessionToken, findSessionUser } from "../app/_lib/sessions";
-import { DomainError } from "../app/_lib/errors";
 import { resetTestDb } from "../scripts/test-reset";
-import { PASSWORD, USERS } from "./fixtures";
-
-export const rejectsWith = (code: string, field?: string) => (e: unknown) =>
-  e instanceof DomainError && e.code === code && (!field || Boolean(e.fields?.[field]));
+import { PASSWORD, rejectsWith, USERS } from "./fixtures";
 
 describe("authenticate", () => {
   before(resetTestDb);

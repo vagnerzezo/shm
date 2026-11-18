@@ -57,6 +57,8 @@ export async function bookForCustomer(userId: string, items: BookingInput[], not
   return updateDb((db) => {
     const user = db.users.find((u) => u.id === userId);
     if (!user || user.disabledAt) throw new DomainError("forbidden", "Sua conta não pode marcar horários.");
+    // Barbeiro não agenda como cliente (para isso usa outra conta).
+    if (roleOf(user) === "barbeiro") throw new DomainError("forbidden", "Conta de barbeiro não marca horários. Use uma conta de cliente.");
     const { services } = catalogOf(db);
     const rules = rulesOf(db);
     const now = nowInStudio();

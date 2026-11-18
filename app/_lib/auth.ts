@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import type { Customer } from "./roles";
+import { homeOf, type Customer } from "./roles";
 import { createSessionToken, findSessionUser, revokeSession } from "./sessions";
 
 export { hashPassword, verifyPassword } from "./passwords";
@@ -62,9 +62,14 @@ export async function requireUser(next: string) {
   return user;
 }
 
-/** Para páginas do painel admin: cliente logado volta para a área dele. */
+/** Para páginas do painel admin: cliente ou barbeiro logado volta para a área dele. */
 export async function requireAdmin(next: string) {
   const user = await requireUser(next);
-  if (user.role !== "admin") redirect("/reservas");
+  if (user.role !== "admin") redirect(homeOf(user));
   return user;
+}
+
+/** Telas de cliente (agendar, reservas, mensagens): o barbeiro vai para a agenda dele. */
+export function keepBarberOut(user: Customer | null) {
+  if (user?.role === "barbeiro") redirect("/barbeiro");
 }

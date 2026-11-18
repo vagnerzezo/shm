@@ -15,7 +15,7 @@ import {
   withItems,
   type BookingItem,
 } from "@/app/_lib/booking";
-import { getCurrentUser, loginHref } from "@/app/_lib/auth";
+import { getCurrentUser, keepBarberOut, loginHref } from "@/app/_lib/auth";
 import { getBookingBusy } from "@/app/_lib/reservations";
 import { getBookableServices } from "@/app/_lib/catalog";
 import { formatDuration, formatPrice } from "@/app/_lib/services";
@@ -65,6 +65,7 @@ function ItemCard({ item, removeHref }: { item: BookingItem; removeHref: string 
 export default async function ConfirmacaoPage(props: PageProps<"/agendamento/confirmacao">) {
   const { item } = await props.searchParams;
   const user = await getCurrentUser();
+  keepBarberOut(user);
   const booked = await getBookingBusy(user?.id);
   const items = parseItems(item, nowInStudio(), booked, await getAvailabilityRules(), await getBookableServices()).sort((a, b) =>
     `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`),

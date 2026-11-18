@@ -3,12 +3,18 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "./auth";
-import { nowInStudio } from "./availability";
-import { catalogOf } from "./catalog";
+import { ensureCatalog } from "./catalog";
 import { updateDb, type ProfessionalColor } from "./db";
+import {
+  createBarberAccess,
+  linkAdminToProfessional,
+  removeBarberAccess,
+  removeProfessional,
+  saveProfessional as saveProfessionalData,
+} from "./domain/barber";
+import { messageOf } from "./errors";
 import { normalize } from "./format";
 import { withNotice } from "./notices";
-import { PROFESSIONAL_COLORS } from "./services";
 
 export type CatalogFormState = { error: string | null; saved?: boolean };
 
@@ -18,14 +24,7 @@ const text = (formData: FormData, name: string) => String(formData.get(name) ?? 
 async function assertAdmin() {
   const user = await getCurrentUser();
   if (user?.role !== "admin") redirect("/login?next=%2Fadmin%2Fservicos");
-}
-
-/** Copia o catálogo padrão para o banco na primeira alteração. */
-function ensureCatalog(db: Parameters<Parameters<typeof updateDb>[0]>[0]) {
-  const { services, professionals } = catalogOf(db);
-  db.services ??= services.map((s) => ({ ...s }));
-  db.professionals ??= professionals.map((p) => ({ ...p }));
-  return { services: db.services, professionals: db.professionals };
+  return user;
 }
 
 /** "R$ 70,50" / "70.5" / "70" -> 7050. */
@@ -125,50 +124,52 @@ export async function deleteService(formData: FormData) {
 
 export async function saveProfessional(_prev: CatalogFormState, formData: FormData): Promise<CatalogFormState> {
   await assertAdmin();
-  const original = text(formData, "original");
-  const name = text(formData, "nome");
-  const color = text(formData, "cor") as ProfessionalColor;
-
-  if (name.length < 2 || name.length > 40) return { error: "Dê um nome de 2 a 40 caracteres." };
-  if (!PROFESSIONAL_COLORS.some((c) => c.id === color)) return { error: "Escolha uma cor." };
-
-  const error = await updateDb((db) => {
-    const { services, professionals } = ensureCatalog(db);
-    if (professionals.some((p) => p.name !== original && normalize(p.name) === normalize(name))) {
-      return "Já existe um profissional com esse nome.";
-    }
-    if (original) {
-      const current = professionals.find((p) => p.name === original);
-      if (!current) return "Profissional não encontrado.";
-      current.name = name;
-      current.color = color;
-      // Renomear leva junto os serviços e os períodos fechados dele.
-      if (original !== name) {
-        for (const s of services) if (s.professional === original) s.professional = name;
-        for (const c of db.closures) if (c.professional === original) c.professional = name;
-        for (const r of db.reservations) if (r.professional === original) r.professional = name;
-      }
-    } else {
-      professionals.push({ name, color });
-    }
-    return null;
-  });
-  if (error) return { error };
+  try {
+    await saveProfessionalData({
+      original: text(formData, "original"),
+      name: text(formData, "nome"),
+      color: text(formData, "cor") as ProfessionalColor,
+    });
+  } catch (error) {
+    return { error: messageOf(error) };
+  }
   refresh();
   return { error: null, saved: true };
 }
 
+/** Com serviços, horários futuros ou conta ligada, a tela nem oferece a exclusão; o domínio garante. */
 export async function deleteProfessional(formData: FormData) {
   await assertAdmin();
-  const name = text(formData, "nome");
-  await updateDb((db) => {
-    const { services, professionals } = ensureCatalog(db);
-    // Com serviços ligados, a tela nem oferece a exclusão; aqui é só a garantia.
-    if (services.some((s) => s.professional === name)) return;
-    // Nem com atendimentos futuros atribuídos a ele (serviços sem profissional fixo).
-    const today = nowInStudio().date;
-    if (db.reservations.some((r) => r.professional === name && !r.cancelledAt && r.date >= today)) return;
-    db.professionals = professionals.filter((p) => p.name !== name);
-  });
+  await removeProfessional(text(formData, "nome")).catch(messageOf);
+  refresh();
+}
+
+/** Admin cria o acesso do barbeiro (e-mail e senha provisória) para um profissional. */
+export async function createBarberAccessAction(_prev: CatalogFormState, formData: FormData): Promise<CatalogFormState> {
+  await assertAdmin();
+  try {
+    await createBarberAccess({
+      professional: text(formData, "profissional"),
+      name: text(formData, "nome"),
+      email: text(formData, "email"),
+      password: String(formData.get("senha") ?? ""),
+    });
+  } catch (error) {
+    return { error: messageOf(error) };
+  }
+  refresh();
+  return { error: null, saved: true };
+}
+
+/** "Sou eu" / "Não sou eu": liga ou desliga a conta do admin logado a um profissional. */
+export async function linkOwnAccountAction(formData: FormData) {
+  const admin = await assertAdmin();
+  await linkAdminToProfessional(admin.id, text(formData, "profissional") || null);
+  refresh();
+}
+
+export async function removeBarberAccessAction(formData: FormData) {
+  await assertAdmin();
+  await removeBarberAccess(text(formData, "id"));
   refresh();
 }

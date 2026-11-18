@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   adminNote: text(),
   disabledAt: ts(),
   unsubscribeToken: text().unique(),
+  professional: text(),
 });
 
 const userRef = () => text().notNull().references(() => users.id, { onDelete: "cascade" });

@@ -189,6 +189,46 @@
           }
         },
         {
+          "name": "Login barbeiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"devolve token, validade e usuário\", () => { pm.expect(json.token).to.be.a(\"string\").with.length.above(20); pm.expect(json.expiresAt).to.be.a(\"number\"); pm.expect(json.user.email).to.eql(\"heitor@shm.test\"); pm.expect(json.user).to.not.have.property(\"passwordHash\"); });",
+                  "pm.collectionVariables.set(\"barberToken\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"heitor@shm.test\",\"password\":\"Teste#12345\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
           "name": "Login descartável",
           "event": [
             {
@@ -429,6 +469,74 @@
                   "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
                   "let json; try { json = pm.response.json(); } catch { json = undefined; }",
                   "pm.test(\"é admin\", () => pm.expect(json.user.role).to.eql(\"admin\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Quem sou eu (barbeiro)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"é barbeiro do Heitor\", () => { pm.expect(json.user.role).to.eql(\"barbeiro\"); pm.expect(json.user.professional).to.eql(\"Heitor\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin sem profissional não tem o campo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"sem professional\", () => pm.expect(json.user).to.not.have.property(\"professional\"));"
                 ]
               }
             }
@@ -2899,6 +3007,82 @@
           }
         },
         {
+          "name": "Marcar com token de barbeiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"items\":[{\"serviceId\":\"corte-jimmy\",\"date\":\"{{day}}\",\"time\":\"10:00\"}]}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar com token de barbeiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            }
+          }
+        },
+        {
           "name": "Marcar com token de admin",
           "event": [
             {
@@ -3433,6 +3617,82 @@
               ],
               "path": [
                 "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mensagens com token de barbeiro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Barbeiro não exclui a conta pela API",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"password\":\"Teste#12345\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
               ]
             }
           }

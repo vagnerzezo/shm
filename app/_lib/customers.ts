@@ -1,4 +1,4 @@
-import { roleOf } from "./auth";
+import { roleOf } from "./roles";
 import { nowInStudio } from "./availability";
 import { readDb, type Consent } from "./db";
 import { catalogOf } from "./catalog";

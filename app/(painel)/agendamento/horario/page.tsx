@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSuggestedDays, nowInStudio } from "@/app/_lib/availability";
 import { busyOf, parseItems } from "@/app/_lib/booking";
-import { getCurrentUser } from "@/app/_lib/auth";
+import { getCurrentUser, keepBarberOut } from "@/app/_lib/auth";
 import { getBookingBusy } from "@/app/_lib/reservations";
 import { getAvailabilityRules } from "@/app/_lib/schedule";
 import { getBookableServices } from "@/app/_lib/catalog";
@@ -24,6 +24,7 @@ export default async function HorarioPage(props: PageProps<"/agendamento/horario
   const rules = await getAvailabilityRules();
   // Horários que o cliente já ocupa: reservas feitas + serviços no carrinho.
   const user = await getCurrentUser();
+  keepBarberOut(user);
   const booked = await getBookingBusy(user?.id);
   const carryItems = parseItems(item, now, booked, rules, services);
   const busy = [...booked, ...busyOf(carryItems)];

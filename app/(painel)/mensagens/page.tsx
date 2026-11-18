@@ -4,7 +4,7 @@ import { AutoRefresh } from "@/app/_components/auto-refresh";
 import { ChatPanel } from "@/app/_components/chat-panel";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { markCustomerReadAction, sendCustomerMessage } from "@/app/_lib/actions";
-import { requireUser } from "@/app/_lib/auth";
+import { keepBarberOut, requireUser } from "@/app/_lib/auth";
 import { getMessages } from "@/app/_lib/chat";
 import { getStudio } from "@/app/_lib/studio";
 import { redirect } from "next/navigation";
@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 
 export default async function MensagensPage() {
   const user = await requireUser("/mensagens");
+  keepBarberOut(user);
   // O admin conversa com todos os clientes pelo painel dele.
   if (user.role === "admin") redirect("/admin/chat");
   const [messages, studio] = await Promise.all([getMessages(user.id), getStudio()]);

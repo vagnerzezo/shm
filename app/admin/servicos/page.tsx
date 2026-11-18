@@ -21,13 +21,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ServicosPage(props: PageProps<"/admin/servicos">) {
-  await requireAdmin("/admin/servicos");
+  const me = await requireAdmin("/admin/servicos");
   const params = await props.searchParams;
   const editId = oneParam(params.editar);
   const creating = oneParam(params.novo) === "1";
 
   const { services, professionals } = await getCatalog();
-  const { reservations } = await readDb();
+  const { reservations, users } = await readDb();
   const today = nowInStudio().date;
   const used = new Map<string, number>();
   for (const r of reservations) used.set(r.serviceId, (used.get(r.serviceId) ?? 0) + 1);
@@ -136,7 +136,12 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
             services: services.filter((s) => s.professional === p.name).length,
             // Atendimentos futuros atribuídos a ele (inclui serviços sem profissional fixo).
             upcoming: reservations.filter((r) => r.professional === p.name && !r.cancelledAt && r.date >= today).length,
+            access: users
+              .filter((u) => u.role === "barbeiro" && u.professional === p.name)
+              .map((u) => ({ id: u.id, email: u.email })),
+            isMe: me.professional === p.name,
           }))}
+          linkedToMe={me.professional ?? null}
         />
       </div>
     </>

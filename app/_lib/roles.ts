@@ -11,6 +11,8 @@ export type Customer = {
   email: string;
   role: Role;
   consent: Consent;
+  /** Profissional ligado (barbeiro, ou admin que também atende). */
+  professional?: string;
 };
 
 /** E-mails em `ADMIN_EMAILS` (separados por vírgula) também entram como admin. */
@@ -19,15 +21,20 @@ export function roleOf(user: Pick<User, "email" | "role">): Role {
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  return user.role === "admin" || admins.includes(user.email) ? "admin" : "cliente";
+  if (user.role === "admin" || admins.includes(user.email)) return "admin";
+  return user.role === "barbeiro" ? "barbeiro" : "cliente";
 }
+
+const HOME: Record<Role, string> = { admin: "/admin", barbeiro: "/barbeiro", cliente: "/reservas" };
 
 /** Para onde cada perfil vai quando não há um `next`. */
 export function homeOf(user: Pick<User, "email" | "role">) {
-  return roleOf(user) === "admin" ? "/admin" : "/reservas";
+  return HOME[roleOf(user)];
 }
 
-export function toCustomer(user: Pick<User, "id" | "name" | "phone" | "email" | "role" | "consent">): Customer {
+export function toCustomer(
+  user: Pick<User, "id" | "name" | "phone" | "email" | "role" | "consent" | "professional">,
+): Customer {
   return {
     id: user.id,
     name: user.name,
@@ -35,5 +42,6 @@ export function toCustomer(user: Pick<User, "id" | "name" | "phone" | "email" | 
     email: user.email,
     role: roleOf(user),
     consent: user.consent ?? { email: false, mensagem: false },
+    ...(user.professional && { professional: user.professional }),
   };
 }

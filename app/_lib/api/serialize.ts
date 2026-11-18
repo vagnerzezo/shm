@@ -24,6 +24,7 @@ export function userJson(user: Customer) {
     email: user.email,
     role: user.role,
     consent: user.consent,
+    ...(user.professional && { professional: user.professional }),
   };
 }
 

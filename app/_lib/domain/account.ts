@@ -46,7 +46,7 @@ export async function authenticate(emailInput: string, password: string): Promis
 
 export const PASSWORD_RULE = "A senha precisa ter de 8 a 100 caracteres.";
 
-function assertPassword(password: unknown, field = "password"): asserts password is string {
+export function assertPassword(password: unknown, field = "password"): asserts password is string {
   if (typeof password !== "string" || password.length < 8 || password.length > 100) {
     throw new DomainError("validation", PASSWORD_RULE, { [field]: PASSWORD_RULE });
   }

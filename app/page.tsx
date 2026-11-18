@@ -7,7 +7,7 @@ import { Toaster } from "./_components/toaster";
 import { ClientHome } from "./_components/client-home";
 import { CalendarGridIcon, HistoryIcon, UserIcon } from "./_components/icons";
 import { PanelFrame } from "./_components/panel-frame";
-import { getCurrentUser } from "./_lib/auth";
+import { getCurrentUser, keepBarberOut } from "./_lib/auth";
 
 const buttonClass =
   "flex h-[72px] w-full items-center justify-center gap-3 rounded-xl border border-black bg-white text-lg font-semibold text-black transition hover:bg-black hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
@@ -16,6 +16,7 @@ export default async function Home() {
   const user = await getCurrentUser();
   // O admin tem o Início próprio no painel, com o resumo do dia.
   if (user?.role === "admin") redirect("/admin");
+  keepBarberOut(user);
   // Cliente logado: Início dentro do painel, com o mesmo menu das outras telas.
   if (user) {
     return (

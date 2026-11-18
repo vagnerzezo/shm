@@ -16,7 +16,7 @@ import { USERS } from "./fixtures";
 const rejectsWith = (code: string) => (e: unknown) => e instanceof DomainError && e.code === code;
 const DAY = addDays(nowInStudio().date, 10);
 const OTHER_DAY = addDays(nowInStudio().date, 11);
-const { cliente, cliente2, heitor } = USERS;
+const { cliente, cliente2, cliente3 } = USERS;
 const active = async () => (await readDb()).reservations.filter((r) => !r.cancelledAt);
 const item = (serviceId: string, time: string, date = DAY) => ({ serviceId, date, time });
 
@@ -50,7 +50,7 @@ describe("marcação", () => {
     ]);
     const pros = (await active()).map((r) => r.professional).sort();
     assert.deepEqual(pros, ["Heitor", "Jimmy"]);
-    await assert.rejects(bookForCustomer(heitor.id, [item("barba-pigmentacao", "10:00")]), rejectsWith("slot_unavailable"));
+    await assert.rejects(bookForCustomer(cliente3.id, [item("barba-pigmentacao", "10:00")]), rejectsWith("slot_unavailable"));
   });
 
   test("vários itens: tudo ou nada", async () => {

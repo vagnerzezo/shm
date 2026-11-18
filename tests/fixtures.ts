@@ -15,6 +15,7 @@ const user = (id: string, name: string, phone: string) => ({
 export const USERS = {
   cliente: user("cliente", "Cliente Teste", "51900000001"),
   cliente2: user("cliente2", "Cliente Dois", "51900000002"),
+  cliente3: user("cliente3", "Cliente Três", "51900000006"),
   heitor: user("heitor", "Heitor Teste", "51900000003"),
   jimmy: user("jimmy", "Jimmy Teste", "51900000004"),
   admin: user("admin", "Admin Teste", "51900000005"),

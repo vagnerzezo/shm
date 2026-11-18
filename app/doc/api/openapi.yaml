@@ -13,6 +13,7 @@ tags:
   - name: Auth
   - name: Conta
   - name: Catalog
+  - name: Reservations
 components:
   securitySchemes:
     bearer:
@@ -115,6 +116,29 @@ components:
             properties:
               date: { type: string, format: date }
               times: { type: array, items: { type: string, example: "09:30" } }
+    Reservation:
+      type: object
+      required: [id, date, time, endTime, status, service]
+      properties:
+        id: { type: string }
+        date: { type: string, format: date }
+        time: { type: string, example: "10:00" }
+        endTime: { type: string, example: "10:45", description: Hora de término (início + duração do serviço). }
+        status:
+          type: string
+          enum: [agendado, realizado, faltou]
+          description: "`agendado`: ainda não aconteceu. Depois do horário: `realizado`, ou `faltou` se o estúdio marcou falta."
+        note: { type: string, maxLength: 300, description: Observação do cliente. Ausente quando não há. }
+        service:
+          allOf: [{ $ref: "#/components/schemas/Service" }]
+          description: Como foi marcado. `priceCents` é o preço cobrado na reserva; `professional` é quem atende.
+    BookingItem:
+      type: object
+      required: [serviceId, date, time]
+      properties:
+        serviceId: { type: string }
+        date: { type: string, format: date }
+        time: { type: string, example: "10:00" }
   responses:
     Error:
       description: Erro no formato padrão.
@@ -351,3 +375,103 @@ paths:
                 properties:
                   user: { $ref: "#/components/schemas/User" }
         "401": { $ref: "#/components/responses/Error" }
+  /reservations:
+    get:
+      tags: [Reservations]
+      summary: Reservas do cliente logado
+      description: Canceladas não aparecem. `upcoming` em ordem cronológica; `past` da mais recente para a mais antiga.
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [upcoming, past], default: upcoming } }
+      responses:
+        "200":
+          description: Reservas.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reservations]
+                properties:
+                  reservations: { type: array, items: { $ref: "#/components/schemas/Reservation" } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Reservations]
+      summary: Marcar um ou mais horários
+      description: >
+        Só para clientes. Tudo ou nada: se um item não puder ser marcado, nenhum é gravado.
+        Sem chave de idempotência — repetir o mesmo pedido dá `409`, porque o cliente já ocupa o horário.
+        Envia o e-mail de confirmação depois da resposta.
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items: { type: array, minItems: 1, maxItems: 10, items: { $ref: "#/components/schemas/BookingItem" }, description: Sem item repetido. }
+                note: { type: string, maxLength: 300, description: Vale para todos os itens. Espaços nas pontas são removidos. }
+      responses:
+        "201":
+          description: Reservas criadas, na ordem dos itens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reservations]
+                properties:
+                  reservations: { type: array, items: { $ref: "#/components/schemas/Reservation" } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { description: "Um dos horários não está mais livre (`slot_unavailable`).", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /reservations/{id}:
+    patch:
+      tags: [Reservations]
+      summary: Remarcar uma reserva futura
+      description: Só o dono. Avisa o estúdio pelo chat. Reserva de outro cliente, cancelada ou inexistente dá `404`.
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, time]
+              properties:
+                date: { type: string, format: date }
+                time: { type: string, example: "16:00" }
+      responses:
+        "200":
+          description: Reserva com o novo horário.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reservation]
+                properties:
+                  reservation: { $ref: "#/components/schemas/Reservation" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /reservations/{id}/cancel:
+    post:
+      tags: [Reservations]
+      summary: Cancelar uma reserva futura
+      description: Só o dono. A reserva fica no histórico do estúdio e some da lista do cliente. Envia o e-mail de cancelamento.
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Cancelada. }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }

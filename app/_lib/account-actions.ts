@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createSession, currentToken, deleteSession, getCurrentUser, homeOf, loginHref } from "./auth";
-import { formatLongDate } from "./availability";
 import { addMessage } from "./chat";
 import {
   assertCurrentPassword,
@@ -11,7 +10,7 @@ import {
   requestPasswordResetFor,
   resetPasswordWithToken,
 } from "./domain/account";
-import { rescheduleForCustomer } from "./domain/bookings";
+import { rescheduledText, rescheduleForCustomer } from "./domain/bookings";
 import { messageOf } from "./errors";
 import { withNotice } from "./notices";
 import { unsubscribeByToken } from "./unsubscribe";
@@ -98,11 +97,7 @@ export async function rescheduleMyReservation(_prev: RescheduleState, formData: 
     return { error: messageOf(error) };
   }
   const { before, serviceName } = moved;
-  await addMessage(
-    me.id,
-    "cliente",
-    `Remarquei ${serviceName}: de ${formatLongDate(before.date)} às ${before.time} para ${formatLongDate(date)} às ${time}.`,
-  );
+  await addMessage(me.id, "cliente", rescheduledText(serviceName, before, date, time));
   redirect(withNotice("/reservas", "reserva-remarcada"));
 }
 

@@ -108,9 +108,55 @@ const catalog = [
   ["Remarcar reserva que não é do cliente", "GET", "/availability?serviceId=corte-heitor&from={{day}}&to={{day}}&rescheduleOf=nao-existe", { auth: "clientToken", status: 404, tests: [isError("not_found")] }],
 ];
 
+// Reservas no dia {{day}} (daqui a 7 dias), com Heitor (profissional fixo).
+const item = (time, serviceId = "corte-heitor") => ({ serviceId, date: "{{day}}", time });
+const ELEVEN = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00"].map((t) => item(t));
+const listHas = (present) =>
+  `pm.test("${present ? "contém" : "não contém"} a reserva", () => pm.expect(json.reservations.map((r) => r.id)).to.${present ? "" : "not."}include(pm.collectionVariables.get("reservationId")));`;
+const reservations = [
+  ["Marcar um horário", "POST", "/reservations", {
+    auth: "clientToken", body: { items: [item("10:00")], note: "  Primeira vez  " }, status: 201,
+    tests: [
+      'const r = json.reservations[0];',
+      'pm.test("uma reserva no formato público", () => { pm.expect(json.reservations).to.have.length(1); pm.expect(r).to.include({ date: pm.collectionVariables.get("day"), time: "10:00", endTime: "10:45", status: "agendado", note: "Primeira vez" }); pm.expect(r.service).to.eql({ id: "corte-heitor", name: "Corte com Heitor", durationMinutes: 45, priceCents: 7000, professional: "Heitor" }); pm.expect(r).to.not.have.property("userId"); });',
+      'pm.collectionVariables.set("reservationId", r.id);',
+    ],
+  }],
+  ["Listar as próximas", "GET", "/reservations", { auth: "clientToken", status: 200, tests: [listHas(true)] }],
+  ["Listar as passadas", "GET", "/reservations?scope=past", { auth: "clientToken", status: 200, tests: ['pm.test("nenhuma passada", () => pm.expect(json.reservations).to.eql([]));'] }],
+  ["Listar com scope inválido", "GET", "/reservations?scope=todas", { auth: "clientToken", status: 400, tests: [isError("validation")] }],
+  ["Marcar o mesmo horário de novo", "POST", "/reservations", { auth: "clientToken", body: { items: [item("10:00")] }, status: 409, tests: [isError("slot_unavailable")] }],
+  ["Outro cliente no mesmo horário do mesmo profissional", "POST", "/reservations", { auth: "client2Token", body: { items: [item("10:00")] }, status: 409, tests: [isError("slot_unavailable")] }],
+  ["Marcar sem itens", "POST", "/reservations", { auth: "clientToken", body: { items: [] }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.items).to.be.a("string"));'] }],
+  ["Marcar com item repetido", "POST", "/reservations", { auth: "clientToken", body: { items: [item("15:00"), item("15:00")] }, status: 400, tests: [isError("validation")] }],
+  ["Marcar 11 itens", "POST", "/reservations", { auth: "clientToken", body: { items: ELEVEN }, status: 400, tests: [isError("validation")] }],
+  ["Marcar sem corpo de lista", "POST", "/reservations", { auth: "clientToken", body: { items: "10:00" }, status: 400, tests: [isError("validation")] }],
+  ["Nada gravado nos pedidos recusados", "GET", "/reservations", { auth: "clientToken", status: 200, tests: ['pm.test("só a primeira", () => pm.expect(json.reservations).to.have.length(1));'] }],
+  ["Remarcar", "PATCH", "/reservations/{{reservationId}}", {
+    auth: "clientToken", body: { date: "{{day}}", time: "16:00" }, status: 200,
+    tests: ['pm.test("nova hora", () => { pm.expect(json.reservation.id).to.eql(pm.collectionVariables.get("reservationId")); pm.expect(json.reservation.time).to.eql("16:00"); pm.expect(json.reservation.endTime).to.eql("16:45"); });'],
+  }],
+  ["Lista mostra a hora nova", "GET", "/reservations", { auth: "clientToken", status: 200, tests: ['pm.test("hora nova na lista", () => pm.expect(json.reservations[0].time).to.eql("16:00"));'] }],
+  ["Horário antigo ficou livre", "POST", "/reservations", { auth: "client2Token", body: { items: [item("10:00")] }, status: 201, tests: ['pm.collectionVariables.set("reservation2Id", json.reservations[0].id);'] }],
+  ["Remarcar sem data", "PATCH", "/reservations/{{reservationId}}", { auth: "clientToken", body: { time: "17:00" }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.date).to.be.a("string"));'] }],
+  ["Remarcar para horário ocupado", "PATCH", "/reservations/{{reservationId}}", { auth: "clientToken", body: { date: "{{day}}", time: "10:00" }, status: 409, tests: [isError("slot_unavailable")] }],
+  ["Outro cliente remarcando", "PATCH", "/reservations/{{reservationId}}", { auth: "client2Token", body: { date: "{{day}}", time: "17:00" }, status: 404, tests: [isError("not_found")] }],
+  ["Outro cliente cancelando", "POST", "/reservations/{{reservationId}}/cancel", { auth: "client2Token", status: 404, tests: [isError("not_found")] }],
+  ["Remarcar reserva inexistente", "PATCH", "/reservations/nao-existe", { auth: "clientToken", body: { date: "{{day}}", time: "17:00" }, status: 404, tests: [isError("not_found")] }],
+  ["Cancelar", "POST", "/reservations/{{reservationId}}/cancel", { auth: "clientToken", status: 204, tests: ['pm.test("sem corpo", () => pm.expect(pm.response.text()).to.eql(""));'] }],
+  ["Cancelada some da lista", "GET", "/reservations", { auth: "clientToken", status: 200, tests: [listHas(false)] }],
+  ["Cancelar de novo", "POST", "/reservations/{{reservationId}}/cancel", { auth: "clientToken", status: 404, tests: [isError("not_found")] }],
+  ["Cancelar a do cliente 2", "POST", "/reservations/{{reservation2Id}}/cancel", { auth: "client2Token", status: 204 }],
+  ["Listar sem token", "GET", "/reservations", { status: 401, tests: [isError("unauthenticated")] }],
+  ["Marcar sem token", "POST", "/reservations", { body: { items: [item("10:00")] }, status: 401, tests: [isError("unauthenticated")] }],
+  ["Listar com token de admin", "GET", "/reservations", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
+  ["Marcar com token de admin", "POST", "/reservations", { auth: "adminToken", body: { items: [item("10:00")] }, status: 403, tests: [isError("forbidden")] }],
+];
+
 export const folders = [
   ["Studio", studio],
   ["Auth", auth],
   ["Account", account],
   ["Catalog", catalog],
+  ["Reservations", reservations],
 ];

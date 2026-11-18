@@ -1,4 +1,5 @@
 import {
+  formatLongDate,
   freeProfessionals,
   getSlots,
   isClosed,
@@ -119,6 +120,11 @@ export async function rescheduleForCustomer(userId: string, id: string, date: un
     Object.assign(r, { date, time, professional: keepOrPick(r.professional, service, date, time, busy, rules) });
     return { before, serviceName: service.name };
   });
+}
+
+/** Aviso no chat quando o cliente remarca (o estúdio fica sabendo). */
+export function rescheduledText(serviceName: string, before: { date: string; time: string }, date: string, time: string) {
+  return `Remarquei ${serviceName}: de ${formatLongDate(before.date)} às ${before.time} para ${formatLongDate(date)} às ${time}.`;
 }
 
 /** Cliente cancela uma reserva futura. Devolve a reserva como era. */

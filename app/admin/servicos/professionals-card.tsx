@@ -202,7 +202,7 @@ export function ProfessionalsCard({ professionals, linkedToMe }: { professionals
                   {p.isMe && " · é você"}
                 </p>
                 {p.access.map((a) => (
-                  <p key={a.id} className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-black/70">
+                  <div key={a.id} className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-black/70">
                     <span className="break-all">Acesso: {a.email}</span>
                     <ConfirmButton
                       action={removeBarberAccessAction}
@@ -215,7 +215,7 @@ export function ProfessionalsCard({ professionals, linkedToMe }: { professionals
                     >
                       Remover acesso
                     </ConfirmButton>
-                  </p>
+                  </div>
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-4">

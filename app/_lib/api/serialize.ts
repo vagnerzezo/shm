@@ -1,5 +1,5 @@
 import { toMinutes, toTime } from "../availability";
-import type { StudioInfo } from "../db";
+import type { ChatMessage, StudioInfo } from "../db";
 import { statusOf, type Reservation } from "../reservations";
 import type { Customer } from "../roles";
 import type { Service } from "../services";
@@ -53,4 +53,8 @@ export function reservationJson(r: Reservation, now: { date: string; minutes: nu
     ...(r.note && { note: r.note }),
     service: serviceJson(r.service),
   };
+}
+
+export function messageJson(m: ChatMessage) {
+  return { id: m.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt && { readAt: m.readAt }) };
 }

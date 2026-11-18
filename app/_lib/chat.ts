@@ -42,18 +42,13 @@ export async function getMessages(customerId: string): Promise<ChatMessage[]> {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Devolve `false` se o cliente não existe. */
-export function addMessage(customerId: string, from: ChatMessage["from"], text: string) {
+/** Devolve a mensagem gravada, ou `null` se o cliente não existe. */
+export function addMessage(customerId: string, from: ChatMessage["from"], text: string): Promise<ChatMessage | null> {
   return updateDb((db) => {
-    if (!db.users.some((u) => u.id === customerId)) return false;
-    db.messages.push({
-      id: crypto.randomUUID(),
-      customerId,
-      from,
-      text,
-      createdAt: new Date().toISOString(),
-    });
-    return true;
+    if (!db.users.some((u) => u.id === customerId)) return null;
+    const message: ChatMessage = { id: crypto.randomUUID(), customerId, from, text, createdAt: new Date().toISOString() };
+    db.messages.push(message);
+    return { ...message };
   });
 }
 

@@ -14,6 +14,7 @@ tags:
   - name: Conta
   - name: Catalog
   - name: Reservations
+  - name: Messages
 components:
   securitySchemes:
     bearer:
@@ -139,6 +140,15 @@ components:
         serviceId: { type: string }
         date: { type: string, format: date }
         time: { type: string, example: "10:00" }
+    Message:
+      type: object
+      required: [id, from, text, createdAt]
+      properties:
+        id: { type: string }
+        from: { type: string, enum: [cliente, admin], description: "`cliente`: enviada pelo cliente; `admin`: pelo estúdio." }
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, description: Quando o destinatário abriu a conversa. Ausente enquanto não lida. }
   responses:
     Error:
       description: Erro no formato padrão.
@@ -475,3 +485,69 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /messages:
+    get:
+      tags: [Messages]
+      summary: Conversa do cliente com o estúdio
+      description: >
+        Só para clientes. Em ordem cronológica. Com `after`, só as mensagens depois dessa
+        (o app usa para buscar o que chegou); id desconhecido devolve a conversa inteira.
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: after, in: query, schema: { type: string }, description: Id da última mensagem que o app já tem. }
+      responses:
+        "200":
+          description: Mensagens e quantas do estúdio o cliente ainda não leu.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [messages, unread]
+                properties:
+                  messages: { type: array, items: { $ref: "#/components/schemas/Message" } }
+                  unread: { type: integer }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Messages]
+      summary: Enviar mensagem ao estúdio
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 2000, description: Espaços nas pontas são removidos; não pode ficar vazio. }
+      responses:
+        "201":
+          description: Mensagem enviada.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message: { $ref: "#/components/schemas/Message" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /messages/read:
+    post:
+      tags: [Messages]
+      summary: Marcar como lidas as mensagens do estúdio
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: Quantas mudaram.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [marked]
+                properties:
+                  marked: { type: integer }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }

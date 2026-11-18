@@ -153,10 +153,42 @@ const reservations = [
   ["Marcar com token de admin", "POST", "/reservations", { auth: "adminToken", body: { items: [item("10:00")] }, status: 403, tests: [isError("forbidden")] }],
 ];
 
+const messages = [
+  ["Enviar mensagem", "POST", "/messages", {
+    auth: "clientToken", body: { text: "  Oi, posso levar meu filho junto?  " }, status: 201,
+    tests: [
+      'pm.test("mensagem no formato público", () => { pm.expect(json.message).to.have.keys(["id", "from", "text", "createdAt"]); pm.expect(json.message.from).to.eql("cliente"); pm.expect(json.message.text).to.eql("Oi, posso levar meu filho junto?"); pm.expect(new Date(json.message.createdAt).toISOString()).to.eql(json.message.createdAt); });',
+      'pm.collectionVariables.set("messageId", json.message.id);',
+    ],
+  }],
+  ["Listar mensagens", "GET", "/messages", {
+    auth: "clientToken", status: 200,
+    tests: [
+      'pm.test("contém a enviada, por último", () => { pm.expect(json.messages.at(-1).id).to.eql(pm.collectionVariables.get("messageId")); pm.expect(json.unread).to.be.a("number"); });',
+      'pm.test("em ordem cronológica", () => { const t = json.messages.map((m) => m.createdAt); pm.expect(t).to.eql([...t].sort()); });',
+      'pm.test("sem dados internos", () => pm.expect(json.messages[0]).to.not.have.property("customerId"));',
+    ],
+  }],
+  ["Listar depois da última", "GET", "/messages?after={{messageId}}", { auth: "clientToken", status: 200, tests: ['pm.test("lista vazia", () => pm.expect(json.messages).to.eql([]));'] }],
+  ["Listar depois de id desconhecido", "GET", "/messages?after=nao-existe", { auth: "clientToken", status: 200, tests: ['pm.test("lista completa", () => pm.expect(json.messages.map((m) => m.id)).to.include(pm.collectionVariables.get("messageId")));'] }],
+  ["Outro cliente não vê", "GET", "/messages", { auth: "client2Token", status: 200, tests: ['pm.test("sem a mensagem do cliente 1", () => pm.expect(json.messages.map((m) => m.id)).to.not.include(pm.collectionVariables.get("messageId")));'] }],
+  ["Enviar só espaços", "POST", "/messages", { auth: "clientToken", body: { text: "   " }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.text).to.be.a("string"));'] }],
+  ["Enviar 2001 caracteres", "POST", "/messages", { auth: "clientToken", body: { text: "a".repeat(2001) }, status: 400, tests: [isError("validation")] }],
+  ["Enviar 2000 caracteres", "POST", "/messages", { auth: "clientToken", body: { text: "a".repeat(2000) }, status: 201 }],
+  ["Enviar texto de tipo errado", "POST", "/messages", { auth: "clientToken", body: { text: 42 }, status: 400, tests: [isError("validation")] }],
+  ["Marcar como lidas", "POST", "/messages/read", { auth: "clientToken", status: 200, tests: ['pm.test("devolve quantas", () => pm.expect(json.marked).to.be.a("number"));'] }],
+  ["Nada mais por ler", "GET", "/messages", { auth: "clientToken", status: 200, tests: ['pm.test("unread zero", () => pm.expect(json.unread).to.eql(0));'] }],
+  ["Mensagens sem token", "GET", "/messages", { status: 401, tests: [isError("unauthenticated")] }],
+  ["Mensagens com token de admin", "GET", "/messages", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
+  ["Enviar com token de admin", "POST", "/messages", { auth: "adminToken", body: { text: "oi" }, status: 403, tests: [isError("forbidden")] }],
+  ["Marcar lidas com token de admin", "POST", "/messages/read", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
+];
+
 export const folders = [
   ["Studio", studio],
   ["Auth", auth],
   ["Account", account],
   ["Catalog", catalog],
   ["Reservations", reservations],
+  ["Messages", messages],
 ];

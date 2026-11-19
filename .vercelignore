@@ -1,0 +1,11 @@
+# Nunca enviar para a Vercel: senhas e dados locais.
+.env
+.env.*
+!.env.example
+.data
+# Gerados ou de ferramentas locais.
+.next
+.next-test
+.superpowers
+.playwright-cli
+node_modules

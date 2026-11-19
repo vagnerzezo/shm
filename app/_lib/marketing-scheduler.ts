@@ -1,8 +1,8 @@
 import { runMarketing } from "./marketing";
 
 // Roda o motor de marketing de tempos em tempos enquanto o servidor estiver
-// no ar (next dev / next start). Para hospedagem sem servidor contínuo, use a
-// rota POST /api/marketing/executar num cron externo.
+// no ar (next dev / next start). Na Vercel fica desligado e quem chama é o cron
+// de vercel.json (GET /api/marketing/executar), uma vez por dia no plano Hobby.
 
 const minutes = Math.max(1, Number(process.env.MARKETING_INTERVAL_MINUTES) || 15);
 

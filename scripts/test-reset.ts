@@ -11,21 +11,43 @@ import { SCHEDULE, USERS } from "../tests/fixtures";
  * SHM_TEST_DB=1 do .env.test. Por isso a conexão tem que ser exatamente a
  * do arquivo .env.test.
  */
-function assertTestDatabase() {
+/** `DATABASE_URL` escrito num arquivo .env, ou `undefined`. */
+function databaseUrlIn(file: string): string | undefined {
+  let text = "";
+  try {
+    text = readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+  } catch {
+    return undefined;
+  }
+  const line = text.split(/\r?\n/).find((l) => /^\s*DATABASE_URL\s*=/.test(l));
+  return line?.replace(/^\s*DATABASE_URL\s*=\s*/, "").trim().replace(/^(['"])(.*)\1$/, "$2") || undefined;
+}
+
+const hostOf = (url: string) => {
+  try {
+    // O endpoint do Neon com e sem "-pooler" é o mesmo banco.
+    return new URL(url).hostname.replace("-pooler.", ".");
+  } catch {
+    return url;
+  }
+};
+
+export function assertTestDatabase() {
   if (process.env.SHM_TEST_DB !== "1") {
     throw new Error("test-reset só roda com SHM_TEST_DB=1 (use o .env.test). Nada foi apagado.");
   }
-  let file = "";
-  try {
-    file = readFileSync(new URL("../.env.test", import.meta.url), "utf8");
-  } catch {
-    throw new Error("Não achei o .env.test. Nada foi apagado.");
-  }
-  const line = file.split(/\r?\n/).find((l) => /^\s*DATABASE_URL\s*=/.test(l));
-  const expected = line?.replace(/^\s*DATABASE_URL\s*=\s*/, "").trim().replace(/^(['"])(.*)\1$/, "$2");
-  if (!expected || process.env.DATABASE_URL !== expected) {
+  const expected = databaseUrlIn(".env.test");
+  if (!expected) throw new Error("Não achei o DATABASE_URL do .env.test. Nada foi apagado.");
+  if (process.env.DATABASE_URL !== expected) {
     throw new Error(
       "O DATABASE_URL em uso não é o banco de teste do .env.test (há outro exportado no terminal?). Nada foi apagado.",
+    );
+  }
+  // O .env.test apontando para o banco de verdade (o do .env) apagaria os dados reais.
+  const main = databaseUrlIn(".env");
+  if (main && hostOf(main) === hostOf(expected)) {
+    throw new Error(
+      "O .env.test aponta para o mesmo banco do .env (o de verdade). Use um branch só para testes no Neon. Nada foi apagado.",
     );
   }
 }

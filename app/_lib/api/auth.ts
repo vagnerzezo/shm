@@ -12,3 +12,12 @@ export async function requireAuth(roles?: Role[]): Promise<Customer> {
   }
   return user;
 }
+
+/** Rotas de barbeiro: conta `barbeiro`, ou admin ligado a um profissional. */
+export async function requireBarber(): Promise<Customer & { professional: string }> {
+  const user = await requireAuth();
+  if ((user.role !== "barbeiro" && user.role !== "admin") || !user.professional) {
+    throw new DomainError("forbidden", "Sua conta não tem agenda de profissional.");
+  }
+  return { ...user, professional: user.professional };
+}

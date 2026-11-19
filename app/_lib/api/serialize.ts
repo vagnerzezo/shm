@@ -1,6 +1,6 @@
 import { toMinutes, toTime } from "../availability";
 import type { ChatMessage, StudioInfo } from "../db";
-import { statusOf, type Reservation } from "../reservations";
+import { statusOf, type AgendaReservation, type Reservation } from "../reservations";
 import type { Customer } from "../roles";
 import type { Service } from "../services";
 
@@ -58,4 +58,19 @@ export function reservationJson(r: Reservation, now: { date: string; minutes: nu
 
 export function messageJson(m: ChatMessage) {
   return { id: m.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt && { readAt: m.readAt }) };
+}
+
+/** Horário visto pelo barbeiro: sem preço e sem o e-mail do cliente. */
+export function barberReservationJson(r: AgendaReservation, now: { date: string; minutes: number }) {
+  return {
+    id: r.id,
+    date: r.date,
+    time: r.time,
+    endTime: toTime(toMinutes(r.time) + r.service.durationMinutes),
+    status: statusOf(r, now),
+    attendance: r.attendance ?? null,
+    ...(r.note && { note: r.note }),
+    service: { id: r.service.id, name: r.service.name, durationMinutes: r.service.durationMinutes },
+    customer: { name: r.customer.name, phone: r.customer.phone },
+  };
 }

@@ -191,6 +191,38 @@ const messages = [
   ["Marcar lidas com token de admin", "POST", "/messages/read", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
 ];
 
+// Agenda do barbeiro (Heitor). O test:reset semeia "seed-heitor" e "seed-jimmy" ontem.
+const noPrivate = 'pm.test("sem preço nem e-mail", () => { const raw = pm.response.text(); pm.expect(raw).to.not.include("priceCents"); pm.expect(raw).to.not.include("email"); });';
+const agendaHas = (field, value) =>
+  `pm.test("seed-heitor com ${field} = ${value}", () => pm.expect(json.reservations.find((r) => r.id === "seed-heitor").${field}).to.eql(${JSON.stringify(value)}));`;
+const barber = [
+  ["Agenda do barbeiro", "GET", "/barber/agenda?from={{past}}&to={{day}}", {
+    auth: "barberToken", status: 200,
+    pre: ['const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);', 'pm.collectionVariables.set("past", day(-2)); // dois dias: o "ontem" do estúdio (São Paulo) pode ser anteontem em UTC'],
+    tests: [
+      'pm.test("é do Heitor", () => pm.expect(json.professional).to.eql("Heitor"));',
+      'const ids = json.reservations.map((r) => r.id);',
+      'pm.test("só as dele", () => { pm.expect(ids).to.include("seed-heitor"); pm.expect(ids).to.not.include("seed-jimmy"); pm.expect(json.reservations.every((r) => r.service.id.includes("heitor") || r.service.id === "barba-pigmentacao" || r.service.id === "corte-esfoliacao")).to.be.true; });',
+      'pm.test("formato", () => { const r = json.reservations.find((r) => r.id === "seed-heitor"); pm.expect(r).to.include({ time: "10:00", endTime: "10:45", status: "realizado", attendance: null, note: "Semente da coleção" }); pm.expect(r.service).to.eql({ id: "corte-heitor", name: "Corte com Heitor", durationMinutes: 45 }); pm.expect(r.customer).to.eql({ name: "Cliente Três", phone: "51900000006" }); });',
+      noPrivate,
+    ],
+  }],
+  ["Agenda com from depois de to", "GET", "/barber/agenda?from={{day}}&to={{past}}", { auth: "barberToken", status: 400, tests: [isError("validation")] }],
+  ["Agenda com 32 dias", "GET", "/barber/agenda?from={{day}}&to={{day32}}", { auth: "barberToken", status: 400, tests: [isError("validation")] }],
+  ["Agenda sem datas", "GET", "/barber/agenda", { auth: "barberToken", status: 400, tests: [isError("validation")] }],
+  ["Agenda com token de cliente", "GET", "/barber/agenda?from={{past}}&to={{day}}", { auth: "clientToken", status: 403, tests: [isError("forbidden")] }],
+  ["Agenda com admin sem profissional", "GET", "/barber/agenda?from={{past}}&to={{day}}", { auth: "adminToken", status: 403, tests: [isError("forbidden")] }],
+  ["Agenda sem token", "GET", "/barber/agenda?from={{past}}&to={{day}}", { status: 401, tests: [isError("unauthenticated")] }],
+  ["Marcar falta", "PUT", "/barber/reservations/seed-heitor/attendance", { auth: "barberToken", body: { attendance: "faltou" }, status: 204 }],
+  ["Agenda mostra a falta", "GET", "/barber/agenda?from={{past}}&to={{day}}", { auth: "barberToken", status: 200, tests: [agendaHas("attendance", "faltou"), agendaHas("status", "faltou")] }],
+  ["Desfazer", "PUT", "/barber/reservations/seed-heitor/attendance", { auth: "barberToken", body: { attendance: null }, status: 204 }],
+  ["Agenda sem marcação", "GET", "/barber/agenda?from={{past}}&to={{day}}", { auth: "barberToken", status: 200, tests: [agendaHas("attendance", null), agendaHas("status", "realizado")] }],
+  ["Marcar na reserva do colega", "PUT", "/barber/reservations/seed-jimmy/attendance", { auth: "barberToken", body: { attendance: "faltou" }, status: 404, tests: [isError("not_found")] }],
+  ["Marcar com valor inválido", "PUT", "/barber/reservations/seed-heitor/attendance", { auth: "barberToken", body: { attendance: "talvez" }, status: 400, tests: [isError("validation")] }],
+  ["Marcar sem o campo", "PUT", "/barber/reservations/seed-heitor/attendance", { auth: "barberToken", body: {}, status: 400, tests: [isError("validation")] }],
+  ["Marcar com token de cliente", "PUT", "/barber/reservations/seed-heitor/attendance", { auth: "clientToken", body: { attendance: "faltou" }, status: 403, tests: [isError("forbidden")] }],
+];
+
 export const folders = [
   ["Studio", studio],
   ["Auth", auth],
@@ -198,4 +230,5 @@ export const folders = [
   ["Catalog", catalog],
   ["Reservations", reservations],
   ["Messages", messages],
+  ["Barber", barber],
 ];

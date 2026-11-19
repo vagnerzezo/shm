@@ -1,11 +1,12 @@
 import { nowInStudio } from "../availability";
 import { catalogOf, ensureCatalog } from "../catalog";
-import { purgeUser, updateDb, type ProfessionalColor, type User } from "../db";
+import { purgeUser, updateDb, type Attendance, type ProfessionalColor, type Role, type User } from "../db";
 import { DomainError } from "../errors";
 import { normalize } from "../format";
 import { hashPassword } from "../passwords";
 import { roleOf } from "../roles";
-import { PROFESSIONAL_COLORS } from "../services";
+import { getAgenda, isCancelled, isPast, professionalOf, type AgendaReservation } from "../reservations";
+import { findService, PROFESSIONAL_COLORS } from "../services";
 import { assertPassword, normalizeEmail } from "./account";
 
 // Profissionais do cadastro e as contas ligadas a eles: o acesso do barbeiro
@@ -118,5 +119,42 @@ export async function removeProfessional(name: string): Promise<void> {
     }
     if (db.users.some((u) => u.professional === name)) throw invalid("Remova o acesso ligado a ele antes.");
     db.professionals = professionals.filter((p) => p.name !== name);
+  });
+}
+
+/** Horários do profissional entre `from` e `to` (inclusive), sem os cancelados, em ordem. */
+export async function getBarberAgenda(professional: string, from: string, to: string): Promise<AgendaReservation[]> {
+  return (await getAgenda(from, to)).filter((r) => r.service.professional === professional);
+}
+
+const ATTENDANCE: (Attendance | null)[] = ["compareceu", "faltou", null];
+
+/**
+ * Compareceu / faltou (ou `null` para desfazer). O admin marca qualquer
+ * reserva; o barbeiro só as do próprio profissional (as outras dão
+ * `not_found`, sem confirmar que existem). Só depois do horário.
+ */
+export async function setAttendanceFor(
+  actor: { role: Role; professional?: string },
+  id: string,
+  attendance: Attendance | null,
+): Promise<void> {
+  if (!ATTENDANCE.includes(attendance)) {
+    throw invalid("Use compareceu, faltou ou null.", "attendance");
+  }
+  await updateDb((db) => {
+    const r = db.reservations.find((x) => x.id === id);
+    const mine = (res: typeof r) => {
+      if (!res) return false;
+      if (actor.role === "admin") return true;
+      const service = findService(catalogOf(db).services, res.serviceId);
+      return Boolean(actor.professional) && professionalOf(res, service) === actor.professional;
+    };
+    if (!r || !mine(r)) throw new DomainError("not_found", "Reserva não encontrada.");
+    if (isCancelled(r)) throw invalid("Essa reserva foi cancelada.");
+    // Só depois do horário dá para saber se o cliente veio.
+    if (!isPast(r, nowInStudio())) throw invalid("Só dá para marcar depois do horário.");
+    if (attendance) r.attendance = attendance;
+    else delete r.attendance;
   });
 }

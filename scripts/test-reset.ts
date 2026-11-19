@@ -37,8 +37,27 @@ export async function resetTestDb() {
   });
 }
 
+/**
+ * Para a coleção da API (`pnpm test:reset`): uma reserva de ontem de cada
+ * profissional, do `cliente3`, com ids fixos. Os testes de domínio montam os
+ * próprios dados e não usam isto.
+ */
+export async function seedAgenda() {
+  const { updateDb } = await import("../app/_lib/db");
+  const { addDays, nowInStudio } = await import("../app/_lib/availability");
+  const yesterday = addDays(nowInStudio().date, -1);
+  const base = { userId: USERS.cliente3.id, date: yesterday, time: "10:00" };
+  await updateDb((db) => {
+    db.reservations.push(
+      { ...base, id: "seed-heitor", serviceId: "corte-heitor", professional: "Heitor", priceCents: 7000, note: "Semente da coleção" },
+      { ...base, id: "seed-jimmy", serviceId: "corte-jimmy", professional: "Jimmy", priceCents: 6500 },
+    );
+  });
+}
+
 if (process.argv[1]?.endsWith("test-reset.ts")) {
   resetTestDb()
+    .then(seedAgenda)
     .then(() => {
       console.log("Banco de teste zerado e semeado.");
       process.exit(0);

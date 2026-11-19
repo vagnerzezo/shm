@@ -15,6 +15,7 @@ tags:
   - name: Catalog
   - name: Reservations
   - name: Messages
+  - name: Barber
 components:
   securitySchemes:
     bearer:
@@ -149,6 +150,34 @@ components:
         text: { type: string }
         createdAt: { type: string, format: date-time }
         readAt: { type: string, format: date-time, description: Quando o destinatário abriu a conversa. Ausente enquanto não lida. }
+    BarberReservation:
+      type: object
+      description: Horário visto pelo barbeiro. Sem preço e sem o e-mail do cliente.
+      required: [id, date, time, endTime, status, attendance, service, customer]
+      properties:
+        id: { type: string }
+        date: { type: string, format: date }
+        time: { type: string, example: "10:00" }
+        endTime: { type: string, example: "10:45" }
+        status: { type: string, enum: [agendado, realizado, faltou] }
+        attendance:
+          type: [string, "null"]
+          enum: [compareceu, faltou, null]
+          description: O que foi marcado. `null` = não marcado (depois do horário conta como realizado).
+        note: { type: string, description: Observação do cliente. Ausente quando não há. }
+        service:
+          type: object
+          required: [id, name, durationMinutes]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            durationMinutes: { type: integer }
+        customer:
+          type: object
+          required: [name, phone]
+          properties:
+            name: { type: string }
+            phone: { type: string, description: Só dígitos, com DDD. }
   responses:
     Error:
       description: Erro no formato padrão.
@@ -551,3 +580,54 @@ paths:
                   marked: { type: integer }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
+  /barber/agenda:
+    get:
+      tags: [Barber]
+      summary: Agenda do próprio profissional
+      description: >
+        Conta de barbeiro, ou admin ligado a um profissional ("Sou eu"). Só os horários
+        atendidos por esse profissional (inclui serviços sem profissional fixo atribuídos a ele),
+        sem os cancelados, em ordem. Até 31 dias por consulta.
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date }, description: Inclusive; no máximo 30 dias depois de `from`. }
+      responses:
+        "200":
+          description: Horários.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [professional, reservations]
+                properties:
+                  professional: { type: string }
+                  reservations: { type: array, items: { $ref: "#/components/schemas/BarberReservation" } }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /barber/reservations/{id}/attendance:
+    put:
+      tags: [Barber]
+      summary: Marcar compareceu ou faltou
+      description: >
+        Só reservas do próprio profissional (de outro, ou inexistente, dá `404`) e só depois do
+        horário. Reserva futura ou cancelada dá `400`. `null` desfaz.
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attendance]
+              properties:
+                attendance: { type: [string, "null"], enum: [compareceu, faltou, null] }
+      responses:
+        "204": { description: Marcado. }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }

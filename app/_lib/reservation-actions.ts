@@ -9,11 +9,12 @@ import { formatLongDate, nowInStudio } from "./availability";
 import { catalogOf } from "./catalog";
 import { addMessage } from "./chat";
 import { sendBookingCancelledEmail, sendBookingConfirmedEmail } from "./email-templates/send";
-import { readDb, updateDb, type Attendance } from "./db";
+import { readDb, type Attendance } from "./db";
 import { withNotice } from "./notices";
+import { setAttendanceFor } from "./domain/barber";
 import { bookByAdmin, rescheduleByAdmin } from "./domain/bookings";
 import { messageOf } from "./errors";
-import { isCancelled, isPast, markCancelled } from "./reservations";
+import { isPast, markCancelled } from "./reservations";
 import { findService } from "./services";
 
 // Reservas gerenciadas pelo estúdio. O cliente tem as próprias ações em `actions.ts`.
@@ -110,14 +111,8 @@ export async function setAttendance(formData: FormData) {
   await assertAdmin();
   const id = text(formData, "id");
   const raw = text(formData, "situacao");
-  const attendance: Attendance | undefined = raw === "faltou" || raw === "compareceu" ? raw : undefined;
-  const now = nowInStudio();
-  await updateDb((db) => {
-    const r = db.reservations.find((r) => r.id === id);
-    // Só depois do horário dá para saber se o cliente veio.
-    if (!r || isCancelled(r) || !isPast(r, now)) return;
-    if (attendance) r.attendance = attendance;
-    else delete r.attendance;
-  });
+  const attendance: Attendance | null = raw === "faltou" || raw === "compareceu" ? raw : null;
+  // Reserva cancelada, futura ou inexistente: nada muda (a tela nem oferece o botão).
+  await setAttendanceFor({ role: "admin" }, id, attendance).catch(messageOf);
   refresh();
 }

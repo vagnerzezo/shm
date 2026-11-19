@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import { getCustomers } from "../app/_lib/customers";
-import { readDb } from "../app/_lib/db";
+import { readDb, updateDb, type StoredReservation } from "../app/_lib/db";
 import { authenticate } from "../app/_lib/domain/account";
+import { addDays, nowInStudio } from "../app/_lib/availability";
 import {
   createBarberAccess,
+  getBarberAgenda,
+  setAttendanceFor,
   linkAdminToProfessional,
   removeBarberAccess,
   removeProfessional,
@@ -129,3 +132,74 @@ describe("perfil barbeiro", () => {
   });
 });
 
+
+describe("agenda do barbeiro e comparecimento", () => {
+  const today = nowInStudio().date;
+  const yesterday = addDays(today, -1);
+  const tomorrow = addDays(today, 1);
+  const r = (id: string, userId: string, serviceId: string, date: string, extra: Partial<StoredReservation> = {}) =>
+    ({ id, userId, serviceId, date, time: "10:00", ...extra }) as StoredReservation;
+  const heitor = { role: "barbeiro" as const, professional: "Heitor" };
+  const attendanceOf = async (id: string) => (await readDb()).reservations.find((x) => x.id === id)?.attendance;
+
+  beforeEach(async () => {
+    await resetTestDb();
+    await updateDb((db) => {
+      db.reservations.push(
+        r("h-passada", USERS.cliente.id, "corte-heitor", yesterday, { professional: "Heitor" }),
+        r("j-passada", USERS.cliente2.id, "corte-jimmy", yesterday, { professional: "Jimmy" }),
+        // Serviço sem profissional fixo, atribuído ao Heitor.
+        r("livre-heitor", USERS.cliente3.id, "barba-pigmentacao", yesterday, { time: "14:00", professional: "Heitor" }),
+        r("h-cancelada", USERS.cliente2.id, "corte-heitor", yesterday, {
+          time: "16:00",
+          professional: "Heitor",
+          cancelledAt: new Date().toISOString(),
+          cancelledBy: "cliente",
+        }),
+        r("h-futura", USERS.cliente.id, "corte-heitor", tomorrow, { professional: "Heitor" }),
+        // Reserva antiga sem `professional`: vale o do serviço.
+        r("h-antiga", USERS.cliente3.id, "corte-heitor", yesterday, { time: "11:00" }),
+      );
+    });
+  });
+
+  test("agenda do Heitor traz só as dele, sem canceladas, em ordem", async () => {
+    const ids = (await getBarberAgenda("Heitor", yesterday, tomorrow)).map((x) => x.id);
+    assert.deepEqual(ids, ["h-passada", "h-antiga", "livre-heitor", "h-futura"]);
+  });
+
+  test("agenda respeita o intervalo", async () => {
+    const ids = (await getBarberAgenda("Heitor", tomorrow, tomorrow)).map((x) => x.id);
+    assert.deepEqual(ids, ["h-futura"]);
+  });
+
+  test("barbeiro marca falta e desfaz na própria reserva", async () => {
+    await setAttendanceFor(heitor, "h-passada", "faltou");
+    assert.equal(await attendanceOf("h-passada"), "faltou");
+    await setAttendanceFor(heitor, "h-passada", null);
+    assert.equal(await attendanceOf("h-passada"), undefined);
+  });
+
+  test("barbeiro marcando reserva do colega recebe not_found", async () => {
+    await assert.rejects(setAttendanceFor(heitor, "j-passada", "faltou"), rejectsWith("not_found"));
+    assert.equal(await attendanceOf("j-passada"), undefined);
+  });
+
+  test("reserva inexistente: not_found", async () => {
+    await assert.rejects(setAttendanceFor(heitor, "nao-existe", "faltou"), rejectsWith("not_found"));
+  });
+
+  test("reserva futura ou cancelada: validation", async () => {
+    await assert.rejects(setAttendanceFor(heitor, "h-futura", "compareceu"), rejectsWith("validation"));
+    await assert.rejects(setAttendanceFor(heitor, "h-cancelada", "faltou"), rejectsWith("validation"));
+  });
+
+  test("valor inválido: validation", async () => {
+    await assert.rejects(setAttendanceFor(heitor, "h-passada", "talvez" as never), rejectsWith("validation", "attendance"));
+  });
+
+  test("admin marca qualquer uma", async () => {
+    await setAttendanceFor({ role: "admin" }, "j-passada", "compareceu");
+    assert.equal(await attendanceOf("j-passada"), "compareceu");
+  });
+});

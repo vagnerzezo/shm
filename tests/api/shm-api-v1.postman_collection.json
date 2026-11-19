@@ -3775,6 +3775,683 @@
           }
         }
       ]
+    },
+    {
+      "name": "Barber",
+      "item": [
+        {
+          "name": "Agenda do barbeiro",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set(\"past\", day(-2)); // dois dias: o \"ontem\" do estúdio (São Paulo) pode ser anteontem em UTC"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"é do Heitor\", () => pm.expect(json.professional).to.eql(\"Heitor\"));",
+                  "const ids = json.reservations.map((r) => r.id);",
+                  "pm.test(\"só as dele\", () => { pm.expect(ids).to.include(\"seed-heitor\"); pm.expect(ids).to.not.include(\"seed-jimmy\"); pm.expect(json.reservations.every((r) => r.service.id.includes(\"heitor\") || r.service.id === \"barba-pigmentacao\" || r.service.id === \"corte-esfoliacao\")).to.be.true; });",
+                  "pm.test(\"formato\", () => { const r = json.reservations.find((r) => r.id === \"seed-heitor\"); pm.expect(r).to.include({ time: \"10:00\", endTime: \"10:45\", status: \"realizado\", attendance: null, note: \"Semente da coleção\" }); pm.expect(r.service).to.eql({ id: \"corte-heitor\", name: \"Corte com Heitor\", durationMinutes: 45 }); pm.expect(r.customer).to.eql({ name: \"Cliente Três\", phone: \"51900000006\" }); });",
+                  "pm.test(\"sem preço nem e-mail\", () => { const raw = pm.response.text(); pm.expect(raw).to.not.include(\"priceCents\"); pm.expect(raw).to.not.include(\"email\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{past}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{past}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda com from depois de to",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{day}}&to={{past}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{past}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda com 32 dias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{day}}&to={{day32}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{day}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day32}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda sem datas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda com token de cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{past}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{past}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda com admin sem profissional",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{past}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{past}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda sem token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro unauthenticated\", () => { pm.expect(json.error.code).to.eql(\"unauthenticated\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{past}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{past}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar falta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"attendance\":\"faltou\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/barber/reservations/seed-heitor/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "reservations",
+                "seed-heitor",
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda mostra a falta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"seed-heitor com attendance = faltou\", () => pm.expect(json.reservations.find((r) => r.id === \"seed-heitor\").attendance).to.eql(\"faltou\"));",
+                  "pm.test(\"seed-heitor com status = faltou\", () => pm.expect(json.reservations.find((r) => r.id === \"seed-heitor\").status).to.eql(\"faltou\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{past}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{past}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Desfazer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"attendance\":null}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/barber/reservations/seed-heitor/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "reservations",
+                "seed-heitor",
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda sem marcação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"seed-heitor com attendance = null\", () => pm.expect(json.reservations.find((r) => r.id === \"seed-heitor\").attendance).to.eql(null));",
+                  "pm.test(\"seed-heitor com status = realizado\", () => pm.expect(json.reservations.find((r) => r.id === \"seed-heitor\").status).to.eql(\"realizado\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/barber/agenda?from={{past}}&to={{day}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "agenda"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{past}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{day}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar na reserva do colega",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro not_found\", () => { pm.expect(json.error.code).to.eql(\"not_found\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"attendance\":\"faltou\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/barber/reservations/seed-jimmy/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "reservations",
+                "seed-jimmy",
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar com valor inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"attendance\":\"talvez\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/barber/reservations/seed-heitor/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "reservations",
+                "seed-heitor",
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar sem o campo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{barberToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/barber/reservations/seed-heitor/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "reservations",
+                "seed-heitor",
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar com token de cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro forbidden\", () => { pm.expect(json.error.code).to.eql(\"forbidden\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"attendance\":\"faltou\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/barber/reservations/seed-heitor/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "barber",
+                "reservations",
+                "seed-heitor",
+                "attendance"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

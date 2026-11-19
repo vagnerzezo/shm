@@ -94,12 +94,13 @@ function FormScreen({
   const other = signUp ? "entrar" : "cadastro";
   return (
     <main className="relative flex min-h-dvh flex-col">
-      <div className="absolute inset-x-0 top-0 h-[420px] overflow-hidden">
+      {/* A foto ocupa o que o painel não usa: o painel tem só a altura do formulário, preso embaixo. */}
+      <div className="absolute inset-0 overflow-hidden">
         <Image src="/img/bg-login.jpg" alt="" fill preload sizes="100vw" className="object-cover object-[72%_12%]" />
         <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[220px] bg-[linear-gradient(180deg,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0)_100%)]" />
       </div>
 
-      <header className="relative flex items-center justify-between px-5 pt-[max(3rem,env(safe-area-inset-top))]">
+      <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-[max(3rem,env(safe-area-inset-top))]">
         <Link
           href={href(null)}
           aria-label="Voltar"
@@ -111,7 +112,8 @@ function FormScreen({
         <div className="size-11" aria-hidden="true" />
       </header>
 
-      <section className="relative mt-16 flex flex-1 flex-col gap-3.5 rounded-t-[34px] bg-white px-6 pt-7 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="min-h-[10.5rem] flex-1" aria-hidden="true" />
+      <section className="relative flex flex-col gap-3.5 rounded-t-[34px] bg-white px-6 pt-7 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="mb-1 flex flex-col gap-1.5">
           <h1 className={`${displayClass} text-4xl leading-none`}>{signUp ? "Criar conta" : "Entrar"}</h1>
           <p className="text-sm text-[#555]">{signUp ? "Preencha seus dados para começar." : "Que bom ver você de novo."}</p>

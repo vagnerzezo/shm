@@ -1,7 +1,9 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { homeOf, type Customer } from "./roles";
+import { canOpen, scopeOf, type Scope } from "./access";
+import { DomainError } from "./errors";
+import { homeOf, type BarberMenu, type Customer } from "./roles";
 import { createSessionToken, findSessionUser, revokeSession } from "./sessions";
 
 export { hashPassword, verifyPassword } from "./passwords";
@@ -60,6 +62,20 @@ export async function requireUser(next: string) {
   const user = await getCurrentUser();
   if (!user) redirect(loginHref(next));
   return user;
+}
+
+/** Página do painel aberta à equipe: sem permissão para o menu, volta para a área da pessoa. */
+export async function requireMenu(menu: BarberMenu, next: string): Promise<{ user: Customer; scope: Scope }> {
+  const user = await requireUser(next);
+  if (!canOpen(user, menu)) redirect(homeOf(user));
+  return { user, scope: scopeOf(user) };
+}
+
+/** Server Action de um menu da equipe: sem permissão, `forbidden`. */
+export async function assertMenu(menu: BarberMenu): Promise<{ user: Customer; scope: Scope }> {
+  const user = await getCurrentUser();
+  if (!user || !canOpen(user, menu)) throw new DomainError("forbidden", "Sem permissão.");
+  return { user, scope: scopeOf(user) };
 }
 
 /** Para páginas do painel admin: cliente ou barbeiro logado volta para a área dele. */

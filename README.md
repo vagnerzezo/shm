@@ -30,3 +30,10 @@ Migrações: `drizzle/`. Para o banco de teste, `pnpm test:migrate`; para o prin
 
 - `app/doc/MAPEAMENTO_SISTEMAS.md`: mapa do sistema, regras de negócio e riscos.
 - `app/doc/specs/` e `app/doc/plans/`: desenho e plano da API v1.
+
+## Produção (Vercel)
+
+- Projeto `shm` na Vercel, publicado em https://shm-eta.vercel.app (deploy pelo CLI: `vercel deploy --prod`).
+- Variáveis só no ambiente de produção: `DATABASE_URL`, `RESEND_API_KEY`, `MARKETING_EMAIL_FROM`, `APP_URL`, `CRON_SECRET`. `ADMIN_EMAILS` não é usado em produção: admin é quem tem `role = admin` no banco.
+- Marketing: cron da Vercel em `vercel.json`, todo dia às 12:00 UTC (9h em Brasília), chamando `GET /api/marketing/executar` com o `CRON_SECRET`. O temporizador interno (`instrumentation.ts`) só roda fora da Vercel.
+- `.vercelignore` impede o envio de `.env*` e `.data/`.

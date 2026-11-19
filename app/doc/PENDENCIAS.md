@@ -16,19 +16,12 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Celular: visitante em `/` vê a boas-vindas do login; painel branco sobe com animação (`auth-sheet-in` em `globals.css`); Esqueci/Criar nova senha no mesmo layout (`MobileSheet`).
 - Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
 
-**Em andamento — permissões da equipe** (conversa de desenho, nada construído ainda):
-- Pedido: em Configurações, definir por pessoa da equipe se é **admin** ou **barbeiro** e, para barbeiro, quais menus ele vê.
-- Decidido:
-  - **Cliente** não muda (vê o que vê hoje).
-  - **Admin** vê tudo, de todo mundo. Barbeiro pode virar admin (hoje não há tela para isso; "Criar acesso" sempre cria barbeiro).
-  - **Barbeiro** pode ganhar menus extras, mas em cada um só vê o que é **dele** (ligado ao profissional da conta): **Agenda** (só os horários dele; marca e remarca para ele), **Clientes** (só quem já marcou com ele), **Histórico** (só os atendimentos dele), **Início** (resumo do dia só dele).
-  - **Chat, Marketing, Serviços e Configurações:** só admin. O chat do barbeiro fica para pensar depois (hoje a conversa é do cliente com o estúdio, sem dono).
-  - Esconder o menu não basta: cada tela e ação do servidor precisa checar a permissão (cerca de 25 lugares hoje checam só "é admin").
-- **Falta decidir — o caminho** (proposta enviada, aguardando escolha):
-  - **A) Menus marcados por pessoa** *(recomendado)*: caixinhas por barbeiro em Configurações → Equipe, guardadas na conta; uma regra central "pode abrir esta tela? de quais dados?" usada por todas as telas e ações.
-  - **B) Perfis prontos** ("Barbeiro", "Barbeiro + Agenda", ...): mais simples, mas cada combinação nova vira código.
-  - **C) Só "virar admin"**: rápido, sem acesso parcial.
-- Depois da escolha: escrever o desenho em `docs/superpowers/specs/`, aprovar, fazer o plano e só então construir.
+**Em andamento — permissões da equipe** (branch `feat/permissoes-equipe`, ainda **não** está na `main` nem em produção):
+- Desenho aprovado: `app/doc/specs/2026-11-19-permissoes-equipe-design.md`. Plano: `app/doc/plans/2026-11-19-permissoes-equipe.md` (8 tarefas, execução no próprio chat).
+- **Feito (tarefas 1 a 4):** colunas `menus` e `created_by` (migração `0005`, aplicada **só no banco de teste**); regra central `app/_lib/access.ts` (`canOpen`, `scopeOf`, `requireMenu`, `assertMenu`); agenda e clientes filtrados por profissional; `app/_lib/domain/team.ts` (`getTeam`, `setTeamMember`).
+- **Falta:** tarefa 5 (marcar/remarcar/cancelar respeitando o escopo), 6 (telas e ações usando a regra, menu do barbeiro), 7 (cartão Equipe em Configurações), 8 (docs e produção) e a revisão final.
+- Para retomar: `git checkout feat/permissoes-equipe` e seguir o plano a partir da tarefa 5. O registro do andamento fica em `.superpowers/sdd/2026-11-19-permissoes-equipe/progress.md` (local, fora do git).
+- Lembrete: a migração `0005` vai para o banco de produção **antes** do merge/push na `main`.
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real; com ele criado, marcar e cancelar uma reserva para fechar o teste de e-mail da 1.6.

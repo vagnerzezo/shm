@@ -1,8 +1,9 @@
+import type { Scope } from "./access";
 import { roleOf } from "./roles";
 import { nowInStudio } from "./availability";
 import { readDb, type Consent } from "./db";
 import { catalogOf } from "./catalog";
-import { isCancelled, isDone, isPast } from "./reservations";
+import { isCancelled, isDone, isPast, professionalOf } from "./reservations";
 import { findService } from "./services";
 
 /** Cliente visto pelo admin, com os números das reservas dele. */
@@ -25,16 +26,28 @@ export type CustomerSummary = {
   nextBooking: { date: string; time: string; serviceName: string } | null;
 };
 
-export async function getCustomers(): Promise<CustomerSummary[]> {
+/**
+ * Clientes com os números das reservas. Com escopo de barbeiro, só os clientes
+ * dele (alguma reserva com ele, mesmo cancelada, ou cadastrados por ele), e os
+ * números contam só as reservas com ele.
+ */
+export async function getCustomers(scope?: Scope): Promise<CustomerSummary[]> {
   const db = await readDb();
   const now = nowInStudio();
   const { services } = catalogOf(db);
   const getService = (id: string) => findService(services, id);
+  const mine = (r: (typeof db.reservations)[number]) => {
+    if (!scope || scope.all) return true;
+    const service = getService(r.serviceId);
+    return Boolean(service) && professionalOf(r, service!) === scope.professional;
+  };
   const byUser = new Map<string, typeof db.reservations>();
-  for (const r of db.reservations) byUser.set(r.userId, [...(byUser.get(r.userId) ?? []), r]);
+  for (const r of db.reservations.filter(mine)) byUser.set(r.userId, [...(byUser.get(r.userId) ?? []), r]);
+  const inScope = (u: (typeof db.users)[number]) =>
+    !scope || scope.all || byUser.has(u.id) || u.createdBy === scope.userId;
 
   return db.users
-    .filter((u) => roleOf(u) === "cliente")
+    .filter((u) => roleOf(u) === "cliente" && inScope(u))
     .map((u) => {
       const all = byUser.get(u.id) ?? [];
       const reservations = all
@@ -64,6 +77,14 @@ export async function getCustomers(): Promise<CustomerSummary[]> {
     });
 }
 
-export async function getCustomer(id: string) {
-  return (await getCustomers()).find((c) => c.id === id) ?? null;
+/** Um cliente, ou `null` se não existe ou está fora do escopo. */
+export async function getCustomer(id: string, scope?: Scope) {
+  return (await getCustomers(scope)).find((c) => c.id === id) ?? null;
+}
+
+/** Todos os clientes ativos, só com o que a busca de "Novo horário" precisa (sem histórico). */
+export async function getCustomerPicklist(): Promise<{ id: string; name: string; phone: string }[]> {
+  return (await readDb()).users
+    .filter((u) => roleOf(u) === "cliente" && !u.disabledAt)
+    .map((u) => ({ id: u.id, name: u.name, phone: u.phone }));
 }

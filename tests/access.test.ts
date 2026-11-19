@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
-import { canOpen, scopeOf, staffLinks } from "../app/_lib/access";
+import { before, describe, test } from "node:test";
+import { canOpen, scopeOf, staffLinks, type Scope } from "../app/_lib/access";
+import { addDays, nowInStudio } from "../app/_lib/availability";
+import { getCustomer, getCustomerPicklist, getCustomers } from "../app/_lib/customers";
+import { updateDb } from "../app/_lib/db";
+import { bookForCustomer, cancelForCustomer } from "../app/_lib/domain/bookings";
+import { getAgenda } from "../app/_lib/reservations";
+import { resetTestDb } from "../scripts/test-reset";
 import { BARBER_MENUS, menusOf, toCustomer } from "../app/_lib/roles";
-import { rejectsWith } from "./fixtures";
+import { rejectsWith, USERS } from "./fixtures";
 
 const base = { id: "u1", name: "Pessoa", phone: "51900000000", email: "p@shm.test", consent: undefined };
 
@@ -64,5 +70,54 @@ describe("regra central", () => {
   test("links: admin todos; barbeiro os dele", () => {
     assert.deepEqual(staffLinks(admin), [...BARBER_MENUS]);
     assert.deepEqual(staffLinks(barber), ["agenda"]);
+  });
+});
+
+describe("buscas com escopo", () => {
+  const day = addDays(nowInStudio().date, 10);
+  const heitor: Scope = { all: false, professional: "Heitor", userId: USERS.heitor.id };
+
+  before(async () => {
+    await resetTestDb();
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    await bookForCustomer(USERS.cliente2.id, [{ serviceId: "corte-jimmy", date: day, time: "10:00" }]);
+    const [cancelled] = await bookForCustomer(USERS.cliente3.id, [{ serviceId: "corte-heitor", date: day, time: "15:00" }]);
+    await cancelForCustomer(USERS.cliente3.id, cancelled);
+    await updateDb((db) => {
+      db.users.push({ id: "criado-heitor", name: "Criado Pelo Heitor", phone: "51900000099", email: "criado@shm.test", passwordHash: "x", createdAt: new Date().toISOString(), createdBy: USERS.heitor.id });
+    });
+  });
+
+  test("agenda com escopo traz só as do profissional; sem escopo, todas", async () => {
+    assert.deepEqual((await getAgenda(day, day, { scope: heitor })).map((r) => r.professional), ["Heitor"]);
+    assert.equal((await getAgenda(day, day)).length, 2);
+  });
+
+  test("clientes do barbeiro: reserva com ele (inclusive cancelada) ou criado por ele", async () => {
+    const ids = (await getCustomers(heitor)).map((c) => c.id).sort();
+    assert.deepEqual(ids, [USERS.cliente.id, USERS.cliente3.id, "criado-heitor"].sort());
+  });
+
+  test("cliente de outro profissional fica fora do escopo", async () => {
+    assert.equal(await getCustomer(USERS.cliente2.id, heitor), null);
+    assert.ok(await getCustomer(USERS.cliente2.id));
+  });
+
+  test("números do cliente no escopo contam só as reservas com ele", async () => {
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-jimmy", date: day, time: "09:00" }]);
+    const mine = await getCustomer(USERS.cliente.id, heitor);
+    assert.equal(mine!.nextBooking!.serviceName, "Corte com Heitor");
+    const all = await getCustomer(USERS.cliente.id);
+    assert.equal(all!.nextBooking!.serviceName, "Corte com Jimmy");
+  });
+
+  test("lista para marcar traz todos os clientes ativos, só id, nome e telefone", async () => {
+    await updateDb((db) => {
+      db.users.find((u) => u.id === USERS.cliente3.id)!.disabledAt = new Date().toISOString();
+    });
+    const list = await getCustomerPicklist();
+    assert.ok(list.some((c) => c.id === USERS.cliente2.id));
+    assert.ok(!list.some((c) => c.id === USERS.cliente3.id));
+    for (const c of list) assert.deepEqual(Object.keys(c).sort(), ["id", "name", "phone"]);
   });
 });

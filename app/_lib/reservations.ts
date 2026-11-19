@@ -1,4 +1,5 @@
 import { freeProfessionals, nowInStudio, pickProfessional, toMinutes, type AvailabilityRules, type Busy } from "./availability";
+import type { Scope } from "./access";
 import { catalogOf } from "./catalog";
 import { readDb, updateDb, type Role, type StoredReservation } from "./db";
 import { findService, type Service } from "./services";
@@ -83,7 +84,7 @@ export async function markCancelled(
 export async function getAgenda(
   from = "0000-01-01",
   to = "9999-12-31",
-  { includeCancelled = false } = {},
+  { includeCancelled = false, scope }: { includeCancelled?: boolean; scope?: Scope } = {},
 ): Promise<AgendaReservation[]> {
   const db = await readDb();
   const { services } = catalogOf(db);
@@ -94,6 +95,7 @@ export async function getAgenda(
       const service = findService(services, r.serviceId);
       const user = users.get(r.userId);
       if (!service || !user) return [];
+      if (scope && !scope.all && professionalOf(r, service) !== scope.professional) return [];
       const customer = { id: user.id, name: user.name, phone: user.phone, email: user.email };
       return [{ ...r, service: asBooked(service, r), customer }];
     })

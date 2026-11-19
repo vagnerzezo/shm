@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Studio Heitor Macks (SHM)
 
-## Getting Started
+Agendamento online do estúdio: site para clientes, painel do admin, tela "Minha agenda" do barbeiro e a API v1 para o app.
+Next.js 16 (App Router), Postgres no Neon (Drizzle), e-mails pelo Resend. Gerenciador de pacotes: **pnpm**.
 
-First, run the development server:
+## Rodar
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000, banco do .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API e testes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Contrato: `app/doc/api/openapi.yaml` (OpenAPI 3.1). Base `/api/v1`, JSON, login por cookie (site) ou `Authorization: Bearer <token>` (app).
+- Erros sempre em `{ "error": { "code", "message", "fields"? } }`.
+- O banco de teste é o branch `teste` do Neon, configurado no `.env.test` (fora do git).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm test         # testes de domínio (node:test), uns 5 minutos
+pnpm test:server  # servidor de teste na porta 3100, com o banco de teste (deixe rodando)
+pnpm test:api     # zera e semeia o banco de teste e roda a coleção Postman contra a porta 3100
+```
 
-## Learn More
+A coleção é gerada: a fonte é `tests/api/requests.mjs` e `tests/api/build-collection.mjs` grava `tests/api/shm-api-v1.postman_collection.json` (o `pnpm test:api` já faz isso).
 
-To learn more about Next.js, take a look at the following resources:
+Migrações: `drizzle/`. Para o banco de teste, `pnpm test:migrate`; para o principal, `node node_modules/drizzle-kit/bin.cjs migrate` (usa o `.env`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentação
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/doc/MAPEAMENTO_SISTEMAS.md`: mapa do sistema, regras de negócio e riscos.
+- `app/doc/specs/` e `app/doc/plans/`: desenho e plano da API v1.

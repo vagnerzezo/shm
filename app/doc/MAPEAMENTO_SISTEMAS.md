@@ -1,6 +1,6 @@
 # Mapeamento de sistemas — Studio Heitor Macks (SHM)
 
-**Data do levantamento:** 2026-11-10
+**Data do levantamento:** 2026-11-10 · **Atualizado em 2026-11-18** com a API v1 (branch `feat/api-v1`): seções 4.1, 6.2, 9.1 e 10.1.
 **Base analisada:** branch `main`, commit `d0b1d77`, mais três arquivos com mudanças locais ainda sem commit (`app/page.tsx`, `app/_components/sidebar.tsx`, `app/_components/client-home.tsx`).
 **Escopo:** levantamento, análise e documentação. Nenhum código foi alterado e nenhuma API foi criada.
 **Método:** leitura do código-fonte e da estrutura do banco local (somente nomes de campos, sem valores). O aplicativo não foi executado nem testado nesta etapa.
@@ -159,16 +159,17 @@ drizzle/                   migrações do banco (Drizzle)
 
 ### 4.1 Autenticação e perfis
 
-- Dois perfis: `cliente` (padrão) e `admin`. É admin quem tem `role: "admin"` no banco **ou** cujo e-mail está em `ADMIN_EMAILS`.
+- Três perfis: `cliente` (padrão), `barbeiro` e `admin`. É admin quem tem `role: "admin"` no banco **ou** cujo e-mail está em `ADMIN_EMAILS`.
+- **Barbeiro** (desde 2026-11-18): conta criada pelo admin em Serviços > Profissionais, ligada a um profissional (`users.professional`). Vê só a agenda desse profissional (`/barbeiro` no site, `/api/v1/barber/*` no app) e marca compareceu/faltou; não marca, não remarca, não cancela, não vê preço, clientes, chat nem marketing. O admin pode ligar a própria conta a um profissional ("Sou eu") e ganha "Minha agenda" no menu.
 - Senha com `scrypt` e salt por usuário, guardada como `salt:hash`.
-- Sessão: token aleatório de 32 bytes em cookie `shm_sessao` (HttpOnly, SameSite=Lax, Secure em produção), válido por 30 dias. O token fica gravado em texto puro no banco.
+- Sessão: token aleatório de 32 bytes, no cookie `shm_sessao` (site; HttpOnly, SameSite=Lax, Secure em produção) ou em `Authorization: Bearer` (app). Vale 30 dias e é renovada pelo uso quando faltam menos de 15. O banco guarda só o hash SHA-256 do token.
 - Conta desativada perde o acesso na hora, mesmo com sessão aberta.
 - Login devolve a mesma mensagem para e-mail inexistente e senha errada.
-- Depois do login: admin vai para `/admin`, cliente para `/reservas`, ou para o `next` informado (só caminhos internos).
+- Depois do login: admin vai para `/admin`, barbeiro para `/barbeiro`, cliente para `/reservas`, ou para o `next` informado (só caminhos internos).
 - **Esqueci a senha**: link por e-mail, uso único, vale 1 hora, no máximo 3 pedidos por hora por conta; o banco guarda só o hash do código. Ao trocar, todas as sessões são encerradas. Sem Resend configurado, o link aparece só no terminal do servidor.
 - **Trocar senha**: exige a senha atual; encerra as outras sessões.
 - Senha: 8 a 100 caracteres. No cadastro, o limite máximo não é verificado (só o mínimo).
-- Não há limite de tentativas de login, confirmação de e-mail, nem segundo fator.
+- Limite de tentativas de login: 10 erros em 15 minutos bloqueiam o e-mail por um tempo (`login_attempts`). Não há confirmação de e-mail nem segundo fator.
 
 ### 4.2 Cadastro e dados do cliente
 
@@ -381,7 +382,16 @@ Não existem: pagamento, WhatsApp/SMS, calendário externo, analytics, monitoram
 | POST | `/api/marketing/executar` | `CRON_SECRET` | — | `{ scheduled, cancelled, sent, failed }`; 401; 503 se o segredo não estiver configurado |
 | POST | `/api/descadastrar` | público (token) | `?t=<token>` | 200 ou 404, sem corpo |
 
-Não há padrão único de erro, versionamento, CORS, limite de requisições nem documentação OpenAPI.
+**API v1** (desde 2026-11-18, `app/api/v1/`): 21 rotas JSON para o site e o app (cliente e barbeiro), com erro sempre no formato `{ error: { code, message, fields? } }`, login por cookie ou `Bearer`, e contrato em `app/doc/api/openapi.yaml`.
+
+| Grupo | Rotas |
+|---|---|
+| Público | `GET /studio`, `GET /services`, `GET /availability` |
+| Conta | `POST /auth/login`, `/auth/logout`, `/auth/register`, `/auth/password/forgot`, `/auth/password/reset`; `GET`/`PATCH`/`DELETE /me`; `POST /me/password` |
+| Cliente | `GET`/`POST /reservations`, `PATCH /reservations/{id}`, `POST /reservations/{id}/cancel`; `GET`/`POST /messages`, `POST /messages/read` |
+| Barbeiro | `GET /barber/agenda`, `PUT /barber/reservations/{id}/attendance` |
+
+As rotas antigas acima continuam como estão. Ainda sem CORS, limite de requisições geral (só no login) e chave de idempotência.
 
 ### 6.3 Comunicação entre módulos
 
@@ -537,13 +547,13 @@ Todas as actions de admin conferem o perfil no início.
 | # | Necessidade | Por quê |
 |---|---|---|
 | 1 | ~~Trocar o JSON por banco relacional com transações~~ | Feito em 2026-11-11: Postgres no Neon (5.1). Falta trocar o `readDb` geral por consultas sob medida |
-| 2 | Reserva atômica | Hoje a validação do horário acontece antes e fora da gravação; duas requisições simultâneas podem ocupar o mesmo horário. Vale para cliente, admin e remarcação |
+| 2 | ~~Reserva atômica~~ | Feito em 2026-11-15: conferência e gravação na mesma transação com trava (`domain/bookings.ts`), para cliente, admin e remarcação, pelo site e pela API |
 | 3 | ~~Decidir a regra de disponibilidade~~ | Feito em 2026-11-11: todos os horários livres (4.5) |
 | 4 | ~~Decidir o modelo de cancelamento~~ | Feito em 2026-11-11: situação "cancelada", mantida no histórico |
 | 5 | Profissional como entidade com id | Hoje a chave é o nome |
-| 6 | Autenticação para API | O cookie de sessão e os redirecionamentos de `requireUser`/`requireAdmin` servem para a interface web, não para integrações |
-| 7 | Extrair a lógica das Server Actions | Validação, gravação e redirecionamento estão misturados; a API precisa chamar a mesma regra sem duplicar |
-| 8 | Padrão único de erro e de validação | Hoje cada action devolve um texto em português |
+| 6 | ~~Autenticação para API~~ | Feito: token `Bearer` na mesma tabela de sessões do cookie, com hash e renovação (`sessions.ts`, `api/auth.ts`) |
+| 7 | ~~Extrair a lógica das Server Actions~~ | Feito para conta, reservas, mensagens, profissionais e comparecimento (`app/_lib/domain/`); as actions e as rotas são cascas finas. As outras actions do admin ficaram como estavam |
+| 8 | ~~Padrão único de erro e de validação~~ | Feito: `DomainError` com código (`errors.ts`), que a API traduz em status HTTP (`api/http.ts`) e o site em mensagem |
 
 ### 9.2 Domínios candidatos a API
 
@@ -589,8 +599,8 @@ Todas as actions de admin conferem o perfil no início.
 
 | Achado | Onde | Gravidade |
 |---|---|---|
-| Sem limite de tentativas no login e no cadastro | `actions.ts` | média |
-| Token de sessão guardado em texto puro | `db.ts`, `auth.ts` | média |
+| ~~Sem limite de tentativas no login~~ — resolvido em 2026-11-15 (10 erros em 15 min por e-mail). O cadastro continua sem limite | `domain/account.ts` | média (cadastro) |
+| ~~Token de sessão guardado em texto puro~~ — resolvido em 2026-11-15: o banco guarda só o hash | `sessions.ts` | — |
 | Quatro páginas de Marketing (visão geral, e-mails, mensagens, histórico) não chamam `requireAdmin`; a conferência está só em `marketing/layout.tsx`. As demais telas do admin conferem na própria página. Não testei se dá para explorar; o padrão seguro é conferir em cada página | `app/admin/marketing/*` | a verificar |
 | Imagens de marketing ficam públicas para sempre e nunca são apagadas | `marketing-images.ts` | baixa |
 | Sem trilha de auditoria das ações do admin (inclusive exclusão de dados) | geral | média |

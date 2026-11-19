@@ -56,6 +56,10 @@ components:
             instagram: { type: string }
             facebook: { type: string }
             linkedin: { type: string }
+      example:
+        name: Studio Heitor Macks
+        address: ["R. João XXIII, 32 Sala 1601", "São José, São Leopoldo", "RS, 93040-090, Brasil"]
+        phone: "51999991234"
     User:
       type: object
       required: [id, name, phone, email, role, consent]
@@ -75,6 +79,13 @@ components:
         professional:
           type: string
           description: Nome do profissional ligado à conta (barbeiro, ou admin que também atende).
+      example:
+        id: 3f2a9c1e-8b7d-4e21-9a6f-1c2d3e4f5a6b
+        name: Ana Souza
+        phone: "51999991234"
+        email: ana@exemplo.com
+        role: cliente
+        consent: { email: true, mensagem: false }
     Session:
       type: object
       required: [token, expiresAt, user]
@@ -82,6 +93,10 @@ components:
         token: { type: string, description: Enviar em `Authorization Bearer`. Vale 30 dias e se renova com o uso. }
         expiresAt: { type: integer, description: Validade em milissegundos (epoch). }
         user: { $ref: "#/components/schemas/User" }
+      example:
+        token: 9b1f0c7e5a3d2e8f4c6b1a0d9e8f7c6b5a4d3e2f1c0b9a8d7e6f5c4b3a2d1e0f
+        expiresAt: 1797465600000
+        user: { id: 3f2a9c1e-8b7d-4e21-9a6f-1c2d3e4f5a6b, name: Ana Souza, phone: "51999991234", email: ana@exemplo.com, role: cliente, consent: { email: true, mensagem: false } }
     ProfileInput:
       type: object
       properties:
@@ -104,6 +119,7 @@ components:
         professional:
           type: [string, "null"]
           description: Profissional fixo do serviço; `null` quando qualquer profissional livre atende.
+      example: { id: corte-heitor, name: Corte com Heitor, durationMinutes: 45, priceCents: 7000, professional: Heitor }
     Availability:
       type: object
       required: [serviceId, days]
@@ -118,6 +134,11 @@ components:
             properties:
               date: { type: string, format: date }
               times: { type: array, items: { type: string, example: "09:30" } }
+      example:
+        serviceId: corte-heitor
+        days:
+          - { date: "2026-11-25", times: ["09:00", "09:30", "10:00"] }
+          - { date: "2026-11-26", times: [] }
     Reservation:
       type: object
       required: [id, date, time, endTime, status, service]
@@ -134,6 +155,14 @@ components:
         service:
           allOf: [{ $ref: "#/components/schemas/Service" }]
           description: Como foi marcado. `priceCents` é o preço cobrado na reserva; `professional` é quem atende.
+      example:
+        id: 7c1e2d3f-4a5b-6c7d-8e9f-0a1b2c3d4e5f
+        date: "2026-11-25"
+        time: "10:00"
+        endTime: "10:45"
+        status: agendado
+        note: Primeira vez
+        service: { id: corte-heitor, name: Corte com Heitor, durationMinutes: 45, priceCents: 7000, professional: Heitor }
     BookingItem:
       type: object
       required: [serviceId, date, time]
@@ -150,6 +179,7 @@ components:
         text: { type: string }
         createdAt: { type: string, format: date-time }
         readAt: { type: string, format: date-time, description: Quando o destinatário abriu a conversa. Ausente enquanto não lida. }
+      example: { id: 5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a, from: cliente, text: "Posso levar meu filho junto?", createdAt: "2026-11-18T22:10:00.000Z" }
     BarberReservation:
       type: object
       description: Horário visto pelo barbeiro. Sem preço e sem o e-mail do cliente.
@@ -178,6 +208,15 @@ components:
           properties:
             name: { type: string }
             phone: { type: string, description: Só dígitos, com DDD. }
+      example:
+        id: 7c1e2d3f-4a5b-6c7d-8e9f-0a1b2c3d4e5f
+        date: "2026-11-17"
+        time: "10:00"
+        endTime: "10:45"
+        status: faltou
+        attendance: faltou
+        service: { id: corte-heitor, name: Corte com Heitor, durationMinutes: 45 }
+        customer: { name: Ana Souza, phone: "51999991234" }
   responses:
     Error:
       description: Erro no formato padrão.

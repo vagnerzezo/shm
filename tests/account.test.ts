@@ -87,6 +87,29 @@ describe("conta", () => {
     assert.equal(user.phone, USERS.cliente.phone);
   });
 
+  test("+55 no telefone é aceito e removido", async () => {
+    const a = await registerCustomer({ ...novo, phone: "+55 (51) 98888-7777", email: "ddi1@shm.test" }, "senha-boa-1", IP);
+    assert.equal(a.phone, "51988887777");
+    const b = await registerCustomer({ ...novo, phone: "55 51 3333-4444", email: "ddi2@shm.test" }, "senha-boa-1", IP);
+    assert.equal(b.phone, "5133334444");
+    // DDD 55 (Santa Maria) sem DDI continua igual.
+    const c = await registerCustomer({ ...novo, phone: "(55) 99999-8888", email: "ddi3@shm.test" }, "senha-boa-1", IP);
+    assert.equal(c.phone, "55999998888");
+  });
+
+  test("atualizar só uma autorização mantém a outra", async () => {
+    await updateOwnProfile(USERS.cliente3.id, { consent: { email: true, mensagem: true } });
+    await updateOwnProfile(USERS.cliente3.id, { consent: { email: false } });
+    const user = (await readDb()).users.find((u) => u.id === USERS.cliente3.id)!;
+    assert.deepEqual(user.consent, { email: false, mensagem: true });
+  });
+
+  test("autorização de tipo errado é recusada", async () => {
+    await assert.rejects(updateOwnProfile(USERS.cliente3.id, { consent: "sim" }), rejectsWith("validation", "consent"));
+    await assert.rejects(updateOwnProfile(USERS.cliente3.id, { consent: { email: "sim" } }), rejectsWith("validation", "consent"));
+    await assert.rejects(registerCustomer({ ...novo, email: "tipo@shm.test", consent: [true] }, "senha-boa-1", IP), rejectsWith("validation", "consent"));
+  });
+
   test("atualizar perfil com e-mail de outra conta é recusado", async () => {
     await assert.rejects(updateOwnProfile(USERS.cliente.id, { email: USERS.cliente2.email }), rejectsWith("email_taken"));
   });

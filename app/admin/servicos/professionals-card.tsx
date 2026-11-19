@@ -26,6 +26,8 @@ type Row = {
   access: { id: string; email: string }[];
   /** A conta do admin logado está ligada a ele. */
   isMe: boolean;
+  /** Outros admins que marcaram "Sou eu" para ele. */
+  otherAdmins: number;
 };
 
 const swatch: Record<ProfessionalColor, string> = {
@@ -243,7 +245,7 @@ export function ProfessionalsCard({ professionals, linkedToMe }: { professionals
                 <button type="button" onClick={() => setEditing(p.name)} className={linkButton}>
                   Editar
                 </button>
-                {p.services === 0 && p.upcoming === 0 && p.access.length === 0 && !p.isMe ? (
+                {p.services === 0 && p.upcoming === 0 && p.access.length === 0 && !p.isMe && p.otherAdmins === 0 ? (
                   <ConfirmButton
                     action={deleteProfessional}
                     fields={{ nome: p.name }}
@@ -263,10 +265,18 @@ export function ProfessionalsCard({ professionals, linkedToMe }: { professionals
                         ? "Mova ou exclua os serviços dele antes"
                         : p.upcoming > 0
                           ? "Remarque ou cancele os horários dele antes"
-                          : "Remova o acesso ligado a ele antes"
+                          : p.access.length > 0 || p.isMe
+                            ? "Remova o acesso ligado a ele antes"
+                            : "Outro admin marcou \"Sou eu\" para ele; ele precisa desfazer antes"
                     }
                   >
-                    {p.services > 0 ? "Tem serviços" : p.upcoming > 0 ? "Tem horários marcados" : "Tem acesso ligado"}
+                    {p.services > 0
+                      ? "Tem serviços"
+                      : p.upcoming > 0
+                        ? "Tem horários marcados"
+                        : p.access.length > 0 || p.isMe
+                          ? "Tem acesso ligado"
+                          : "Ligado a outro admin"}
                   </span>
                 )}
               </div>

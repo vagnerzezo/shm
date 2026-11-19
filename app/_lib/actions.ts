@@ -16,6 +16,7 @@ import { toKeys, withItems } from "./booking";
 import { clientIp } from "./client-ip";
 import { authenticate, registerCustomer, updateOwnProfile } from "./domain/account";
 import { bookForCustomer, cancelForCustomer } from "./domain/bookings";
+import { messageText } from "./domain/messages";
 import { DomainError, messageOf } from "./errors";
 import { profileInputOf } from "./profile";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
@@ -115,12 +116,23 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
 
 export type SendState = { error: string | null };
 
+/** Texto do campo `texto` pela regra do chat, ou o estado a devolver (vazio não faz nada; acima do limite avisa). */
+function chatText(formData: FormData): string | SendState {
+  const raw = String(formData.get("texto") ?? "");
+  if (!raw.trim()) return { error: null };
+  try {
+    return messageText(raw);
+  } catch (error) {
+    return { error: messageOf(error) };
+  }
+}
+
 /** Admin responde a um cliente. O texto vem do campo `texto`. */
 export async function sendMessage(customerId: string, formData: FormData): Promise<SendState> {
   const user = await getCurrentUser();
   if (user?.role !== "admin") return { error: "Sem permissão para enviar mensagens." };
-  const text = String(formData.get("texto") ?? "").trim().slice(0, 2000);
-  if (!text) return { error: null };
+  const text = chatText(formData);
+  if (typeof text !== "string") return text;
   const ok = await addMessage(customerId, "admin", text);
   if (!ok) return { error: "Cliente não encontrado." };
   refresh();
@@ -139,8 +151,8 @@ export async function sendCustomerMessage(formData: FormData): Promise<SendState
   const user = await getCurrentUser();
   if (!user) return { error: "Sua sessão expirou. Entre de novo para enviar." };
   if (user.role !== "cliente") return { error: "Use o chat do painel para responder clientes." };
-  const text = String(formData.get("texto") ?? "").trim().slice(0, 2000);
-  if (!text) return { error: null };
+  const text = chatText(formData);
+  if (typeof text !== "string") return text;
   await addMessage(user.id, "cliente", text);
   refresh();
   return { error: null };

@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createSession, currentToken, deleteSession, getCurrentUser, homeOf, loginHref } from "./auth";
-import { addMessage } from "./chat";
 import {
   assertCurrentPassword,
   changeOwnPassword,
@@ -10,7 +9,7 @@ import {
   requestPasswordResetFor,
   resetPasswordWithToken,
 } from "./domain/account";
-import { rescheduledText, rescheduleForCustomer } from "./domain/bookings";
+import { rescheduleForCustomer } from "./domain/bookings";
 import { messageOf } from "./errors";
 import { withNotice } from "./notices";
 import { unsubscribeByToken } from "./unsubscribe";
@@ -90,14 +89,11 @@ export async function rescheduleMyReservation(_prev: RescheduleState, formData: 
   const me = await getCurrentUser();
   if (!me) redirect(loginHref(`/reservas/${id}/remarcar`));
 
-  let moved;
   try {
-    moved = await rescheduleForCustomer(me.id, id, date, time);
+    await rescheduleForCustomer(me.id, id, date, time);
   } catch (error) {
     return { error: messageOf(error) };
   }
-  const { before, serviceName } = moved;
-  await addMessage(me.id, "cliente", rescheduledText(serviceName, before, date, time));
   redirect(withNotice("/reservas", "reserva-remarcada"));
 }
 

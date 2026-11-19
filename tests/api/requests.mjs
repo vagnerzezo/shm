@@ -63,6 +63,9 @@ const account = [
   ["Esqueci a senha (e-mail inválido)", "POST", "/auth/password/forgot", { body: { email: "nada" }, status: 400, tests: [isError("validation")] }],
   ["Redefinir com código inválido", "POST", "/auth/password/reset", { body: { token: "nao-existe", password: "outra-senha-1" }, status: 400, tests: [isError("validation")] }],
   ["Trocar o nome", "PATCH", "/me", { auth: "newToken", body: { name: "Novo Renomeado" }, status: 200, tests: ['pm.test("nome novo, resto igual", () => { pm.expect(json.user.name).to.eql("Novo Renomeado"); pm.expect(json.user.email).to.eql("novo.app@shm.test"); pm.expect(json.user.phone).to.eql("51977776666"); });'] }],
+  ["Trocar só uma autorização", "PATCH", "/me", { auth: "newToken", body: { consent: { email: true } }, status: 200, tests: ['pm.test("a outra continua", () => pm.expect(json.user.consent).to.eql({ email: true, mensagem: true }));'] }],
+  ["Autorização de tipo errado", "PATCH", "/me", { auth: "newToken", body: { consent: { mensagem: "sim" } }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.consent).to.be.a("string"));'] }],
+  ["Telefone com +55", "PATCH", "/me", { auth: "newToken", body: { phone: "+55 (51) 97777-6666" }, status: 200, tests: ['pm.test("sem o DDI", () => pm.expect(json.user.phone).to.eql("51977776666"));'] }],
   ["Trocar para e-mail de outra conta", "PATCH", "/me", { auth: "newToken", body: { email: "cliente@shm.test" }, status: 409, tests: [isError("email_taken")] }],
   ["Trocar dados sem token", "PATCH", "/me", { body: { name: "X Y" }, status: 401 }],
   ["Trocar senha com a atual errada", "POST", "/me/password", { auth: "newToken", body: { current: "errada", password: "senha-do-app-2" }, status: 400, tests: [isError("validation")] }],
@@ -134,6 +137,7 @@ const reservations = [
   ["Marcar com item repetido", "POST", "/reservations", { auth: "clientToken", body: { items: [item("15:00"), item("15:00")] }, status: 400, tests: [isError("validation")] }],
   ["Marcar dois itens que se sobrepõem", "POST", "/reservations", { auth: "clientToken", body: { items: [item("15:00"), item("15:30", "corte-jimmy")] }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.items).to.be.a("string"));'] }],
   ["Marcar 11 itens", "POST", "/reservations", { auth: "clientToken", body: { items: ELEVEN }, status: 400, tests: [isError("validation")] }],
+  ["Marcar com observação acima de 300", "POST", "/reservations", { auth: "clientToken", body: { items: [item("15:00")], note: "a".repeat(301) }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.note).to.be.a("string"));'] }],
   ["Marcar sem corpo de lista", "POST", "/reservations", { auth: "clientToken", body: { items: "10:00" }, status: 400, tests: [isError("validation")] }],
   ["Nada gravado nos pedidos recusados", "GET", "/reservations", { auth: "clientToken", status: 200, tests: ['pm.test("só a primeira", () => pm.expect(json.reservations).to.have.length(1));'] }],
   ["Remarcar", "PATCH", "/reservations/{{reservationId}}", {

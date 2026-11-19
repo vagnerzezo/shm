@@ -30,14 +30,14 @@ Projeto Neon **`shm`** (`long-lake-61916363`), branch `production`.
 
 Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 
-1. Observação de reserva com mais de 300 caracteres é cortada sem aviso (a API responde 201).
-2. `PATCH /me` com só uma das autorizações (`consent`) zera a outra; `consent` de tipo errado não dá 400.
+1. ~~Observação de reserva com mais de 300 caracteres é cortada sem aviso~~ **Feito (2026-11-19).** Agora é `400` no campo `note`; `\r\n` do formulário conta como 1 caractere.
+2. ~~`PATCH /me` com só uma das autorizações zera a outra; tipo errado não dá 400~~ **Feito (2026-11-19).** Só as chaves enviadas mudam; tipo errado é `400` no campo `consent`.
 3. Limite de login burlável com várias tentativas ao mesmo tempo (conta e grava fora de trava).
 4. O tempo de resposta do login revela se o e-mail tem conta (já era assim antes da API).
 5. Um cabeçalho `Authorization` que não é `Bearer` faz o site ignorar o cookie (a pessoa aparece deslogada).
-6. Remarcar e o aviso no chat são gravados em transações separadas.
-7. "Remover profissional" mostra sucesso quando outro admin está ligado a ele ("Sou eu") e nada foi removido.
-8. A foto do login do celular também é baixada no computador; "+55" digitado no telefone dá erro.
+6. ~~Remarcar e o aviso no chat em transações separadas~~ **Feito (2026-11-19).** O aviso é gravado dentro de `rescheduleForCustomer`.
+7. ~~"Remover profissional" mostra sucesso com outro admin ligado~~ **Feito (2026-11-19).** A tela mostra "Ligado a outro admin" e, se o domínio recusar, o erro aparece (o `ConfirmButton` aceita `{ error }`).
+8. A foto do login do celular também é baixada no computador. ~~"+55" digitado no telefone dá erro~~ **Feito (2026-11-19):** o DDI 55 na frente de 12 ou 13 dígitos é removido.
 9. As rotas da API aceitam o cookie do site sem checar `Content-Type`/`Origin` (o `SameSite=Lax` já protege).
 
 ## 3. Não conferido no navegador (só por teste automático)
@@ -52,7 +52,7 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 - **Outras telas fora do painel no celular** (Esqueci minha senha, Redefinir senha, Descadastrar) ainda têm o visual antigo; o login já tem o novo.
 - **Barbeiro em "Meus dados":** a conta nasce sem telefone, então ele precisa informar um para salvar.
 - **O admin não redefine a senha do barbeiro** (só a de clientes). Hoje o barbeiro usa "Esqueci minha senha", ou o admin recria o acesso.
-- **Chat do site** corta mensagens acima de 2000 caracteres sem avisar (a API recusa com 400).
+- ~~**Chat do site** corta mensagens acima de 2000 caracteres sem avisar~~ **Feito (2026-11-19):** o site usa a mesma regra da API e mostra o erro.
 - **E-mails de marketing** ainda usam o rodapé simples antigo.
 - **App de celular:** a API está pronta (`app/doc/api/openapi.yaml`), mas o app em si não começou.
 

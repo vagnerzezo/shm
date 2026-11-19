@@ -10,16 +10,39 @@ export type ProfileInput = { name?: unknown; phone?: unknown; email?: unknown; c
 
 const invalid = (field: string, message: string) => new DomainError("validation", message, { [field]: message });
 
-/** Valida e normaliza. Lança `validation` apontando o campo. */
-export function parseProfile(input: ProfileInput): Profile {
+/** Só dígitos, sem o DDI 55 quando ele vem na frente de um número com DDD (12 ou 13 dígitos). */
+function phoneDigits(raw: unknown): string {
+  const digits = typeof raw === "string" ? raw.replace(/\D/g, "") : "";
+  return (digits.length === 12 || digits.length === 13) && digits.startsWith("55") ? digits.slice(2) : digits;
+}
+
+/**
+ * Autorizações de contato. Sem `consent`, valem as de `base` (ou nenhuma); com
+ * ele, só as chaves enviadas mudam. Tipo errado é erro no campo `consent`.
+ */
+export function parseConsent(raw: unknown, base: Consent = { email: false, mensagem: false }): Consent {
+  if (raw === undefined) return { ...base };
+  const message = "Autorizações inválidas.";
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw invalid("consent", message);
+  const consent = raw as Record<string, unknown>;
+  for (const key of ["email", "mensagem"] as const) {
+    if (consent[key] !== undefined && typeof consent[key] !== "boolean") throw invalid("consent", message);
+  }
+  return {
+    email: typeof consent.email === "boolean" ? consent.email : base.email,
+    mensagem: typeof consent.mensagem === "boolean" ? consent.mensagem : base.mensagem,
+  };
+}
+
+/** Valida e normaliza. Lança `validation` apontando o campo. `baseConsent` completa um `consent` parcial. */
+export function parseProfile(input: ProfileInput, baseConsent?: Consent): Profile {
   const name = typeof input.name === "string" ? input.name.trim() : "";
-  const phone = typeof input.phone === "string" ? input.phone.replace(/\D/g, "") : "";
+  const phone = phoneDigits(input.phone);
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   if (name.length < 2) throw invalid("name", "Informe seu nome.");
   if (phone.length < 10 || phone.length > 11) throw invalid("phone", "Informe um WhatsApp válido, com DDD.");
   if (email.length > 120 || !EMAIL_RE.test(email)) throw invalid("email", "Informe um e-mail válido.");
-  const consent = (input.consent && typeof input.consent === "object" ? input.consent : {}) as Record<string, unknown>;
-  return { name, phone, email, consent: { email: consent.email === true, mensagem: consent.mensagem === true } };
+  return { name, phone, email, consent: parseConsent(input.consent, baseConsent) };
 }
 
 /** Lê os campos do formulário do site. */

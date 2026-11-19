@@ -113,6 +113,34 @@ describe("marcação", () => {
     assert.deepEqual([r.date, r.time, r.professional], [OTHER_DAY, "15:00", "Heitor"]);
   });
 
+  test("remarcar grava o aviso no chat junto", async () => {
+    const [id] = await bookForCustomer(cliente.id, [item("corte-heitor", "10:00")]);
+    await rescheduleForCustomer(cliente.id, id, OTHER_DAY, "15:00");
+    const msgs = (await readDb()).messages.filter((m) => m.customerId === cliente.id);
+    assert.equal(msgs.length, 1);
+    assert.equal(msgs[0].from, "cliente");
+    assert.match(msgs[0].text, /^Remarquei Corte com Heitor: .* às 10:00 para .* às 15:00\.$/);
+  });
+
+  test("remarcar recusado não grava aviso no chat", async () => {
+    const [id] = await bookForCustomer(cliente.id, [item("corte-heitor", "10:00")]);
+    await assert.rejects(rescheduleForCustomer(cliente.id, id, DAY, "10:00"), rejectsWith("validation"));
+    assert.equal((await readDb()).messages.filter((m) => m.customerId === cliente.id).length, 0);
+  });
+
+  test("observação acima de 300 caracteres é recusada, sem cortar", async () => {
+    const long = "a".repeat(301);
+    await assert.rejects(bookForCustomer(cliente.id, [item("corte-heitor", "10:00")], long), (e) => rejectsWith("validation")(e) && Boolean((e as DomainError).fields?.note));
+    await assert.rejects(bookByAdmin({ customerId: cliente.id, serviceId: "corte-heitor", date: DAY, time: "10:00", note: long }), rejectsWith("validation"));
+    assert.equal((await active()).length, 0);
+  });
+
+  test("quebra de linha do formulário (\\r\\n) conta como 1 caractere na observação", async () => {
+    const note = `${"a".repeat(149)}\r\n${"b".repeat(150)}`;
+    const [id] = await bookForCustomer(cliente.id, [item("corte-heitor", "10:00")], note);
+    assert.equal((await readDb()).reservations.find((r) => r.id === id)!.note, `${"a".repeat(149)}\n${"b".repeat(150)}`);
+  });
+
   test("remarcar para horário ocupado é recusado", async () => {
     const [id] = await bookForCustomer(cliente.id, [item("corte-heitor", "10:00")]);
     await bookForCustomer(cliente2.id, [item("corte-heitor", "15:00")]);

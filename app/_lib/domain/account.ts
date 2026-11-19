@@ -94,12 +94,15 @@ export async function updateOwnProfile(userId: string, input: ProfileInput): Pro
   const result = await updateDb((db) => {
     const current = db.users.find((u) => u.id === userId);
     if (!current) return "missing";
-    const profile = parseProfile({
-      name: input.name ?? current.name,
-      phone: input.phone ?? current.phone,
-      email: input.email ?? current.email,
-      consent: input.consent ?? current.consent,
-    });
+    const profile = parseProfile(
+      {
+        name: input.name ?? current.name,
+        phone: input.phone ?? current.phone,
+        email: input.email ?? current.email,
+        consent: input.consent,
+      },
+      current.consent,
+    );
     if (db.users.some((u) => u.email === profile.email && u.id !== userId)) return "taken";
     Object.assign(current, profile);
     return "ok";

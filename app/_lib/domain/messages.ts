@@ -4,9 +4,12 @@ import { DomainError } from "../errors";
 
 export const MESSAGE_MAX = 2000;
 
-/** Texto da mensagem sem espaços nas pontas. Vazio ou acima do limite é erro. */
+/** Quebras de linha `\r\n` (como o navegador envia um <textarea>) viram `\n`. */
+export const normalizeNewlines = (text: string) => text.replace(/\r\n?/g, "\n");
+
+/** Texto da mensagem sem espaços nas pontas. Vazio ou acima do limite é erro (nunca corta). */
 export function messageText(text: unknown): string {
-  const clean = typeof text === "string" ? text.trim() : "";
+  const clean = typeof text === "string" ? normalizeNewlines(text).trim() : "";
   const fail = (message: string) => new DomainError("validation", message, { text: message });
   if (!clean) throw fail("Escreva a mensagem.");
   if (clean.length > MESSAGE_MAX) throw fail(`A mensagem pode ter no máximo ${MESSAGE_MAX} caracteres.`);

@@ -13,6 +13,7 @@ import {
 import { catalogOf } from "../catalog";
 import { updateDb, type Db, type StoredReservation } from "../db";
 import { DomainError } from "../errors";
+import { normalizeNewlines } from "./messages";
 import { busyFrom, isCancelled, isPast, keepOrPick, professionalOf } from "../reservations";
 import { roleOf } from "../roles";
 import { rulesOf } from "../schedule";
@@ -30,7 +31,15 @@ const NOTE_MAX = 300;
 
 const invalid = (message: string, field?: string) =>
   new DomainError("validation", message, field ? { [field]: message } : undefined);
-const cleanNote = (note: unknown) => (typeof note === "string" ? note.trim().slice(0, NOTE_MAX) : "") || undefined;
+/** Observação sem espaços nas pontas, ou `undefined`. Acima do limite é erro no campo `note` (nunca corta). */
+function cleanNote(note: unknown): string | undefined {
+  const clean = typeof note === "string" ? normalizeNewlines(note).trim() : "";
+  if (clean.length > NOTE_MAX) {
+    const message = `A observação pode ter no máximo ${NOTE_MAX} caracteres.`;
+    throw new DomainError("validation", message, { note: message });
+  }
+  return clean || undefined;
+}
 
 function assertDate(date: unknown): asserts date is string {
   if (!isRealDate(date)) throw invalid("Informe uma data válida (AAAA-MM-DD).", "date");
@@ -53,6 +62,7 @@ export async function bookForCustomer(userId: string, items: BookingInput[], not
     if (keys.has(key)) throw invalid("O mesmo horário aparece duas vezes.", "items");
     keys.add(key);
   }
+  const cleanedNote = cleanNote(note);
 
   return updateDb((db) => {
     const user = db.users.find((u) => u.id === userId);
@@ -82,7 +92,7 @@ export async function bookForCustomer(userId: string, items: BookingInput[], not
         professional,
         date,
         time,
-        note: cleanNote(note),
+        note: cleanedNote,
       });
       ids.push(id);
       // Os próximos itens do mesmo pedido enxergam este: o cliente e o profissional ficam ocupados.
@@ -117,7 +127,10 @@ function ownReservation(db: Db, userId: string, id: string) {
   return r;
 }
 
-/** Cliente troca o dia/horário de uma reserva futura. Devolve a reserva como era e o nome do serviço. */
+/**
+ * Cliente troca o dia/horário de uma reserva futura e, na mesma transação,
+ * avisa o estúdio pelo chat. Devolve a reserva como era e o nome do serviço.
+ */
 export async function rescheduleForCustomer(userId: string, id: string, date: unknown, time: unknown) {
   assertDate(date);
   assertTime(time);
@@ -138,6 +151,13 @@ export async function rescheduleForCustomer(userId: string, id: string, date: un
     }
     const before: StoredReservation = { ...r };
     Object.assign(r, { date, time, professional: keepOrPick(r.professional, service, date, time, busy, rules) });
+    db.messages.push({
+      id: crypto.randomUUID(),
+      customerId: userId,
+      from: "cliente",
+      text: rescheduledText(service.name, before, date, time),
+      createdAt: new Date().toISOString(),
+    });
     return { before, serviceName: service.name };
   });
 }
@@ -217,6 +237,7 @@ export async function bookByAdmin(input: {
   if (!isRealDate(input.date)) throw invalid("Escolha a data.", "date");
   if (!isTime(input.time)) throw invalid("Escolha o horário.", "time");
   const { customerId, serviceId, date, time } = input;
+  const note = cleanNote(input.note);
   return updateDb((db) => {
     const customer = db.users.find((u) => u.id === customerId && roleOf(u) === "cliente");
     if (!customer) throw invalid("Escolha o cliente.", "customerId");
@@ -233,7 +254,7 @@ export async function bookByAdmin(input: {
       professional,
       date,
       time,
-      note: cleanNote(input.note),
+      note,
       createdBy: "admin",
     });
     return id;

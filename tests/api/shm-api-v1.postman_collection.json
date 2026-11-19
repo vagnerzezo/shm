@@ -1118,6 +1118,133 @@
           }
         },
         {
+          "name": "Trocar só uma autorização",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"a outra continua\", () => pm.expect(json.user.consent).to.eql({ email: true, mensagem: true }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"consent\":{\"email\":true}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Autorização de tipo errado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"aponta o campo\", () => pm.expect(json.error.fields.consent).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"consent\":{\"mensagem\":\"sim\"}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Telefone com +55",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"sem o DDI\", () => pm.expect(json.user.phone).to.eql(\"51977776666\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{newToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"phone\":\"+55 (51) 97777-6666\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          }
+        },
+        {
           "name": "Trocar para e-mail de outra conta",
           "event": [
             {
@@ -2392,6 +2519,49 @@
             "body": {
               "mode": "raw",
               "raw": "{\"items\":[{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"09:00\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"09:30\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"10:00\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"10:30\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"11:00\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"11:30\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"12:00\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"12:30\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"13:00\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"13:30\"},{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"14:00\"}]}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/reservations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reservations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar com observação acima de 300",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "let json; try { json = pm.response.json(); } catch { json = undefined; }",
+                  "pm.test(\"erro validation\", () => { pm.expect(json.error.code).to.eql(\"validation\"); pm.expect(json.error.message).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"aponta o campo\", () => pm.expect(json.error.fields.note).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clientToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"items\":[{\"serviceId\":\"corte-heitor\",\"date\":\"{{day}}\",\"time\":\"15:00\"}],\"note\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
             },
             "url": {
               "raw": "{{baseUrl}}/reservations",

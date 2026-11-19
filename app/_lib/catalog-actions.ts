@@ -137,11 +137,17 @@ export async function saveProfessional(_prev: CatalogFormState, formData: FormDa
   return { error: null, saved: true };
 }
 
-/** Com serviços, horários futuros ou conta ligada, a tela nem oferece a exclusão; o domínio garante. */
-export async function deleteProfessional(formData: FormData) {
+/** Com serviços, horários futuros ou conta ligada, a tela nem oferece a exclusão; o domínio garante e o erro volta para a tela. */
+export async function deleteProfessional(formData: FormData): Promise<CatalogFormState> {
   await assertAdmin();
-  await removeProfessional(text(formData, "nome")).catch(messageOf);
+  try {
+    await removeProfessional(text(formData, "nome"));
+  } catch (error) {
+    refresh();
+    return { error: messageOf(error) };
+  }
   refresh();
+  return { error: null };
 }
 
 /** Admin cria o acesso do barbeiro (e-mail e senha provisória) para um profissional. */

@@ -99,6 +99,13 @@ describe("perfil barbeiro", () => {
     assert.ok((await readDb()).professionals!.some((p) => p.name === "Novato"));
   });
 
+  test("profissional ligado a um admin (\"Sou eu\") não é removido", async () => {
+    await saveProfessional({ name: "Novato", color: "rose" });
+    await linkAdminToProfessional(USERS.admin.id, "Novato");
+    await assert.rejects(removeProfessional("Novato"), rejectsWith("validation"));
+    assert.ok((await readDb()).professionals!.some((p) => p.name === "Novato"));
+  });
+
   test("profissional sem conta, serviços nem horários é removido", async () => {
     await saveProfessional({ name: "Novato", color: "rose" });
     await removeProfessional("Novato");

@@ -140,6 +140,7 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
               .filter((u) => u.role === "barbeiro" && u.professional === p.name)
               .map((u) => ({ id: u.id, email: u.email })),
             isMe: me.professional === p.name,
+            otherAdmins: users.filter((u) => u.role === "admin" && u.id !== me.id && u.professional === p.name).length,
           }))}
           linkedToMe={me.professional ?? null}
         />

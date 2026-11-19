@@ -101,10 +101,11 @@ components:
       type: object
       properties:
         name: { type: string, minLength: 2 }
-        phone: { type: string, description: WhatsApp com DDD (10 ou 11 dígitos; outros caracteres são ignorados). }
+        phone: { type: string, description: "WhatsApp com DDD (10 ou 11 dígitos; outros caracteres são ignorados). Um +55 na frente é removido." }
         email: { type: string, maxLength: 120 }
         consent:
           type: object
+          description: "Autorizações de contato. No `PATCH /me`, só as chaves enviadas mudam. Valor que não seja booleano dá `400` no campo `consent`."
           properties:
             email: { type: boolean }
             mensagem: { type: boolean }
@@ -492,7 +493,7 @@ paths:
               required: [items]
               properties:
                 items: { type: array, minItems: 1, maxItems: 10, items: { $ref: "#/components/schemas/BookingItem" }, description: Sem item repetido e sem itens que se sobreponham entre si (os dois casos dão `400` em `fields.items`). }
-                note: { type: string, maxLength: 300, description: Vale para todos os itens. Espaços nas pontas são removidos. }
+                note: { type: string, maxLength: 300, description: "Vale para todos os itens. Espaços nas pontas são removidos e uma quebra de linha conta como 1 caractere. Acima de 300 dá `400` no campo `note` (o texto nunca é cortado)." }
       responses:
         "201":
           description: Reservas criadas, na ordem dos itens.
@@ -511,7 +512,7 @@ paths:
     patch:
       tags: [Reservations]
       summary: Remarcar uma reserva futura
-      description: Só o dono. Avisa o estúdio pelo chat. Reserva de outro cliente, cancelada ou inexistente dá `404`.
+      description: Só o dono. Avisa o estúdio pelo chat, na mesma transação da remarcação. Reserva de outro cliente, cancelada ou inexistente dá `404`.
       security: [{ bearer: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }

@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "./toaster";
 import { dangerButton, secondaryButton } from "./ui";
 
+type ActionResult = { error: string | null };
+
 type Props = {
-  /** Server action que recebe os `fields` (e o que estiver em `extra`). */
-  action: (formData: FormData) => void | Promise<void>;
+  /** Server action que recebe os `fields` (e o que estiver em `extra`). Pode devolver `{ error }` para avisar que nada foi feito. */
+  action: (formData: FormData) => void | ActionResult | Promise<void | ActionResult>;
   fields: Record<string, string>;
   /** Texto do botão que abre a confirmação. */
   children: ReactNode;
@@ -55,9 +57,10 @@ export function ConfirmButton({
           action={async (formData) => {
             setPending(true);
             try {
-              await action(formData);
+              const result = await action(formData);
               dialog.current?.close();
-              if (successMessage) toast(successMessage);
+              if (result?.error) toast(result.error, "error");
+              else if (successMessage) toast(successMessage);
             } finally {
               setPending(false);
             }

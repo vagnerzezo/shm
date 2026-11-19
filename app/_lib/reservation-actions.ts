@@ -116,3 +116,14 @@ export async function setAttendance(formData: FormData) {
   await setAttendanceFor({ role: "admin" }, id, attendance).catch(messageOf);
   refresh();
 }
+
+/** "Minha agenda": o barbeiro (ou admin que atende) marca compareceu / faltou nas reservas dele. */
+export async function setMyAttendance(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?next=%2Fbarbeiro");
+  const raw = text(formData, "situacao");
+  const attendance: Attendance | null = raw === "faltou" || raw === "compareceu" ? raw : null;
+  // Reserva de outro profissional, futura ou cancelada: nada muda (a tela nem oferece o botão).
+  await setAttendanceFor(user, text(formData, "id"), attendance).catch(messageOf);
+  refresh();
+}

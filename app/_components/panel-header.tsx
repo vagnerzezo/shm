@@ -43,9 +43,18 @@ const iconButton =
   "grid size-11 place-items-center rounded-full border border-black/15 bg-white text-black transition hover:bg-black/5";
 
 /** `step` mostra o passo do agendamento; sem ele, o cabeçalho fica sem stepper. */
-export function PanelHeader({ step, children }: { step?: number; children?: ReactNode }) {
+export function PanelHeader({
+  step,
+  children,
+  profileHref: forcedProfileHref,
+}: {
+  step?: number;
+  children?: ReactNode;
+  /** Quando o caminho não diz de quem é a tela (ex.: /barbeiro aberto por um admin). */
+  profileHref?: string;
+}) {
   const pathname = usePathname();
-  const profileHref = pathname.startsWith("/admin") ? "/admin/perfil" : "/conta";
+  const profileHref = forcedProfileHref ?? (pathname.startsWith("/admin") ? "/admin/perfil" : "/conta");
 
   return (
     <header className="flex items-start justify-between gap-4">

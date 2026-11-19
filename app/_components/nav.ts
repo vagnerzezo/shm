@@ -8,6 +8,7 @@ import {
   MegaphoneIcon,
   ScissorsIcon,
   SettingsIcon,
+  UserIcon,
   UsersIcon,
 } from "./icons";
 
@@ -19,6 +20,10 @@ export const navByArea = {
     { href: "/agendamento", label: "Agendar", Icon: CalendarIcon },
     { href: "/reservas", label: "Reservas", Icon: CalendarCheckIcon },
     { href: "/mensagens", label: "Mensagens", Icon: ChatIcon },
+  ],
+  barbeiro: [
+    { href: "/barbeiro", label: "Minha agenda", Icon: CalendarIcon },
+    { href: "/conta", label: "Meus dados", Icon: UserIcon },
   ],
   admin: [
     { href: "/admin", label: "Início", Icon: HomeIcon },
@@ -33,6 +38,9 @@ export const navByArea = {
 };
 
 export type Area = keyof typeof navByArea;
+
+/** Entra no menu do admin quando a conta dele está ligada a um profissional ("Sou eu"). */
+export const myAgendaLink = { href: "/barbeiro", label: "Minha agenda", Icon: CalendarCheckIcon };
 
 /** Início de cada área só fica ativo na própria página; o resto, também nas subpáginas. */
 export function isActiveLink(href: string, pathname: string) {

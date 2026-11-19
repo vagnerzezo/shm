@@ -8,7 +8,7 @@ import { useState } from "react";
 import { signOut } from "@/app/_lib/actions";
 import { cn } from "@/lib/utils";
 import { LogOutIcon, MenuIcon, XIcon } from "./icons";
-import { isActiveLink, navByArea, type Area } from "./nav";
+import { isActiveLink, myAgendaLink, navByArea, type Area } from "./nav";
 
 type NavLink = (typeof navByArea)[Area][number];
 /** Números ao lado dos itens do menu (ex.: mensagens não lidas), por `href`. */
@@ -156,13 +156,17 @@ export function Sidebar({
   address,
   studioName,
   badges = {},
+  myAgenda = false,
 }: {
   area: Area;
   address: string[];
   studioName: string;
   badges?: Badges;
+  /** Admin ligado a um profissional: "Minha agenda" logo depois de "Agenda". */
+  myAgenda?: boolean;
 }) {
-  const links = navByArea[area];
+  const base: NavLink[] = [...navByArea[area]];
+  const links = myAgenda && area === "admin" ? [...base.slice(0, 2), myAgendaLink, ...base.slice(2)] : base;
   // Com muitos itens (admin), botões mais baixos para o endereço continuar cabendo.
   const compact = links.length > 4;
   const size = compact ? "h-11 text-sm" : "h-14 text-base";
@@ -176,7 +180,7 @@ export function Sidebar({
         compact ? "lg:gap-5 lg:py-8" : "lg:gap-6 lg:py-12",
       )}
     >
-      <Link href={area === "admin" ? "/admin" : "/"} aria-label="Início" className="lg:contents">
+      <Link href={area === "admin" ? "/admin" : area === "barbeiro" ? "/barbeiro" : "/"} aria-label="Início" className="lg:contents">
         <Image
           src="/img/logo.png"
           alt={studioName}

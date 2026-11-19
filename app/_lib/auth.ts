@@ -69,6 +69,13 @@ export async function requireAdmin(next: string) {
   return user;
 }
 
+/** Tela "Minha agenda": barbeiro, ou admin ligado a um profissional. Os outros vão para a área deles. */
+export async function requireBarberPage(next: string): Promise<Customer & { professional: string }> {
+  const user = await requireUser(next);
+  if ((user.role !== "barbeiro" && user.role !== "admin") || !user.professional) redirect(homeOf(user));
+  return { ...user, professional: user.professional };
+}
+
 /** Telas de cliente (agendar, reservas, mensagens): o barbeiro vai para a agenda dele. */
 export function keepBarberOut(user: Customer | null) {
   if (user?.role === "barbeiro") redirect("/barbeiro");

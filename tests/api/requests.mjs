@@ -132,6 +132,7 @@ const reservations = [
   ["Outro cliente no mesmo horário do mesmo profissional", "POST", "/reservations", { auth: "client2Token", body: { items: [item("10:00")] }, status: 409, tests: [isError("slot_unavailable")] }],
   ["Marcar sem itens", "POST", "/reservations", { auth: "clientToken", body: { items: [] }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.items).to.be.a("string"));'] }],
   ["Marcar com item repetido", "POST", "/reservations", { auth: "clientToken", body: { items: [item("15:00"), item("15:00")] }, status: 400, tests: [isError("validation")] }],
+  ["Marcar dois itens que se sobrepõem", "POST", "/reservations", { auth: "clientToken", body: { items: [item("15:00"), item("15:30", "corte-jimmy")] }, status: 400, tests: [isError("validation"), 'pm.test("aponta o campo", () => pm.expect(json.error.fields.items).to.be.a("string"));'] }],
   ["Marcar 11 itens", "POST", "/reservations", { auth: "clientToken", body: { items: ELEVEN }, status: 400, tests: [isError("validation")] }],
   ["Marcar sem corpo de lista", "POST", "/reservations", { auth: "clientToken", body: { items: "10:00" }, status: 400, tests: [isError("validation")] }],
   ["Nada gravado nos pedidos recusados", "GET", "/reservations", { auth: "clientToken", status: 200, tests: ['pm.test("só a primeira", () => pm.expect(json.reservations).to.have.length(1));'] }],

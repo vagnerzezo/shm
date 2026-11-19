@@ -119,7 +119,8 @@ function FormScreen({
           <p className="text-sm text-[#555]">{signUp ? "Preencha seus dados para começar." : "Que bom ver você de novo."}</p>
         </div>
 
-        <LoginForm mode={mode} next={next} variant="mobile" />
+        {/* `key` recria o formulário ao trocar Entrar/Criar conta, limpando erros e o "mostrar senha". */}
+        <LoginForm key={mode} mode={mode} next={next} variant="mobile" />
 
         {!signUp && (
           <p className="text-center">

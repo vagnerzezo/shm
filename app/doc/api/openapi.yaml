@@ -490,7 +490,7 @@ paths:
               type: object
               required: [items]
               properties:
-                items: { type: array, minItems: 1, maxItems: 10, items: { $ref: "#/components/schemas/BookingItem" }, description: Sem item repetido. }
+                items: { type: array, minItems: 1, maxItems: 10, items: { $ref: "#/components/schemas/BookingItem" }, description: Sem item repetido e sem itens que se sobreponham entre si (os dois casos dão `400` em `fields.items`). }
                 note: { type: string, maxLength: 300, description: Vale para todos os itens. Espaços nas pontas são removidos. }
       responses:
         "201":

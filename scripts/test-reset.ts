@@ -1,13 +1,37 @@
 // Zera o banco de TESTE e grava os dados fixos dos testes.
 // Uso: pnpm test:reset (carrega o .env.test). Recusa rodar em outro banco.
 
+import { readFileSync } from "node:fs";
 import { sql } from "drizzle-orm";
 import { SCHEDULE, USERS } from "../tests/fixtures";
 
-export async function resetTestDb() {
+/**
+ * O `--env-file` não substitui variáveis que já estão no shell: um
+ * DATABASE_URL do banco principal exportado no terminal passaria pelo
+ * SHM_TEST_DB=1 do .env.test. Por isso a conexão tem que ser exatamente a
+ * do arquivo .env.test.
+ */
+function assertTestDatabase() {
   if (process.env.SHM_TEST_DB !== "1") {
     throw new Error("test-reset só roda com SHM_TEST_DB=1 (use o .env.test). Nada foi apagado.");
   }
+  let file = "";
+  try {
+    file = readFileSync(new URL("../.env.test", import.meta.url), "utf8");
+  } catch {
+    throw new Error("Não achei o .env.test. Nada foi apagado.");
+  }
+  const line = file.split(/\r?\n/).find((l) => /^\s*DATABASE_URL\s*=/.test(l));
+  const expected = line?.replace(/^\s*DATABASE_URL\s*=\s*/, "").trim().replace(/^(['"])(.*)\1$/, "$2");
+  if (!expected || process.env.DATABASE_URL !== expected) {
+    throw new Error(
+      "O DATABASE_URL em uso não é o banco de teste do .env.test (há outro exportado no terminal?). Nada foi apagado.",
+    );
+  }
+}
+
+export async function resetTestDb() {
+  assertTestDatabase();
   const { orm, updateDb } = await import("../app/_lib/db");
   const { hashPassword } = await import("../app/_lib/passwords");
   const { DEFAULT_PROFESSIONALS, DEFAULT_SERVICES } = await import("../app/_lib/services");

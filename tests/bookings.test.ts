@@ -79,6 +79,25 @@ describe("marcação", () => {
     });
   }
 
+  for (const [name, items] of [
+    ["dois itens que se sobrepõem", [item("corte-heitor", "10:00"), item("corte-jimmy", "10:30")]],
+    ["mesmo horário em serviços diferentes", [item("corte-heitor", "10:00"), item("corte-jimmy", "10:00")]],
+    ["sobreposição fora de ordem", [item("corte-jimmy", "11:00"), item("corte-barba-heitor", "10:00")]],
+  ] as const) {
+    // Problema da própria lista, não de horário ocupado: 400 apontando `items`, não 409.
+    test(`${name} é erro de validação em items`, async () => {
+      await assert.rejects(bookForCustomer(cliente.id, [...items]), (e) =>
+        e instanceof DomainError && e.code === "validation" && Boolean(e.fields?.items),
+      );
+      assert.equal((await active()).length, 0);
+    });
+  }
+
+  test("itens em sequência, sem sobrepor, passam", async () => {
+    const ids = await bookForCustomer(cliente.id, [item("corte-heitor", "10:00"), item("corte-jimmy", "11:00")]);
+    assert.equal(ids.length, 2);
+  });
+
   test("dia inválido e hora inválida são erro de validação", async () => {
     await assert.rejects(bookForCustomer(cliente.id, [item("corte-heitor", "10:00", "2026-02-31")]), rejectsWith("validation"));
     await assert.rejects(bookForCustomer(cliente.id, [item("corte-heitor", "25:00")]), rejectsWith("validation"));

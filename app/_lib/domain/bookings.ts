@@ -16,7 +16,7 @@ import { DomainError } from "../errors";
 import { busyFrom, isCancelled, isPast, keepOrPick, professionalOf } from "../reservations";
 import { roleOf } from "../roles";
 import { rulesOf } from "../schedule";
-import { findService, isActiveService } from "../services";
+import { findService, isActiveService, type Service } from "../services";
 
 // Marcar, remarcar e cancelar. A conferência do horário e a gravação
 // acontecem na mesma transação (`updateDb` tem trava), então duas pessoas não
@@ -57,6 +57,7 @@ export async function bookForCustomer(userId: string, items: BookingInput[], not
   return updateDb((db) => {
     const user = db.users.find((u) => u.id === userId);
     if (!user || user.disabledAt) throw new DomainError("forbidden", "Sua conta não pode marcar horários.");
+    assertNoOverlap(items, catalogOf(db).services);
     // Barbeiro não agenda como cliente (para isso usa outra conta).
     if (roleOf(user) === "barbeiro") throw new DomainError("forbidden", "Conta de barbeiro não marca horários. Use uma conta de cliente.");
     const { services } = catalogOf(db);
@@ -91,6 +92,23 @@ export async function bookForCustomer(userId: string, items: BookingInput[], not
     }
     return ids;
   });
+}
+
+/** Itens do mesmo pedido que se sobrepõem são erro da lista (400), não horário ocupado (409). */
+function assertNoOverlap(items: BookingInput[], services: Service[]) {
+  const spans = items.flatMap(({ serviceId, date, time }) => {
+    const service = findService(services, serviceId);
+    if (!service) return []; // serviço inexistente é conferido depois
+    const start = toMinutes(time);
+    return [{ date, start, end: start + service.durationMinutes }];
+  });
+  for (const [i, a] of spans.entries()) {
+    for (const b of spans.slice(i + 1)) {
+      if (a.date === b.date && a.start < b.end && b.start < a.end) {
+        throw invalid("Dois horários do pedido se sobrepõem. Remova um deles.", "items");
+      }
+    }
+  }
 }
 
 function ownReservation(db: Db, userId: string, id: string) {

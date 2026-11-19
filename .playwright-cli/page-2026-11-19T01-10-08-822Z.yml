@@ -1,0 +1,29 @@
+- generic [active] [ref=e1]:
+  - main [ref=e4]:
+    - generic [ref=e7]:
+      - link "Voltar" [ref=e8] [cursor=pointer]:
+        - /url: /login
+      - img "SHM Studio Heitor Macks" [ref=e11]
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - heading "Entrar" [level=1] [ref=e16]
+        - paragraph [ref=e17]: Que bom ver você de novo.
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: E-mail
+          - textbox "E-mail" [ref=e22]:
+            - /placeholder: voce@email.com
+        - generic [ref=e23]:
+          - generic [ref=e24]: Senha
+          - generic [ref=e25]:
+            - textbox "Senha Mostrar senha" [ref=e26]
+            - button "Mostrar senha" [ref=e27]
+        - button "Entrar" [ref=e31]
+      - paragraph [ref=e32]:
+        - link "Esqueci minha senha" [ref=e33] [cursor=pointer]:
+          - /url: /esqueci-senha
+      - paragraph [ref=e34]:
+        - text: Ainda não tem conta?
+        - link "Criar conta" [ref=e35] [cursor=pointer]:
+          - /url: /login?modo=cadastro
+  - button "Open Next.js Dev Tools" [ref=e41] [cursor=pointer]

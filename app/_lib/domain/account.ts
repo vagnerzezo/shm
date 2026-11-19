@@ -1,6 +1,6 @@
 import { and, count, eq, gt, lt } from "drizzle-orm";
 import { orm, purgeUser, readDb, updateDb, type User } from "../db";
-import { loginAttempts } from "../db-schema";
+import { loginAttempts, signupAttempts } from "../db-schema";
 import { DomainError } from "../errors";
 import { completePasswordReset, startPasswordReset } from "../password-reset";
 import { hashPassword, verifyPassword } from "../passwords";
@@ -52,10 +52,29 @@ export function assertPassword(password: unknown, field = "password"): asserts p
   }
 }
 
-/** Cria a conta de cliente. */
-export async function registerCustomer(input: ProfileInput, password: unknown): Promise<User> {
+export const MAX_SIGNUPS_PER_IP = 10;
+export const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * Cria a conta de cliente. Limita os cadastros por IP (`ip` vem de
+ * `clientIp`): conta os criados e os recusados por e-mail já em uso, que
+ * serviriam para descobrir quais e-mails têm conta. Dados inválidos não contam.
+ */
+export async function registerCustomer(input: ProfileInput, password: unknown, ip: string): Promise<User> {
   const profile = parseProfile(input);
   assertPassword(password);
+
+  const since = Date.now() - SIGNUP_WINDOW_MS;
+  const [{ recent }] = await orm
+    .select({ recent: count() })
+    .from(signupAttempts)
+    .where(and(eq(signupAttempts.ip, ip), gt(signupAttempts.at, since)));
+  if (recent >= MAX_SIGNUPS_PER_IP) {
+    throw new DomainError("rate_limited", "Muitos cadastros feitos daqui. Tente de novo mais tarde.");
+  }
+  await orm.delete(signupAttempts).where(lt(signupAttempts.at, since));
+  await orm.insert(signupAttempts).values({ ip, at: Date.now() });
+
   const passwordHash = await hashPassword(password);
   const user = await updateDb((db) => {
     if (db.users.some((u) => u.email === profile.email)) return null;

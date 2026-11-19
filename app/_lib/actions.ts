@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import {
@@ -12,6 +13,7 @@ import {
   safeNext,
 } from "./auth";
 import { toKeys, withItems } from "./booking";
+import { clientIp } from "./client-ip";
 import { authenticate, registerCustomer, updateOwnProfile } from "./domain/account";
 import { bookForCustomer, cancelForCustomer } from "./domain/bookings";
 import { DomainError, messageOf } from "./errors";
@@ -25,7 +27,11 @@ export type ProfileState = { error: string | null; saved: boolean };
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
   let user;
   try {
-    user = await registerCustomer(profileInputOf(formData), String(formData.get("senha") ?? ""));
+    user = await registerCustomer(
+      profileInputOf(formData),
+      String(formData.get("senha") ?? ""),
+      clientIp(await headers()),
+    );
   } catch (error) {
     if (error instanceof DomainError && error.code === "email_taken") {
       return { error: "Já existe uma conta com esse e-mail. Use a aba Entrar." };

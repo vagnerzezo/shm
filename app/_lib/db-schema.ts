@@ -173,3 +173,14 @@ export const loginAttempts = pgTable(
   },
   (t) => [index().on(t.email)],
 );
+
+/** Cadastros recentes (criados ou com e-mail já em uso), por IP, para limitar contas em massa. */
+export const signupAttempts = pgTable(
+  "signup_attempts",
+  {
+    seq: integer().generatedAlwaysAsIdentity().primaryKey(),
+    ip: text().notNull(),
+    at: bigint({ mode: "number" }).notNull(),
+  },
+  (t) => [index().on(t.ip)],
+);

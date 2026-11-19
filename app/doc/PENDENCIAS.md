@@ -13,7 +13,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 |---|---|---|
 | 1.1 | **Criar a conta de admin com o seu e-mail** e depois **apagar ou trocar a senha das contas de teste** (`admin@shm.test`, `cliente@shm.test`, `heitor@shm.test`) no banco de produção | Hoje a produção usa as contas de teste, com senhas guardadas em `.data/contas-teste.txt`. Em produção, admin e barbeiro devem ser pessoas reais |
 | 1.2 | Se um dia voltar a usar `ADMIN_EMAILS`, criar antes a conta de cada e-mail da lista | Quem se cadastrar com um e-mail da lista que ainda não tem conta vira admin. Por isso `ADMIN_EMAILS` não está configurado na Vercel |
-| 1.3 | Limitar tentativas também no **cadastro** | Só o login tem limite (10 erros em 15 min por e-mail) |
+| 1.3 | ~~Limitar tentativas também no **cadastro**~~ **Feito (2026-11-19):** até 10 cadastros por hora por IP, contando os recusados por e-mail em uso (tabela `signup_attempts`, migração `0004`) | Igual ao login, a contagem fica fora de trava (ver 2.3) |
 | 1.4 | Conferir os **backups do Neon** (restauração para um momento anterior) no projeto novo | O banco novo começou vazio; vale saber como voltar atrás se algo for apagado |
 | 1.5 | **Domínio próprio** (ex.: `agenda.studioheitormacks.com.br`) na Vercel e trocar o `APP_URL` | Os links dos e-mails usam o `APP_URL`; hoje é `shm-eta.vercel.app` |
 | 1.6 | Mandar um **e-mail de teste** em produção (boas-vindas, confirmação, senha) | Agora as imagens vão por link https, não mais embutidas. E os e-mails caíam no lixo do Hotmail (domínio novo); vale olhar SPF/DKIM/DMARC no Resend |

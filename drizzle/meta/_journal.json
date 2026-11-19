@@ -29,6 +29,13 @@
       "when": 1795038509261,
       "tag": "0003_barber_professional",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795122226087,
+      "tag": "0004_signup_attempts",
+      "breakpoints": true
     }
   ]
 }

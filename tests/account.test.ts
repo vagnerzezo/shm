@@ -5,6 +5,7 @@ import {
   authenticate,
   changeOwnPassword,
   deleteOwnAccount,
+  MAX_SIGNUPS_PER_IP,
   registerCustomer,
   resetPasswordWithToken,
   updateOwnProfile,
@@ -52,10 +53,11 @@ describe("authenticate", () => {
 describe("conta", () => {
   before(resetTestDb);
 
+  const IP = "203.0.113.1";
   const novo = { name: "Novo Cliente", phone: "(51) 98888-7777", email: " Novo@shm.test ", consent: { email: true, mensagem: false } };
 
   test("cadastro normaliza e-mail e telefone", async () => {
-    const user = await registerCustomer(novo, "senha-boa-1");
+    const user = await registerCustomer(novo, "senha-boa-1", IP);
     assert.equal(user.email, "novo@shm.test");
     assert.equal(user.phone, "51988887777");
     assert.deepEqual(user.consent, { email: true, mensagem: false });
@@ -63,18 +65,18 @@ describe("conta", () => {
   });
 
   test("cadastro com e-mail repetido é recusado", async () => {
-    await assert.rejects(registerCustomer({ ...novo, email: USERS.cliente.email }, "senha-boa-1"), rejectsWith("email_taken"));
+    await assert.rejects(registerCustomer({ ...novo, email: USERS.cliente.email }, "senha-boa-1", IP), rejectsWith("email_taken"));
   });
 
   test("cadastro com senha curta aponta o campo password", async () => {
-    await assert.rejects(registerCustomer({ ...novo, email: "outro@shm.test" }, "1234567"), rejectsWith("validation", "password"));
+    await assert.rejects(registerCustomer({ ...novo, email: "outro@shm.test" }, "1234567", IP), rejectsWith("validation", "password"));
   });
 
   test("cadastro com dados ruins aponta o campo", async () => {
-    await assert.rejects(registerCustomer({ ...novo, name: "A", email: "a@shm.test" }, "senha-boa-1"), rejectsWith("validation", "name"));
-    await assert.rejects(registerCustomer({ ...novo, phone: "123", email: "a@shm.test" }, "senha-boa-1"), rejectsWith("validation", "phone"));
-    await assert.rejects(registerCustomer({ ...novo, email: "sem-arroba" }, "senha-boa-1"), rejectsWith("validation", "email"));
-    await assert.rejects(registerCustomer({ ...novo, name: 123, email: "a@shm.test" }, "senha-boa-1"), rejectsWith("validation", "name"));
+    await assert.rejects(registerCustomer({ ...novo, name: "A", email: "a@shm.test" }, "senha-boa-1", IP), rejectsWith("validation", "name"));
+    await assert.rejects(registerCustomer({ ...novo, phone: "123", email: "a@shm.test" }, "senha-boa-1", IP), rejectsWith("validation", "phone"));
+    await assert.rejects(registerCustomer({ ...novo, email: "sem-arroba" }, "senha-boa-1", IP), rejectsWith("validation", "email"));
+    await assert.rejects(registerCustomer({ ...novo, name: 123, email: "a@shm.test" }, "senha-boa-1", IP), rejectsWith("validation", "name"));
   });
 
   test("atualizar perfil troca só o que foi enviado", async () => {
@@ -129,5 +131,36 @@ describe("conta", () => {
 
   test("redefinir senha com código inválido é recusado", async () => {
     await assert.rejects(resetPasswordWithToken("codigo-que-nao-existe", "nova-senha-2"), rejectsWith("validation", "token"));
+  });
+});
+
+describe("limite de cadastros", () => {
+  before(resetTestDb);
+
+  const dados = (n: number) => ({ name: "Pessoa Teste", phone: "(51) 97777-6666", email: `limite${n}@shm.test` });
+
+  test("depois de 10 cadastros do mesmo IP em 1 hora, o 11º é recusado", async () => {
+    const ip = "198.51.100.7";
+    for (let i = 0; i < MAX_SIGNUPS_PER_IP; i++) await registerCustomer(dados(i), "senha-boa-1", ip);
+    await assert.rejects(registerCustomer(dados(99), "senha-boa-1", ip), rejectsWith("rate_limited"));
+    assert.ok(!(await readDb()).users.some((u) => u.email === "limite99@shm.test"));
+    // O limite é por IP: outro endereço continua cadastrando.
+    await registerCustomer(dados(100), "senha-boa-1", "198.51.100.8");
+  });
+
+  test("e-mail repetido conta no limite (evita descobrir quais e-mails têm conta)", async () => {
+    const ip = "198.51.100.9";
+    for (let i = 0; i < MAX_SIGNUPS_PER_IP; i++) {
+      await assert.rejects(registerCustomer({ ...dados(0), email: USERS.cliente.email }, "senha-boa-1", ip), rejectsWith("email_taken"));
+    }
+    await assert.rejects(registerCustomer(dados(200), "senha-boa-1", ip), rejectsWith("rate_limited"));
+  });
+
+  test("dados inválidos não contam no limite", async () => {
+    const ip = "198.51.100.10";
+    for (let i = 0; i < MAX_SIGNUPS_PER_IP + 2; i++) {
+      await assert.rejects(registerCustomer({ ...dados(0), phone: "123" }, "senha-boa-1", ip), rejectsWith("validation", "phone"));
+    }
+    await registerCustomer(dados(300), "senha-boa-1", ip);
   });
 });

@@ -28,6 +28,7 @@ Migrações: `drizzle/`. Para o banco de teste, `pnpm test:migrate`; para o prin
 
 ## Documentação
 
+- `app/doc/PENDENCIAS.md`: o que ainda falta fazer, por prioridade.
 - `app/doc/MAPEAMENTO_SISTEMAS.md`: mapa do sistema, regras de negócio e riscos.
 - `app/doc/specs/` e `app/doc/plans/`: desenho e plano da API v1.
 

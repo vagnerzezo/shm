@@ -23,6 +23,8 @@ export const users = pgTable("users", {
   disabledAt: ts(),
   unsubscribeToken: text().unique(),
   professional: text(),
+  menus: jsonb(),
+  createdBy: text(),
 });
 
 const userRef = () => text().notNull().references(() => users.id, { onDelete: "cascade" });

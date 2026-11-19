@@ -31,6 +31,10 @@ export type User = {
    * admin, dá acesso também à agenda desse profissional.
    */
   professional?: string;
+  /** Menus extras do barbeiro (ver `BARBER_MENUS`). Admin e cliente ignoram. */
+  menus?: string[];
+  /** Conta da equipe que cadastrou este cliente pelo painel. */
+  createdBy?: string;
 };
 
 /** Pedido de "esqueci minha senha". Guarda só o hash do código enviado por e-mail. */

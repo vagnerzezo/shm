@@ -1,12 +1,15 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { PasswordInput } from "@/app/_components/password-input";
 import { toast } from "@/app/_components/toaster";
 import { FormError, card, dangerButton, fieldClass as baseField, labelClass, primaryButton } from "@/app/_components/ui";
 import { changePassword, deleteOwnAccount } from "@/app/_lib/account-actions";
 import { cn } from "@/lib/utils";
 
 const fieldClass = cn(baseField, "mt-1.5");
+/** Campo de senha: a margem fica no contêiner para o olho alinhar ao campo. */
+const passwordProps = { wrapperClassName: "mt-1.5", className: baseField };
 
 /** Troca da própria senha, usada em "Meus dados" (cliente) e no Perfil (admin). */
 export function PasswordForm() {
@@ -27,25 +30,24 @@ export function PasswordForm() {
       </div>
       <label>
         <span className={labelClass}>Senha atual</span>
-        <input name="atual" type="password" required autoComplete="current-password" className={fieldClass} />
+        <PasswordInput name="atual" required autoComplete="current-password" {...passwordProps} />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label>
           <span className={labelClass}>Nova senha</span>
-          <input
+          <PasswordInput
             name="senha"
-            type="password"
             required
             minLength={8}
             maxLength={100}
             autoComplete="new-password"
             placeholder="Mínimo de 8 caracteres"
-            className={fieldClass}
+            {...passwordProps}
           />
         </label>
         <label>
           <span className={labelClass}>Confirmar nova senha</span>
-          <input name="confirmacao" type="password" required minLength={8} maxLength={100} autoComplete="new-password" className={fieldClass} />
+          <PasswordInput name="confirmacao" required minLength={8} maxLength={100} autoComplete="new-password" {...passwordProps} />
         </label>
       </div>
       <FormError message={state.error} />
@@ -79,7 +81,7 @@ export function DeleteAccountForm() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label>
             <span className={labelClass}>Sua senha</span>
-            <input name="senha" type="password" required autoComplete="current-password" className={fieldClass} />
+            <PasswordInput name="senha" required autoComplete="current-password" {...passwordProps} />
           </label>
           <label>
             <span className={labelClass}>Digite EXCLUIR para confirmar</span>

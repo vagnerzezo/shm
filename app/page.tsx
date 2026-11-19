@@ -8,6 +8,7 @@ import { ClientHome } from "./_components/client-home";
 import { CalendarGridIcon, HistoryIcon, UserIcon } from "./_components/icons";
 import { PanelFrame } from "./_components/panel-frame";
 import { getCurrentUser, keepBarberOut } from "./_lib/auth";
+import { MobileAuth } from "./login/mobile-auth";
 
 const buttonClass =
   "flex h-[72px] w-full items-center justify-center gap-3 rounded-xl border border-black bg-white text-lg font-semibold text-black transition hover:bg-black hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
@@ -27,7 +28,25 @@ export default async function Home() {
   }
 
   return (
-    <main className="relative flex min-h-screen w-full bg-black p-4 sm:p-6">
+    <>
+      {/* No celular, o visitante já cai na boas-vindas do login; "Entrar" e "Criar conta" seguem para /login. */}
+      <div className="sm:hidden">
+        <MobileAuth mode={null} href={(m) => (m ? `/login?modo=${m}` : "/")} next="" />
+      </div>
+      <DesktopHome />
+      {/* Avisos que chegam aqui por redirecionamento (ex.: conta excluída). */}
+      <Toaster />
+      <Suspense>
+        <FlashToast />
+      </Suspense>
+    </>
+  );
+}
+
+/** Visitante no computador: logo, atalhos e endereço sobre a foto. */
+function DesktopHome() {
+  return (
+    <main className="relative hidden min-h-screen w-full bg-black p-4 sm:flex sm:p-6">
       <Image
         src="/img/bg-login.jpg"
         alt=""
@@ -74,11 +93,6 @@ export default async function Home() {
           RS, 93040-090, Brasil
         </address>
       </section>
-      {/* Avisos que chegam aqui por redirecionamento (ex.: conta excluída). */}
-      <Toaster />
-      <Suspense>
-        <FlashToast />
-      </Suspense>
     </main>
   );
 }

@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { CheckIcon } from "@/app/_components/icons";
 import { ConfirmButton } from "@/app/_components/confirm-button";
+import { PasswordInput } from "@/app/_components/password-input";
 import { deleteCustomer, setCustomerActive, setCustomerPassword } from "@/app/_lib/customer-actions";
 import { generatePassword } from "@/app/_lib/password";
 import { fieldClass as baseField, labelClass, primaryButton, secondaryButton } from "@/app/_components/ui";
@@ -32,9 +33,11 @@ function PasswordForm({ customerId }: { customerId: string }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label>
           <span className={labelClass}>Nova senha</span>
-          <input
+          <PasswordInput
+            visible={visible}
+            onVisibleChange={setVisible}
+            wrapperClassName="mt-1.5"
             name="senha"
-            type={visible ? "text" : "password"}
             required
             minLength={8}
             maxLength={100}
@@ -42,34 +45,27 @@ function PasswordForm({ customerId }: { customerId: string }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Mínimo de 8 caracteres"
-            className={cn(fieldClass, visible && "font-mono")}
+            className={cn(baseField, visible && "font-mono")}
           />
         </label>
         <label>
           <span className={labelClass}>Confirmar senha</span>
-          <input
+          <PasswordInput
+            visible={visible}
+            onVisibleChange={setVisible}
+            wrapperClassName="mt-1.5"
             name="confirmacao"
-            type={visible ? "text" : "password"}
             required
             minLength={8}
             maxLength={100}
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className={cn(fieldClass, visible && "font-mono")}
+            className={cn(baseField, visible && "font-mono")}
           />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <label className="flex items-center gap-2 text-black">
-          <input
-            type="checkbox"
-            checked={visible}
-            onChange={(e) => setVisible(e.target.checked)}
-            className="size-4 accent-[#121212]"
-          />
-          Mostrar senha
-        </label>
         <button
           type="button"
           onClick={generate}

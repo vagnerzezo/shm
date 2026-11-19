@@ -1,9 +1,32 @@
 # Pendências — Studio Heitor Macks (SHM)
 
-**Atualizado em:** 2026-11-18, depois da API v1 e do primeiro deploy na Vercel.
-**Estado atual:** API v1 concluída e revisada, site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco novo no Neon.
+**Atualizado em:** 2026-11-19 (noite).
+**Estado atual:** API v1 concluída e revisada, site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm`. Último commit de código: `9a0985e` (itens adiados da revisão), já em produção.
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
+
+## Onde paramos (2026-11-19)
+
+**Feito neste dia:**
+- 1.1 Admin real em produção (conta pessoal do dono); contas `@shm.test` apagadas da produção.
+- 1.3 Limite de cadastros por IP (10/hora), migração `0004_signup_attempts` aplicada em produção.
+- 1.4 Backups do Neon conferidos: snapshot `base-2026-11-19-admin-real` e restauração testada (ver "Como restaurar").
+- 1.6 E-mails de boas-vindas e redefinição de senha conferidos em produção (caixa de entrada do Hotmail).
+- Seção 2, itens 1, 2, 6, 7 e o "+55" do 8; e o corte do chat da seção 4.
+- Celular: visitante em `/` vê a boas-vindas do login; painel branco sobe com animação (`auth-sheet-in` em `globals.css`); Esqueci/Criar nova senha no mesmo layout (`MobileSheet`).
+- Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
+
+**Próximos passos, em ordem:**
+1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real; com ele criado, marcar e cancelar uma reserva para fechar o teste de e-mail da 1.6.
+2. **Seção 3:** conferir no navegador (servidor de teste, porta 3100) as 4 telas cobertas só por teste automático.
+3. **Seção 4:** visual novo no celular para Descadastrar; barbeiro salvar "Meus dados" sem telefone; admin redefinir a senha do barbeiro; rodapé novo nos e-mails de marketing.
+4. **Seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
+5. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+
+**Lembretes:**
+- Migração nova vai **antes** do push: `node node_modules/drizzle-kit/bin.cjs migrate` (usa o `.env`, banco de produção); no teste, `pnpm test:migrate`.
+- `git push` sozinho falha ("multiple upstream branches"); usar `git push origin main` ou corrigir com `git config --unset-all branch.main.merge && git config branch.main.merge refs/heads/main`.
+- Neon Free: só 6 horas de restauração e 1 snapshot manual; antes de mudança grande, trocar o snapshot (ver "Como restaurar").
 
 ---
 
@@ -49,7 +72,7 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 
 ## 4. Produto e telas
 
-- **Outras telas fora do painel no celular** (Esqueci minha senha, Redefinir senha, Descadastrar) ainda têm o visual antigo; o login já tem o novo.
+- ~~Outras telas fora do painel no celular~~ **Feito (2026-11-19):** Esqueci minha senha e Criar nova senha usam o `MobileSheet` (mesmo layout de Entrar/Criar conta). **Falta:** Descadastrar.
 - **Barbeiro em "Meus dados":** a conta nasce sem telefone, então ele precisa informar um para salvar.
 - **O admin não redefine a senha do barbeiro** (só a de clientes). Hoje o barbeiro usa "Esqueci minha senha", ou o admin recria o acesso.
 - ~~**Chat do site** corta mensagens acima de 2000 caracteres sem avisar~~ **Feito (2026-11-19):** o site usa a mesma regra da API e mostra o erro.

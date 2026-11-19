@@ -180,3 +180,44 @@ body {
 .rich-content hr {
   border-top: 1px solid rgb(0 0 0 / 0.15);
 }
+
+/*
+ * Login no celular: o painel branco sobe da borda de baixo ao abrir Entrar,
+ * Criar conta ou a boas-vindas; o resto (cabeçalho, título) aparece por cima
+ * da foto. CSS (e não JS) para ficar liso enquanto a página ainda carrega.
+ * Alternar Entrar/Criar conta não repete: o painel continua montado.
+ */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes auth-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes auth-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.auth-sheet-in {
+  animation: auth-sheet-in 450ms var(--ease-drawer) both;
+}
+
+.auth-fade-in {
+  animation: auth-fade-in 300ms var(--ease-out) 120ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sem movimento: o painel só aparece. */
+  .auth-sheet-in {
+    animation: auth-fade-in 200ms ease both;
+  }
+  .auth-fade-in {
+    animation-delay: 0ms;
+  }
+}

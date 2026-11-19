@@ -1,6 +1,7 @@
 import { Barlow_Condensed } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ChevronLeftIcon } from "../_components/icons";
 import { LoginForm } from "./login-form";
 
@@ -38,9 +39,13 @@ export function MobileAuth({
   next: string;
 }) {
   return (
-    <div className={`${display.variable} relative min-h-dvh w-full bg-[#0d0d0d] text-[#111]`}>
-      {mode === null ? <Welcome href={href} /> : <FormScreen mode={mode} href={href} next={next} />}
-    </div>
+    mode === null ? (
+      <div className={`${display.variable} relative min-h-dvh w-full bg-[#0d0d0d] text-[#111]`}>
+        <Welcome href={href} />
+      </div>
+    ) : (
+      <FormScreen mode={mode} href={href} next={next} />
+    )
   );
 }
 
@@ -59,7 +64,7 @@ function Welcome({ href }: { href: (mode: "entrar" | "cadastro" | null) => strin
       </header>
 
       <div className="relative mt-auto flex flex-col gap-10 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <section className="flex flex-col gap-3 px-3">
+        <section className="auth-fade-in flex flex-col gap-3 px-3">
           <p className="text-[13px] font-medium tracking-[0.14em] text-[#e6e6e6] uppercase">Bem-vindo</p>
           <h1 className={`${displayClass} text-[52px] leading-[0.95] text-white`}>
             Seu acesso
@@ -68,7 +73,7 @@ function Welcome({ href }: { href: (mode: "entrar" | "cadastro" | null) => strin
           </h1>
         </section>
 
-        <nav aria-label="Entrar ou criar conta" className="flex flex-col gap-3 rounded-[34px] bg-white px-5 pt-7 pb-6">
+        <nav aria-label="Entrar ou criar conta" className="auth-sheet-in flex flex-col gap-3 rounded-[34px] bg-white px-5 pt-7 pb-6">
           <Link href={href("entrar")} className={`${button} bg-[#111] text-white shadow-[0_10px_24px_rgba(0,0,0,0.22)]`}>
             Entrar
           </Link>
@@ -93,49 +98,77 @@ function FormScreen({
   const signUp = mode === "cadastro";
   const other = signUp ? "entrar" : "cadastro";
   return (
-    <main className="relative flex min-h-dvh flex-col">
-      {/* A foto ocupa o que o painel não usa: o painel tem só a altura do formulário, preso embaixo. */}
-      <div className="absolute inset-0 overflow-hidden">
-        <Image src="/img/bg-login.jpg" alt="" fill preload sizes="100vw" className="object-cover object-[72%_12%]" />
-        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[220px] bg-[linear-gradient(180deg,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0)_100%)]" />
-      </div>
+    <MobileSheet
+      backHref={href(null)}
+      title={signUp ? "Criar conta" : "Entrar"}
+      subtitle={signUp ? "Preencha seus dados para começar." : "Que bom ver você de novo."}
+    >
+      {/* `key` recria o formulário ao trocar Entrar/Criar conta, limpando erros e o "mostrar senha". */}
+      <LoginForm key={mode} mode={mode} next={next} variant="mobile" />
 
-      <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-[max(3rem,env(safe-area-inset-top))]">
-        <Link
-          href={href(null)}
-          aria-label="Voltar"
-          className={`flex size-11 items-center justify-center rounded-full bg-white/92 ${focusRing}`}
-        >
-          <ChevronLeftIcon className="size-5" />
-        </Link>
-        <Logo className="w-20" />
-        <div className="size-11" aria-hidden="true" />
-      </header>
-
-      <div className="min-h-[10.5rem] flex-1" aria-hidden="true" />
-      <section className="relative flex flex-col gap-3.5 rounded-t-[34px] bg-white px-6 pt-7 pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <div className="mb-1 flex flex-col gap-1.5">
-          <h1 className={`${displayClass} text-4xl leading-none`}>{signUp ? "Criar conta" : "Entrar"}</h1>
-          <p className="text-sm text-[#555]">{signUp ? "Preencha seus dados para começar." : "Que bom ver você de novo."}</p>
-        </div>
-
-        {/* `key` recria o formulário ao trocar Entrar/Criar conta, limpando erros e o "mostrar senha". */}
-        <LoginForm key={mode} mode={mode} next={next} variant="mobile" />
-
-        {!signUp && (
-          <p className="text-center">
-            <Link href="/esqueci-senha" className="text-sm font-semibold text-[#111] underline underline-offset-4">
-              Esqueci minha senha
-            </Link>
-          </p>
-        )}
-        <p className="mt-0.5 text-center text-sm text-[#555]">
-          {signUp ? "Já tem uma conta? " : "Ainda não tem conta? "}
-          <Link href={href(other)} className="font-semibold text-[#111] underline-offset-4 hover:underline">
-            {signUp ? "Entrar" : "Criar conta"}
+      {!signUp && (
+        <p className="text-center">
+          <Link href="/esqueci-senha" className="text-sm font-semibold text-[#111] underline underline-offset-4">
+            Esqueci minha senha
           </Link>
         </p>
-      </section>
-    </main>
+      )}
+      <p className="mt-0.5 text-center text-sm text-[#555]">
+        {signUp ? "Já tem uma conta? " : "Ainda não tem conta? "}
+        <Link href={href(other)} className="font-semibold text-[#111] underline-offset-4 hover:underline">
+          {signUp ? "Entrar" : "Criar conta"}
+        </Link>
+      </p>
+    </MobileSheet>
+  );
+}
+
+/**
+ * Tela de conta no celular: foto no topo, voltar e logo por cima, e um painel
+ * branco preso embaixo (só com a altura do conteúdo) que sobe ao abrir.
+ * Usada por Entrar, Criar conta e Esqueci minha senha.
+ */
+export function MobileSheet({
+  backHref,
+  title,
+  subtitle,
+  children,
+}: {
+  backHref: string;
+  title: string;
+  subtitle?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`${display.variable} relative min-h-dvh w-full bg-[#0d0d0d] text-[#111]`}>
+      <main className="relative flex min-h-dvh flex-col">
+        {/* A foto ocupa o que o painel não usa: o painel tem só a altura do conteúdo, preso embaixo. */}
+        <div className="absolute inset-0 overflow-hidden">
+          <Image src="/img/bg-login.jpg" alt="" fill preload sizes="100vw" className="object-cover object-[72%_12%]" />
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[220px] bg-[linear-gradient(180deg,rgba(0,0,0,0.45)_0%,rgba(0,0,0,0)_100%)]" />
+        </div>
+
+        <header className="auth-fade-in absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-[max(3rem,env(safe-area-inset-top))]">
+          <Link
+            href={backHref}
+            aria-label="Voltar"
+            className={`flex size-11 items-center justify-center rounded-full bg-white/92 ${focusRing}`}
+          >
+            <ChevronLeftIcon className="size-5" />
+          </Link>
+          <Logo className="w-20" />
+          <div className="size-11" aria-hidden="true" />
+        </header>
+
+        <div className="min-h-[10.5rem] flex-1" aria-hidden="true" />
+        <section className="auth-sheet-in relative flex flex-col gap-3.5 rounded-t-[34px] bg-white px-6 pt-7 pb-[max(2rem,env(safe-area-inset-bottom))]">
+          <div className="mb-1 flex flex-col gap-1.5">
+            <h1 className={`${displayClass} text-4xl leading-none`}>{title}</h1>
+            {subtitle && <p className="text-sm text-[#555]">{subtitle}</p>}
+          </div>
+          {children}
+        </section>
+      </main>
+    </div>
   );
 }

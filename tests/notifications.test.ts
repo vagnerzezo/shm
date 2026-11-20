@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import { addDays, nowInStudio } from "../app/_lib/availability";
-import { readDb } from "../app/_lib/db";
+import { addMessage } from "../app/_lib/chat";
+import { readDb, updateDb } from "../app/_lib/db";
 import { deleteOwnAccount, registerCustomer } from "../app/_lib/domain/account";
 import { bookByAdmin, bookForCustomer, cancelForCustomer, rescheduleByAdmin, rescheduleForCustomer } from "../app/_lib/domain/bookings";
 import { sendWelcomeEmail } from "../app/_lib/email-templates/send";
 import { markCancelled } from "../app/_lib/reservations";
 import { resetTestDb } from "../scripts/test-reset";
 import { PASSWORD, USERS } from "./fixtures";
-import { isForUser, type Notification } from "../app/_lib/notifications";
+import { getBell, isForUser, markBellSeen, type Notification } from "../app/_lib/notifications";
 import { toCustomer } from "../app/_lib/roles";
 
 const base = { phone: "", consent: undefined };
@@ -108,5 +109,61 @@ describe("acontecimentos viram avisos", () => {
   test("e-mail com o envio desligado não vira falha", async () => {
     await sendWelcomeEmail(USERS.cliente.id);
     assert.equal((await all()).length, 0);
+  });
+});
+
+describe("leitura do sino", () => {
+  beforeEach(resetTestDb);
+  const day = addDays(nowInStudio().date, 5);
+  const me = async (id: string) => toCustomer((await readDb()).users.find((u) => u.id === id)!);
+  const heitorScope = { all: false as const, professional: "Heitor", userId: USERS.heitor.id };
+
+  test("barbeiro não vê o que ele mesmo fez; o admin vê", async () => {
+    await bookByAdmin({ customerId: USERS.cliente.id, serviceId: "corte-heitor", date: day, time: "10:00" }, heitorScope, USERS.heitor.id);
+    assert.equal((await getBell(await me(USERS.heitor.id))).items.length, 0);
+    const admin = await getBell(await me(USERS.admin.id));
+    assert.equal(admin.items.length, 1);
+    assert.match(admin.items[0].href, /\/admin\/agenda\?/);
+  });
+
+  test("conta sem 'visto' conta só os últimos 30 dias", async () => {
+    const old = new Date(Date.now() - 40 * 86400000).toISOString();
+    await updateDb((db) => {
+      db.notifications.push({ id: "velho", kind: "cliente_novo", at: old, text: "antigo" });
+    });
+    await registerCustomer({ name: "Nova Pessoa", phone: "51911112222", email: "nova@shm.test" }, "senha-boa-1", "203.0.113.9");
+    const bell = await getBell(await me(USERS.admin.id));
+    assert.deepEqual([bell.unseen, bell.items.length], [1, 1]);
+  });
+
+  test("abrir o sino zera; aviso novo volta a contar", async () => {
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 1);
+    await markBellSeen(USERS.heitor.id);
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 0);
+    await new Promise((r) => setTimeout(r, 5));
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "15:00" }]);
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 1);
+  });
+
+  test("mensagens: barbeiro só dos clientes dele; admin de todos", async () => {
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    await markBellSeen(USERS.heitor.id);
+    await addMessage(USERS.cliente.id, "cliente", "do cliente do Heitor");
+    await addMessage(USERS.cliente2.id, "cliente", "de outro");
+    const heitor = await getBell(await me(USERS.heitor.id));
+    assert.deepEqual(heitor.items.filter((i) => i.unseen).map((i) => i.href), [`/admin/chat?cliente=${USERS.cliente.id}`]);
+    const admin = await getBell(await me(USERS.admin.id));
+    assert.equal(admin.items.filter((i) => i.href.startsWith("/admin/chat")).length, 2);
+  });
+
+  test("confirme quem veio: um item com a contagem", async () => {
+    const past = nowInStudio().date;
+    await updateDb((db) => {
+      db.reservations.push({ id: "p1", userId: USERS.cliente.id, serviceId: "corte-heitor", professional: "Heitor", date: past, time: "00:00" });
+    });
+    const items = (await getBell(await me(USERS.heitor.id))).items.filter((i) => i.text.startsWith("Confirme quem veio"));
+    assert.equal(items.length, 1);
+    assert.match(items[0].text, /1 horário/);
   });
 });

@@ -4,7 +4,7 @@ import type { Consent, Role, User } from "./db";
 // servir também a scripts e testes.
 
 /** Menus que o admin pode liberar para um barbeiro, nesta ordem. */
-export const BARBER_MENUS = ["inicio", "agenda", "clientes", "historico"] as const;
+export const BARBER_MENUS = ["inicio", "agenda", "clientes", "historico", "chat"] as const;
 export type BarberMenu = (typeof BARBER_MENUS)[number];
 
 /** Menus válidos de um valor qualquer (do banco ou de um formulário): sem repetição, na ordem de `BARBER_MENUS`. */

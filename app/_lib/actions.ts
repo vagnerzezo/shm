@@ -16,6 +16,8 @@ import { toKeys, withItems } from "./booking";
 import { clientIp } from "./client-ip";
 import { authenticate, registerCustomer, updateOwnProfile } from "./domain/account";
 import { bookForCustomer, cancelForCustomer } from "./domain/bookings";
+import { canOpen, scopeOf } from "./access";
+import { getCustomer } from "./customers";
 import { messageText } from "./domain/messages";
 import { DomainError, messageOf } from "./errors";
 import { profileInputOf } from "./profile";
@@ -127,13 +129,14 @@ function chatText(formData: FormData): string | SendState {
   }
 }
 
-/** Admin responde a um cliente. O texto vem do campo `texto`. */
+/** Equipe responde a um cliente (barbeiro: só os dele). O texto vem do campo `texto`; a mensagem guarda quem escreveu. */
 export async function sendMessage(customerId: string, formData: FormData): Promise<SendState> {
   const user = await getCurrentUser();
-  if (user?.role !== "admin") return { error: "Sem permissão para enviar mensagens." };
+  if (!user || !canOpen(user, "chat")) return { error: "Sem permissão para enviar mensagens." };
+  if (!(await getCustomer(customerId, scopeOf(user)))) return { error: "Cliente não encontrado." };
   const text = chatText(formData);
   if (typeof text !== "string") return text;
-  const ok = await addMessage(customerId, "admin", text);
+  const ok = await addMessage(customerId, "admin", text, user.id);
   if (!ok) return { error: "Cliente não encontrado." };
   refresh();
   return { error: null };
@@ -142,7 +145,8 @@ export async function sendMessage(customerId: string, formData: FormData): Promi
 /** Admin abriu a conversa: as mensagens do cliente deixam de contar como não lidas. */
 export async function markConversationReadAction(customerId: string) {
   const user = await getCurrentUser();
-  if (user?.role !== "admin") return;
+  if (!user || !canOpen(user, "chat")) return;
+  if (!(await getCustomer(customerId, scopeOf(user)))) return;
   if ((await markConversationRead(customerId)) > 0) refresh();
 }
 

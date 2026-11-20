@@ -5,7 +5,7 @@ import { ChatPanel } from "@/app/_components/chat-panel";
 import { ArrowLeftIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { markConversationReadAction, sendMessage } from "@/app/_lib/actions";
-import { requireAdmin } from "@/app/_lib/auth";
+import { requireMenu } from "@/app/_lib/auth";
 import { getConversations, getMessages } from "@/app/_lib/chat";
 import { initials } from "@/app/_lib/chat-format";
 import { formatPhone } from "@/app/_lib/format";
@@ -18,8 +18,9 @@ export const metadata: Metadata = {
 
 export default async function AdminChatPage(props: PageProps<"/admin/chat">) {
   const { cliente } = await props.searchParams;
-  await requireAdmin("/admin/chat");
-  const conversations = await getConversations();
+  const { scope } = await requireMenu("chat", "/admin/chat");
+  // Barbeiro: só os clientes dele; cliente de outro não abre (fica sem seleção).
+  const conversations = await getConversations(scope);
   const selected = conversations.find((c) => c.customer.id === cliente)?.customer ?? null;
   const messages = selected ? await getMessages(selected.id) : [];
 
@@ -28,7 +29,9 @@ export default async function AdminChatPage(props: PageProps<"/admin/chat">) {
       <AutoRefresh />
       <PanelHeader>
         <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">Chat</h1>
-        <p className="mt-1 text-sm text-black/70">Conversas com os clientes do estúdio.</p>
+        <p className="mt-1 text-sm text-black/70">
+          {scope.all ? "Conversas com os clientes do estúdio." : `Conversas com os seus clientes (${scope.professional}).`}
+        </p>
       </PanelHeader>
 
       <div className="mt-7 flex min-h-[70vh] flex-1 gap-4 lg:min-h-0">

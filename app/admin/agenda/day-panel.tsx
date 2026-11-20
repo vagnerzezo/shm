@@ -84,13 +84,13 @@ function Details({
   reservation: r,
   now,
   times,
-  admin,
+  chat,
 }: {
   reservation: AgendaReservation;
   now: Now;
   times: string[];
-  /** O chat é só do admin: barbeiro não vê "Conversar". */
-  admin: boolean;
+  /** Mostra "Conversar" (quem abre o Chat). */
+  chat: boolean;
 }) {
   const row = "flex items-center gap-2 text-sm text-black/70";
   const status = statusOf(r, now);
@@ -145,7 +145,7 @@ function Details({
         <p className="text-sm text-black/70">{formatPhone(r.customer.phone)}</p>
         <p className="truncate text-sm text-black/70">{r.customer.email}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {admin && (
+          {chat && (
             <Link
               href={`/admin/chat?cliente=${r.customer.id}`}
               className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#121212] px-3 text-sm font-semibold text-white transition hover:bg-black/80"
@@ -227,6 +227,7 @@ export function DayPanel({
   times,
   professionals,
   admin,
+  chatAllowed = false,
   calendar = true,
 }: {
   date: string;
@@ -237,6 +238,8 @@ export function DayPanel({
   times: string[];
   professionals: Professional[];
   admin: boolean;
+  /** Barbeiro que abre o Chat também vê "Conversar". */
+  chatAllowed?: boolean;
   /** Minicalendário do mês acima da lista (o Início não usa). */
   calendar?: boolean;
 }) {
@@ -252,7 +255,7 @@ export function DayPanel({
         <MiniCalendar date={date} today={today} busyDays={new Set(reservations.map((r) => r.date))} />
       </div>
       {selected ? (
-        <Details reservation={selected} now={now} times={times} admin={admin} />
+        <Details reservation={selected} now={now} times={times} chat={admin || chatAllowed} />
       ) : (
         <DayList
           date={date}

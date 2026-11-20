@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Suspense, type ReactNode } from "react";
+import { scopeOf } from "@/app/_lib/access";
 import { getCurrentUser } from "@/app/_lib/auth";
 import { getCustomerUnreadCount, getUnreadCount } from "@/app/_lib/chat";
 import { getStudio } from "@/app/_lib/studio";
@@ -12,12 +13,13 @@ import { Toaster } from "./toaster";
 export async function PanelFrame({ area: requested, children }: { area: Area; children: ReactNode }) {
   const studio = await getStudio();
   const user = await getCurrentUser();
-  // Barbeiro com menus liberados abre telas de /admin, mas com o menu dele.
+  // Barbeiro abre telas de /admin (filtradas para ele), mas com o menu dele.
   const area: Area = requested === "admin" && user?.role === "barbeiro" ? "barbeiro" : requested;
-  // Contador do menu: o admin vê as mensagens de clientes; o cliente, as do estúdio.
+  // Contador do Chat: a equipe vê as mensagens de clientes (barbeiro: dos clientes dele); o cliente, as do estúdio.
+  const staff = user && (user.role === "admin" || (user.role === "barbeiro" && user.professional));
   const badges: Record<string, number> =
-    area === "admin"
-      ? { "/admin/chat": await getUnreadCount() }
+    staff && (area === "admin" || area === "barbeiro")
+      ? { "/admin/chat": await getUnreadCount(scopeOf(user)) }
       : area === "cliente" && user
         ? { "/mensagens": await getCustomerUnreadCount(user.id) }
         : {};

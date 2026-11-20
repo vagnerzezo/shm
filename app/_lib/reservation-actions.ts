@@ -35,7 +35,7 @@ export async function createReservationByAdmin(
   _prev: ReservationFormState,
   formData: FormData,
 ): Promise<ReservationFormState> {
-  const { scope } = await agendaScope();
+  const { user, scope } = await agendaScope();
   const customerId = text(formData, "cliente");
   const serviceId = text(formData, "servico");
   const date = text(formData, "data");
@@ -55,6 +55,7 @@ export async function createReservationByAdmin(
       customerId,
       "admin",
       `Olá, ${customer?.name.split(" ")[0] ?? ""}! Marcamos ${service?.name ?? "seu horário"} para ${formatLongDate(date)} às ${time}. Até lá!`,
+      user.id,
     );
     after(() => sendBookingConfirmedEmail(customerId, [id]));
   }
@@ -65,7 +66,7 @@ export async function rescheduleReservation(
   _prev: ReservationFormState,
   formData: FormData,
 ): Promise<ReservationFormState> {
-  const { scope } = await agendaScope();
+  const { user, scope } = await agendaScope();
   const id = text(formData, "id");
   const date = text(formData, "data");
   const time = text(formData, "hora");
@@ -82,13 +83,14 @@ export async function rescheduleReservation(
       before.userId,
       "admin",
       `Seu horário de ${service?.name ?? "atendimento"} mudou: de ${formatLongDate(before.date)} às ${before.time} para ${formatLongDate(date)} às ${time}.`,
+      user.id,
     );
   }
   redirect(withNotice(agendaHref("dia", date, id), "reserva-remarcada"));
 }
 
 export async function cancelReservationByAdmin(formData: FormData) {
-  const { scope } = await agendaScope();
+  const { user, scope } = await agendaScope();
   const id = text(formData, "id");
   const reason = text(formData, "motivo").slice(0, 200);
 
@@ -103,6 +105,7 @@ export async function cancelReservationByAdmin(formData: FormData) {
       target.userId,
       "admin",
       `Seu horário de ${service?.name ?? "atendimento"} em ${formatLongDate(target.date)} às ${target.time} foi cancelado pelo estúdio.${reason ? ` Motivo: ${reason}.` : ""} Se quiser, marque um novo horário pelo site ou responda por aqui.`,
+      user.id,
     );
     after(() => sendBookingCancelledEmail(target.userId, target, { byStudio: true, reason: reason || undefined }));
   }

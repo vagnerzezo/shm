@@ -111,7 +111,7 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
             <p className="text-sm text-black/70">Cliente desde {shortDate(customer.createdAt)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {admin && (
+            {canOpen(user, "chat") && (
               <Link
                 href={`/admin/chat?cliente=${id}`}
                 className={cn(actionLink, "border-[#121212] bg-[#121212] text-white hover:bg-black/80")}

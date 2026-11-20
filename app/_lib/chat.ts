@@ -1,4 +1,6 @@
+import type { Scope } from "./access";
 import { roleOf } from "./auth";
+import { getCustomers } from "./customers";
 import { readDb, updateDb, type ChatMessage, type User } from "./db";
 
 export type Conversation = {
@@ -10,8 +12,15 @@ export type Conversation = {
 
 const isUnread = (m: ChatMessage) => m.from === "cliente" && !m.readAt;
 
-/** Todos os clientes, com quem falou por último no topo. */
-export async function getConversations(): Promise<Conversation[]> {
+/** Clientes que o escopo vê no chat: barbeiro, os da ficha dele (horário com ele ou cadastrados por ele). */
+async function chatCustomerIds(scope?: Scope): Promise<Set<string> | null> {
+  if (!scope || scope.all) return null;
+  return new Set((await getCustomers(scope, "ficha")).map((c) => c.id));
+}
+
+/** Todos os clientes (barbeiro: só os dele), com quem falou por último no topo. */
+export async function getConversations(scope?: Scope): Promise<Conversation[]> {
+  const allowed = await chatCustomerIds(scope);
   const db = await readDb();
   const last = new Map<string, ChatMessage>();
   const unread = new Map<string, number>();
@@ -21,7 +30,7 @@ export async function getConversations(): Promise<Conversation[]> {
     if (!current || m.createdAt > current.createdAt) last.set(m.customerId, m);
   }
   return db.users
-    .filter((u) => roleOf(u) === "cliente")
+    .filter((u) => roleOf(u) === "cliente" && (!allowed || allowed.has(u.id)))
     .map((u) => ({
       customer: { id: u.id, name: u.name, phone: u.phone, email: u.email },
       lastMessage: last.get(u.id) ?? null,
@@ -74,9 +83,10 @@ export function addMessage(
   });
 }
 
-/** Total de mensagens de clientes ainda não lidas pelo admin. */
-export async function getUnreadCount() {
-  return (await readDb()).messages.filter(isUnread).length;
+/** Total de mensagens de clientes ainda não lidas pela equipe (barbeiro: só dos clientes dele). */
+export async function getUnreadCount(scope?: Scope) {
+  const allowed = await chatCustomerIds(scope);
+  return (await readDb()).messages.filter((m) => isUnread(m) && (!allowed || allowed.has(m.customerId))).length;
 }
 
 /** Marca como lidas as mensagens do cliente. Devolve quantas mudaram. */

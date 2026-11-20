@@ -26,6 +26,7 @@ export const navByArea = {
     { href: "/admin/agenda", label: "Minha agenda", Icon: CalendarIcon },
     { href: "/admin/clientes", label: "Clientes", Icon: UsersIcon },
     { href: "/admin/historico", label: "Histórico", Icon: ListIcon },
+    { href: "/admin/chat", label: "Chat", Icon: ChatIcon },
     { href: "/conta", label: "Meus dados", Icon: UserIcon },
   ],
   admin: [

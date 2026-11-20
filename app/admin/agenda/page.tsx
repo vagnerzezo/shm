@@ -79,6 +79,7 @@ export default async function AgendaPage(props: PageProps<"/admin/agenda">) {
               times={scheduleTimes(rules.settings)}
               professionals={professionals}
               admin={scope.all}
+              chatAllowed
             />
           </div>
         )}

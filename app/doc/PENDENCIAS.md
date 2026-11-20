@@ -1,34 +1,41 @@
 # Pendências — Studio Heitor Macks (SHM)
 
-**Atualizado em:** 2026-11-19 (noite).
-**Estado atual:** API v1 concluída e revisada, site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm`. Último commit de código: `cf27041` (permissões da equipe), já em produção.
+**Atualizado em:** 2026-11-20 (noite).
+**Estado atual:** site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm` com as migrações até a `0007`. Último commit: `6a27aa9` (Início, chat do barbeiro e sino), já em produção.
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
 
-## Onde paramos (2026-11-19)
+## Onde paramos (2026-11-20)
 
-**Feito neste dia:**
+**Feito em 2026-11-19:**
 - 1.1 Admin real em produção (conta pessoal do dono); contas `@shm.test` apagadas da produção.
-- 1.3 Limite de cadastros por IP (10/hora), migração `0004_signup_attempts` aplicada em produção.
+- 1.3 Limite de cadastros por IP (10/hora), migração `0004`.
 - 1.4 Backups do Neon conferidos: snapshot `base-2026-11-19-admin-real` e restauração testada (ver "Como restaurar").
-- 1.6 E-mails de boas-vindas e redefinição de senha conferidos em produção (caixa de entrada do Hotmail).
-- Seção 2, itens 1, 2, 6, 7 e o "+55" do 8; e o corte do chat da seção 4.
-- Celular: visitante em `/` vê a boas-vindas do login; painel branco sobe com animação (`auth-sheet-in` em `globals.css`); Esqueci/Criar nova senha no mesmo layout (`MobileSheet`).
-- Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
+- 1.6 E-mails de boas-vindas e redefinição de senha conferidos em produção.
+- Seção 2, itens 1, 2, 6, 7 e o "+55" do 8; o corte do chat da seção 4.
+- Celular: boas-vindas do login em `/`, painel com animação, Esqueci/Criar nova senha no mesmo layout (`MobileSheet`); botão de olho em todos os campos de senha.
 
-**Área do barbeiro (2026-11-20):** todo barbeiro tem, fixo, Minha agenda (calendário com marcar/remarcar/cancelar), Clientes (só os que já atendeu) e Histórico (só os dele); Configurações → Equipe ficou só com Admin/Barbeiro. Desenhos e planos em `app/doc/specs/` e `app/doc/plans/` (2026-11-19-permissoes-equipe e 2026-11-20-area-barbeiro). Barbeiro **não** troca e-mail nem autorizações do cliente.
-**Início, chat do barbeiro e sino (2026-11-20):** Início com a agenda do dia no visual da Agenda; barbeiro com Chat dos clientes dele (cliente vê o nome de quem respondeu); sino de notificações para admin e barbeiro. Desenho e plano em `app/doc/specs/` e `app/doc/plans/` (2026-11-20-inicio-chat-notificacoes). Migrações `0006` (autor da mensagem) e `0007` (notificações).
-- Pontos menores do sino deixados para depois: "visto" pode engolir um aviso chegado nos 30 s antes de abrir; admin recebe avisos de outro admin; renomear profissional não leva os avisos; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; remarcação do cliente aparece duas vezes (chat + aviso); falha de marketing gera um aviso por envio; acessibilidade do painel do sino (foco).
-- Pequenos pontos deixados para depois: links que levam o barbeiro de volta a "Minha agenda" (Conversar no painel do dia, Ver cliente sem o menu Clientes, Nova reserva no Início sem Agenda); admin de `ADMIN_EMAILS` não é rebaixado de verdade; cancelamento feito pelo barbeiro fica como "admin"; chat do barbeiro ainda a pensar.
+**Feito em 2026-11-20** (desenhos e planos em `app/doc/specs/` e `app/doc/plans/`):
+- **Área do barbeiro** (`2026-11-20-area-barbeiro`): todo barbeiro tem, fixo, Minha agenda (calendário com marcar/remarcar/cancelar), Clientes (só os que já atendeu; a ficha abre para qualquer horário com ele), Histórico (só os dele) e Meus dados. Configurações → Equipe só com Admin/Barbeiro. Barbeiro não troca e-mail nem autorizações do cliente. Barbeiro sem profissional vai para Meus dados.
+- **Início do admin** (`2026-11-20-inicio-chat-notificacoes`, parte 1): números (Hoje, Faturado) e a agenda do dia no visual da Agenda.
+- **Chat do barbeiro** (parte 2, migração `0006`): menu Chat com os clientes dele, na conversa única do estúdio; o cliente vê o nome de quem respondeu.
+- **Sino de notificações** (parte 3, migração `0007`): ao lado do ícone de usuário, para admin e barbeiro; marcações, remarcações, cancelamentos, mensagens, dia fechado, "Confirme quem veio", cliente novo e falhas de envio. Abrir marca tudo como visto; avisos com mais de 30 dias são apagados.
+- Ícone de usuário do barbeiro leva a Meus dados (`/conta`).
+
+**Pontos menores deixados para depois:**
+- Sino: aviso chegado nos 30 s antes de abrir pode contar como visto sem aparecer; admin recebe avisos de outro admin; renomear profissional não leva os avisos; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; remarcação do cliente aparece duas vezes (mensagem + aviso); falha de marketing gera um aviso por envio; foco do teclado não vai para a lista do sino; número pode atrasar até 30 s ao trocar de página.
+- Barbeiro: botão "Ir para o início" da página "não encontrado" passa por dois redirecionamentos; barbeiro sem profissional vê o menu completo (cada item volta para Meus dados); cancelamento feito pelo barbeiro fica registrado como "admin"; admin de `ADMIN_EMAILS` não é rebaixado de verdade; comentários antigos no código citando "menus liberados".
 
 **Próximos passos, em ordem:**
-1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real; com ele criado, marcar e cancelar uma reserva para fechar o teste de e-mail da 1.6.
-2. **Seção 3:** conferir no navegador (servidor de teste, porta 3100) as 4 telas cobertas só por teste automático.
-3. **Seção 4:** visual novo no celular para Descadastrar; barbeiro salvar "Meus dados" sem telefone; admin redefinir a senha do barbeiro; rodapé novo nos e-mails de marketing.
-4. **Seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
-5. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele.
+2. **Trocar o snapshot do Neon:** o atual é de 2026-11-19, antes das migrações `0005` a `0007` (ver "Como restaurar").
+3. **Seção 3:** conferir no navegador (servidor de teste, porta 3100) as 4 telas cobertas só por teste automático.
+4. **Seção 4:** visual novo no celular para Descadastrar; barbeiro salvar "Meus dados" sem telefone; admin redefinir a senha do barbeiro; rodapé novo nos e-mails de marketing.
+5. **Pontos menores** acima e **seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
+6. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
 **Lembretes:**
+- Testes: `pnpm test` leva uns 13 minutos (banco de teste no Neon); não rodar junto com o servidor de teste (mesmo banco).
 - Migração nova vai **antes** do push: `node node_modules/drizzle-kit/bin.cjs migrate` (usa o `.env`, banco de produção); no teste, `pnpm test:migrate`.
 - `git push` sozinho falha ("multiple upstream branches"); usar `git push origin main` ou corrigir com `git config --unset-all branch.main.merge && git config branch.main.merge refs/heads/main`.
 - Neon Free: só 6 horas de restauração e 1 snapshot manual; antes de mudança grande, trocar o snapshot (ver "Como restaurar").

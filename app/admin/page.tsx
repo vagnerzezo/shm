@@ -27,7 +27,7 @@ function greeting(minutes: number) {
 }
 
 // Início do admin: a agenda do dia em destaque, no visual da Agenda. As
-// mensagens chegam pelo chat (e, depois, pelo sino de notificações).
+// mensagens, as falhas de envio e os outros avisos chegam pelo sino.
 export default async function AdminHomePage() {
   const admin = await requireAdmin("/admin");
   const now = nowInStudio();
@@ -43,8 +43,6 @@ export default async function AdminHomePage() {
   const remaining = today.filter((r) => statusOf(r, now) === "agendado");
   const weekDone = agenda.filter((r) => r.date <= now.date && isDone(r, now));
   const weekRevenue = weekDone.reduce((sum, r) => sum + r.service.priceCents, 0);
-  const monthAgo = addDays(now.date, -30);
-  const failures = db.dispatches.filter((d) => d.status === "falha" && d.updatedAt.slice(0, 10) >= monthAgo).length;
   // Fechamentos que começam nas próximas duas semanas ou estão em andamento.
   const closures = db.closures
     .filter((c) => c.end >= now.date && c.start <= addDays(now.date, 14))
@@ -66,7 +64,7 @@ export default async function AdminHomePage() {
       </PanelHeader>
 
       <div className={cn("mt-7 flex flex-col gap-5", scrollArea)}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Stat
             label="HOJE"
             value={`${today.length} ${today.length === 1 ? "horário" : "horários"}`}
@@ -78,12 +76,6 @@ export default async function AdminHomePage() {
             value={formatPrice(weekRevenue)}
             hint={`${weekDone.length} ${weekDone.length === 1 ? "atendimento" : "atendimentos"} desde domingo`}
             href={`/admin/historico?de=${monday}&ate=${now.date}&situacao=realizados`}
-          />
-          <Stat
-            label="FALHAS DE ENVIO"
-            value={String(failures)}
-            hint="Marketing, últimos 30 dias"
-            href="/admin/marketing/historico?status=falha"
           />
         </div>
 

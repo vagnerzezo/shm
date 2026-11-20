@@ -19,6 +19,7 @@ import { bookForCustomer, cancelForCustomer } from "./domain/bookings";
 import { canOpen, scopeOf } from "./access";
 import { getCustomer } from "./customers";
 import { messageText } from "./domain/messages";
+import { markBellSeen } from "./notifications";
 import { DomainError, messageOf } from "./errors";
 import { profileInputOf } from "./profile";
 import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
@@ -167,4 +168,11 @@ export async function markCustomerReadAction() {
   const user = await getCurrentUser();
   if (user?.role !== "cliente") return;
   if ((await markReadByCustomer(user.id)) > 0) refresh();
+}
+
+/** Abriu o sino: tudo o que chegou até agora passa a ser visto. */
+export async function markBellSeenAction() {
+  const user = await getCurrentUser();
+  if (!user || (user.role !== "admin" && user.role !== "barbeiro")) return;
+  await markBellSeen(user.id);
 }

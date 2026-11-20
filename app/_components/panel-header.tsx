@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { CheckIcon, UserIcon } from "./icons";
+import { NotificationBell, usePanel } from "./notification-bell";
 
 const steps = ["Serviço", "Horário", "Confirmação"];
 
@@ -54,7 +55,10 @@ export function PanelHeader({
   profileHref?: string;
 }) {
   const pathname = usePathname();
-  const profileHref = forcedProfileHref ?? (pathname.startsWith("/admin") ? "/admin/perfil" : "/conta");
+  const panel = usePanel();
+  // A moldura sabe quem está logado (barbeiro também usa telas /admin, mas o perfil dele é /conta).
+  const profileHref =
+    forcedProfileHref ?? panel?.profileHref ?? (pathname.startsWith("/admin") ? "/admin/perfil" : "/conta");
 
   return (
     <header className="flex items-start justify-between gap-4">
@@ -67,6 +71,7 @@ export function PanelHeader({
         {children}
       </div>
       <div className="flex shrink-0 gap-3">
+        <NotificationBell />
         <Link href={profileHref} aria-label="Meus dados" className={iconButton}>
           <UserIcon className="size-4" />
         </Link>

@@ -3,11 +3,14 @@ import { Suspense, type ReactNode } from "react";
 import { scopeOf } from "@/app/_lib/access";
 import { getCurrentUser } from "@/app/_lib/auth";
 import { getCustomerUnreadCount, getUnreadCount } from "@/app/_lib/chat";
+import { getBell } from "@/app/_lib/notifications";
 import { getStudio } from "@/app/_lib/studio";
 import { FlashToast } from "./flash-toast";
 import type { Area } from "./nav";
 import { Sidebar } from "./sidebar";
 import { Toaster } from "./toaster";
+import { AutoRefresh } from "./auto-refresh";
+import { PanelProvider } from "./notification-bell";
 
 // Moldura com a sidebar, compartilhada pela área do cliente e pela do admin.
 export async function PanelFrame({ area: requested, children }: { area: Area; children: ReactNode }) {
@@ -17,6 +20,8 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
   const area: Area = requested === "admin" && user?.role === "barbeiro" ? "barbeiro" : requested;
   // Contador do Chat: a equipe vê as mensagens de clientes (barbeiro: dos clientes dele); o cliente, as do estúdio.
   const staff = user && (user.role === "admin" || (user.role === "barbeiro" && user.professional));
+  // Sino de notificações só para a equipe.
+  const bell = staff ? await getBell(user) : null;
   const badges: Record<string, number> =
     staff && (area === "admin" || area === "barbeiro")
       ? { "/admin/chat": await getUnreadCount(scopeOf(user)) }
@@ -43,8 +48,12 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
       />
 
       <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">
-        {children}
+        <PanelProvider value={{ bell, profileHref: user?.role === "admin" ? "/admin/perfil" : "/conta" }}>
+          {children}
+        </PanelProvider>
       </section>
+      {/* Equipe: sino e contadores se atualizam a cada 30 s com a tela parada. */}
+      {staff && <AutoRefresh intervalMs={30_000} />}
 
       <Toaster />
       <Suspense>

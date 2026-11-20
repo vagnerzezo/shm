@@ -6,13 +6,14 @@ import { useEffect } from "react";
 const INTERVAL_MS = 5000;
 
 /** Busca mensagens novas de tempos em tempos, enquanto a aba está visível. */
-export function AutoRefresh() {
+/** Recarrega os dados da tela de tempos em tempos (só com a aba visível). */
+export function AutoRefresh({ intervalMs = INTERVAL_MS }: { intervalMs?: number } = {}) {
   const router = useRouter();
   useEffect(() => {
     const id = setInterval(() => {
       if (document.visibilityState === "visible") router.refresh();
-    }, INTERVAL_MS);
+    }, intervalMs);
     return () => clearInterval(id);
-  }, [router]);
+  }, [router, intervalMs]);
   return null;
 }

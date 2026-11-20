@@ -1,7 +1,7 @@
 # Pendências — Studio Heitor Macks (SHM)
 
 **Atualizado em:** 2026-11-19 (noite).
-**Estado atual:** API v1 concluída e revisada, site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm`. Último commit de código: `494c6a6` (telas de conta no celular e mostrar senha), já em produção.
+**Estado atual:** API v1 concluída e revisada, site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm`. Último commit de código: `cf27041` (permissões da equipe), já em produção.
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
 
@@ -16,10 +16,8 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Celular: visitante em `/` vê a boas-vindas do login; painel branco sobe com animação (`auth-sheet-in` em `globals.css`); Esqueci/Criar nova senha no mesmo layout (`MobileSheet`).
 - Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
 
-**Permissões da equipe** (branch `feat/permissoes-equipe`, ainda **não** está na `main` nem em produção):
-- Desenho: `app/doc/specs/2026-11-19-permissoes-equipe-design.md`. Plano: `app/doc/plans/2026-11-19-permissoes-equipe.md`.
-- **Feito (tarefas 1 a 7):** campos `menus` e `created_by` (migração `0005`, só no banco de teste), regra central `access.ts`, agenda/clientes/histórico/início filtrados para o barbeiro, reservas do painel com escopo, cartão **Equipe** em Configurações. Testes 146/146, coleção da API 117/117, conferido no navegador (servidor de teste).
-- **Falta:** revisão final do branch e, com o ok do dono, migração `0005` no banco de produção **antes** do merge na `main` e do push.
+**Permissões da equipe — em produção (2026-11-20):** Configurações → Equipe define admin/barbeiro e os menus extras do barbeiro (Início, Agenda, Clientes, Histórico), sempre só com os dados dele. Migração `0005` aplicada em produção. Desenho e plano em `app/doc/specs/` e `app/doc/plans/` (2026-11-19-permissoes-equipe). Mudança em relação ao aprovado: barbeiro **não** troca e-mail nem autorizações do cliente (evita tomar a conta).
+- Pequenos pontos deixados para depois: links que levam o barbeiro de volta a "Minha agenda" (Conversar no painel do dia, Ver cliente sem o menu Clientes, Nova reserva no Início sem Agenda); admin de `ADMIN_EMAILS` não é rebaixado de verdade; cancelamento feito pelo barbeiro fica como "admin"; chat do barbeiro ainda a pensar.
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real; com ele criado, marcar e cancelar uma reserva para fechar o teste de e-mail da 1.6.

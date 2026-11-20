@@ -227,6 +227,7 @@ export function DayPanel({
   times,
   professionals,
   admin,
+  calendar = true,
 }: {
   date: string;
   today: string;
@@ -236,6 +237,8 @@ export function DayPanel({
   times: string[];
   professionals: Professional[];
   admin: boolean;
+  /** Minicalendário do mês acima da lista (o Início não usa). */
+  calendar?: boolean;
 }) {
   return (
     <aside
@@ -245,7 +248,7 @@ export function DayPanel({
         selected ? "order-first flex border-b lg:order-none lg:border-b-0" : "hidden",
       )}
     >
-      <div className="hidden lg:block">
+      <div className={calendar ? "hidden lg:block" : "hidden"}>
         <MiniCalendar date={date} today={today} busyDays={new Set(reservations.map((r) => r.date))} />
       </div>
       {selected ? (

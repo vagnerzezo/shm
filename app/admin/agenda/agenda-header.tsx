@@ -15,7 +15,18 @@ import { cn } from "@/lib/utils";
 const navButton =
   "grid h-10 place-items-center px-3 text-sm font-semibold text-black transition hover:bg-black/5";
 
-export function AgendaHeader({ view, date, today }: { view: AgendaView; date: string; today: string }) {
+/** `views: false` esconde Dia/Semana/Mês (ex.: a agenda do dia no Início). */
+export function AgendaHeader({
+  view,
+  date,
+  today,
+  views: showViews = true,
+}: {
+  view: AgendaView;
+  date: string;
+  today: string;
+  views?: boolean;
+}) {
   return (
     <header className="flex flex-wrap items-center gap-4 border-b border-black/10 px-4 py-4 sm:px-6">
       {/* Selo com a data de hoje, como na Untitled UI. */}
@@ -53,21 +64,23 @@ export function AgendaHeader({ view, date, today }: { view: AgendaView; date: st
           </Link>
         </nav>
 
-        <nav aria-label="Visualização" className="flex gap-1 rounded-lg border border-black/15 bg-white p-1">
-          {views.map((v) => (
-            <Link
-              key={v.id}
-              href={agendaHref(v.id, date)}
-              aria-current={v.id === view ? "page" : undefined}
-              className={cn(
-                "flex h-8 items-center rounded-md px-3 text-sm font-semibold transition",
-                v.id === view ? "bg-[#121212] text-white" : "text-black hover:bg-black/5",
-              )}
-            >
-              {v.label}
-            </Link>
-          ))}
-        </nav>
+        {showViews && (
+          <nav aria-label="Visualização" className="flex gap-1 rounded-lg border border-black/15 bg-white p-1">
+            {views.map((v) => (
+              <Link
+                key={v.id}
+                href={agendaHref(v.id, date)}
+                aria-current={v.id === view ? "page" : undefined}
+                className={cn(
+                  "flex h-8 items-center rounded-md px-3 text-sm font-semibold transition",
+                  v.id === view ? "bg-[#121212] text-white" : "text-black hover:bg-black/5",
+                )}
+              >
+                {v.label}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <Link
           href={`/admin/agenda/nova?data=${date < today ? today : date}`}

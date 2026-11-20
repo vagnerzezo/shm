@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChatIcon, PlusIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
-import { Badge, card, linkButton, PageTitle, primaryButton, scrollArea, Stat } from "@/app/_components/ui";
-import { agendaHref, toneOf, weekStart } from "@/app/_lib/agenda";
-import { closuresFor } from "@/app/_lib/access";
-import { requireMenu } from "@/app/_lib/auth";
+import { card, linkButton, PageTitle, scrollArea, Stat } from "@/app/_components/ui";
+import { agendaHref, scheduleTimes, weekStart } from "@/app/_lib/agenda";
+import { requireAdmin } from "@/app/_lib/auth";
 import { addDays, formatLongDate, formatWeekday, nowInStudio } from "@/app/_lib/availability";
-import { endTime } from "@/app/_lib/booking";
 import { getCatalog } from "@/app/_lib/catalog";
-import { getConversations } from "@/app/_lib/chat";
-import { formatListTime } from "@/app/_lib/chat-format";
 import { readDb } from "@/app/_lib/db";
 import { shortDate } from "@/app/_lib/format";
 import { getAgenda, isDone, statusOf } from "@/app/_lib/reservations";
+import { getAvailabilityRules } from "@/app/_lib/schedule";
 import { formatPrice } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
+import { AgendaHeader } from "./agenda/agenda-header";
+import { DayPanel } from "./agenda/day-panel";
+import { TimeGrid } from "./agenda/time-grid";
 
 export const metadata: Metadata = {
   title: "Início | Studio Heitor Macks",
@@ -27,31 +26,27 @@ function greeting(minutes: number) {
   return "Boa noite";
 }
 
+// Início do admin: a agenda do dia em destaque, no visual da Agenda. As
+// mensagens chegam pelo chat (e, depois, pelo sino de notificações).
 export default async function AdminHomePage() {
-  const { user: admin, scope } = await requireMenu("inicio", "/admin");
-  // Barbeiro: resumo só dele, sem chat nem marketing (são do admin).
-  const isAdmin = scope.all;
+  const admin = await requireAdmin("/admin");
   const now = nowInStudio();
   const monday = weekStart(now.date);
-  const [agenda, conversations, catalog, db] = await Promise.all([
-    getAgenda(monday, addDays(now.date, 7), { scope }),
-    isAdmin ? getConversations() : Promise.resolve([]),
+  const [agenda, catalog, db, rules] = await Promise.all([
+    getAgenda(monday, addDays(now.date, 7)),
     getCatalog(),
     readDb(),
+    getAvailabilityRules(),
   ]);
 
   const today = agenda.filter((r) => r.date === now.date);
   const remaining = today.filter((r) => statusOf(r, now) === "agendado");
   const weekDone = agenda.filter((r) => r.date <= now.date && isDone(r, now));
   const weekRevenue = weekDone.reduce((sum, r) => sum + r.service.priceCents, 0);
-  const unread = conversations.filter((c) => c.unread > 0);
-  const unreadTotal = unread.reduce((sum, c) => sum + c.unread, 0);
   const monthAgo = addDays(now.date, -30);
-  const failures = isAdmin
-    ? db.dispatches.filter((d) => d.status === "falha" && d.updatedAt.slice(0, 10) >= monthAgo).length
-    : 0;
+  const failures = db.dispatches.filter((d) => d.status === "falha" && d.updatedAt.slice(0, 10) >= monthAgo).length;
   // Fechamentos que começam nas próximas duas semanas ou estão em andamento.
-  const closures = closuresFor(db.closures, scope)
+  const closures = db.closures
     .filter((c) => c.end >= now.date && c.start <= addDays(now.date, 14))
     .sort((a, b) => a.start.localeCompare(b.start));
   // Horários passados de hoje e da semana ainda sem marcação de comparecimento.
@@ -71,7 +66,7 @@ export default async function AdminHomePage() {
       </PanelHeader>
 
       <div className={cn("mt-7 flex flex-col gap-5", scrollArea)}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Stat
             label="HOJE"
             value={`${today.length} ${today.length === 1 ? "horário" : "horários"}`}
@@ -84,71 +79,43 @@ export default async function AdminHomePage() {
             hint={`${weekDone.length} ${weekDone.length === 1 ? "atendimento" : "atendimentos"} desde domingo`}
             href={`/admin/historico?de=${monday}&ate=${now.date}&situacao=realizados`}
           />
-          {isAdmin && (
-            <>
-              <Stat
-                label="MENSAGENS NÃO LIDAS"
-                value={String(unreadTotal)}
-                hint={unread.length ? `De ${unread.length} ${unread.length === 1 ? "cliente" : "clientes"}` : "Tudo respondido"}
-                href="/admin/chat"
-              />
-              <Stat
-                label="FALHAS DE ENVIO"
-                value={String(failures)}
-                hint="Marketing, últimos 30 dias"
-                href="/admin/marketing/historico?status=falha"
-              />
-            </>
-          )}
+          <Stat
+            label="FALHAS DE ENVIO"
+            value={String(failures)}
+            hint="Marketing, últimos 30 dias"
+            href="/admin/marketing/historico?status=falha"
+          />
         </div>
 
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <section className={cn(card, "p-5")}>
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="mr-auto text-lg font-bold text-black">Agenda de hoje</h2>
-              <Link href={`/admin/agenda/nova?data=${now.date}`} className={cn(primaryButton, "h-9 px-3")}>
-                <PlusIcon className="size-4" />
-                Nova reserva
-              </Link>
-            </div>
-            {today.length === 0 ? (
-              <p className="mt-3 text-sm text-black/60">Nenhum horário marcado para hoje.</p>
-            ) : (
-              <ul className="mt-3 divide-y divide-black/10">
-                {today.map((r) => {
-                  const status = statusOf(r, now);
-                  return (
-                    <li key={r.id}>
-                      <Link
-                        href={agendaHref("dia", r.date, r.id)}
-                        className="flex items-center gap-3 py-2.5 hover:bg-black/[0.02]"
-                      >
-                        <span className={cn("w-1 self-stretch rounded-full", toneOf(r, catalog.professionals).dot)} />
-                        <span className="w-24 shrink-0 text-sm font-semibold text-black">
-                          {r.time}–{endTime(r.time, r.service.durationMinutes)}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-black">{r.customer.name}</span>
-                          <span className="block truncate text-xs text-black/60">{r.service.name}</span>
-                        </span>
-                        {status === "agendado" ? (
-                          <Badge tone="outline">A seguir</Badge>
-                        ) : status === "faltou" ? (
-                          <Badge tone="red">Faltou</Badge>
-                        ) : r.attendance === "compareceu" ? (
-                          <Badge tone="green">Veio</Badge>
-                        ) : (
-                          <Badge tone="amber">Confirmar</Badge>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+        {/* Agenda de hoje: o mesmo cabeçalho, grade e lista da Agenda (visão Dia). */}
+        <section className="flex min-h-[70vh] flex-col overflow-hidden rounded-xl border border-black/10 bg-white/85 lg:min-h-[560px]">
+          <AgendaHeader view="dia" date={now.date} today={now.date} views={false} />
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+            <TimeGrid
+              days={[now.date]}
+              today={now.date}
+              reservations={today}
+              rules={rules}
+              professionals={catalog.professionals}
+            />
+            <DayPanel
+              date={now.date}
+              today={now.date}
+              reservations={agenda}
+              selected={null}
+              now={now}
+              times={scheduleTimes(rules.settings)}
+              professionals={catalog.professionals}
+              admin
+              calendar={false}
+            />
+          </div>
+        </section>
 
-            <h3 className="mt-5 text-xs font-semibold tracking-widest text-black/60">PRÓXIMOS DIAS</h3>
-            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <section className={cn(card, "p-5")}>
+            <h2 className="text-lg font-bold text-black">Próximos dias</h2>
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
               {nextDays.map((d) => (
                 <Link
                   key={d.date}
@@ -185,42 +152,6 @@ export default async function AdminHomePage() {
               </section>
             )}
 
-            {isAdmin && (
-              <section className={cn(card, "p-5")}>
-                <div className="flex items-center gap-2">
-                  <h2 className="mr-auto text-lg font-bold text-black">Mensagens</h2>
-                  <Link href="/admin/chat" className={linkButton}>
-                    Abrir chat
-                  </Link>
-                </div>
-                {unread.length === 0 ? (
-                  <p className="mt-2 text-sm text-black/60">Nenhuma mensagem esperando resposta.</p>
-                ) : (
-                  <ul className="mt-3 divide-y divide-black/10">
-                    {unread.slice(0, 5).map(({ customer, lastMessage, unread: count }) => (
-                      <li key={customer.id}>
-                        <Link href={`/admin/chat?cliente=${customer.id}`} className="flex items-center gap-3 py-2.5">
-                          <ChatIcon className="size-4 shrink-0 text-black/50" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-black">{customer.name}</span>
-                            <span className="block truncate text-xs text-black/60">{lastMessage?.text}</span>
-                          </span>
-                          <span className="shrink-0 text-right">
-                            {lastMessage && (
-                              <span className="block text-xs text-black/50">{formatListTime(lastMessage.createdAt)}</span>
-                            )}
-                            <span className="inline-block min-w-5 rounded-full bg-red-600 px-1.5 text-center text-xs leading-5 font-bold text-white">
-                              {count}
-                            </span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            )}
-
             {closures.length > 0 && (
               <section className={cn(card, "p-5")}>
                 <h2 className="text-lg font-bold text-black">Dias fechados chegando</h2>
@@ -235,11 +166,9 @@ export default async function AdminHomePage() {
                     </li>
                   ))}
                 </ul>
-                {isAdmin && (
-                  <Link href="/admin/configuracoes" className={cn(linkButton, "mt-2 inline-block")}>
-                    Gerenciar
-                  </Link>
-                )}
+                <Link href="/admin/configuracoes" className={cn(linkButton, "mt-2 inline-block")}>
+                  Gerenciar
+                </Link>
               </section>
             )}
           </div>

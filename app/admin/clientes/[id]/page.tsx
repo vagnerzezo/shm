@@ -178,7 +178,7 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
           <div className="flex flex-col gap-5">
             <section className={card}>
               <h2 className="mb-4 text-lg font-bold text-black">Dados do cliente</h2>
-              <CustomerEditForm customer={customer} />
+              <CustomerEditForm customer={customer} locked={!admin} />
             </section>
             {/* Senha, desativar e excluir mexem na conta da pessoa: só admin. */}
             {admin && (

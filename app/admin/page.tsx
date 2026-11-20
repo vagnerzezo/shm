@@ -4,6 +4,7 @@ import { ChatIcon, PlusIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card, linkButton, PageTitle, primaryButton, scrollArea, Stat } from "@/app/_components/ui";
 import { agendaHref, toneOf, weekStart } from "@/app/_lib/agenda";
+import { closuresFor } from "@/app/_lib/access";
 import { requireMenu } from "@/app/_lib/auth";
 import { addDays, formatLongDate, formatWeekday, nowInStudio } from "@/app/_lib/availability";
 import { endTime } from "@/app/_lib/booking";
@@ -50,8 +51,7 @@ export default async function AdminHomePage() {
     ? db.dispatches.filter((d) => d.status === "falha" && d.updatedAt.slice(0, 10) >= monthAgo).length
     : 0;
   // Fechamentos que começam nas próximas duas semanas ou estão em andamento.
-  const closures = db.closures
-    .filter((c) => scope.all || !c.professional || c.professional === scope.professional)
+  const closures = closuresFor(db.closures, scope)
     .filter((c) => c.end >= now.date && c.start <= addDays(now.date, 14))
     .sort((a, b) => a.start.localeCompare(b.start));
   // Horários passados de hoje e da semana ainda sem marcação de comparecimento.

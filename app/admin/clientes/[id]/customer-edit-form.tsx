@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils";
 const fieldClass = cn(baseField, "mt-1.5");
 const box = "mt-0.5 size-4 shrink-0 accent-[#121212]";
 
-export function CustomerEditForm({ customer: c }: { customer: CustomerSummary }) {
+/** `locked`: barbeiro — e-mail e autorizações só para leitura (o servidor também ignora mudanças neles). */
+export function CustomerEditForm({ customer: c, locked = false }: { customer: CustomerSummary; locked?: boolean }) {
   const [state, action, pending] = useActionState(updateCustomer, { error: null, saved: false });
   useEffect(() => {
     if (state.saved) toast("Dados do cliente salvos.");
@@ -44,7 +45,8 @@ export function CustomerEditForm({ customer: c }: { customer: CustomerSummary })
             required
             maxLength={120}
             defaultValue={c.email}
-            className={fieldClass}
+            readOnly={locked}
+            className={cn(fieldClass, locked && "bg-black/5 text-black/60")}
           />
         </label>
       </div>
@@ -52,15 +54,17 @@ export function CustomerEditForm({ customer: c }: { customer: CustomerSummary })
       <fieldset className="flex flex-col gap-2">
         <legend className={labelClass}>Comunicações autorizadas</legend>
         <label className="mt-1 flex items-start gap-3 text-sm text-black">
-          <input type="checkbox" name="aceita_email" defaultChecked={c.consent.email} className={box} />
+          <input type="checkbox" name="aceita_email" defaultChecked={c.consent.email} disabled={locked} className={box} />
           Aceita receber e-mails
         </label>
         <label className="flex items-start gap-3 text-sm text-black">
-          <input type="checkbox" name="aceita_mensagem" defaultChecked={c.consent.mensagem} className={box} />
+          <input type="checkbox" name="aceita_mensagem" defaultChecked={c.consent.mensagem} disabled={locked} className={box} />
           Aceita receber mensagens no chat
         </label>
         <p className="text-xs text-black/60">
-          Só marque com autorização do cliente. Ele também pode mudar em “Meus dados”.
+          {locked
+            ? "E-mail e autorizações só o admin ou o próprio cliente mudam."
+            : "Só marque com autorização do cliente. Ele também pode mudar em “Meus dados”."}
         </p>
       </fieldset>
 

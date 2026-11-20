@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PanelHeader } from "@/app/_components/panel-header";
+import { closuresFor } from "@/app/_lib/access";
 import { requireMenu } from "@/app/_lib/auth";
 import { parseDate, parseView, rangeOf, scheduleTimes, weekDays } from "@/app/_lib/agenda";
 import { getCatalog } from "@/app/_lib/catalog";
@@ -28,7 +29,9 @@ export default async function AgendaPage(props: PageProps<"/admin/agenda">) {
   const fetchRange = view === "dia" ? rangeOf("mes", date) : range;
   const reservations = await getAgenda(fetchRange.from, fetchRange.to, { scope });
   const selected = reservations.find((r) => r.id === reserva) ?? null;
-  const rules = await getAvailabilityRules();
+  // Barbeiro não vê os dias fechados (nem os motivos) dos colegas.
+  const allRules = await getAvailabilityRules();
+  const rules = { ...allRules, closures: closuresFor(allRules.closures, scope) };
   // Barbeiro vê só a própria coluna e a própria legenda.
   const professionals = (await getCatalog()).professionals.filter((p) => scope.all || p.name === scope.professional);
 

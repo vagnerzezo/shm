@@ -28,3 +28,22 @@ export function scopeOf(user: Customer): Scope {
 export function staffLinks(user: Customer): BarberMenu[] {
   return BARBER_MENUS.filter((m) => canOpen(user, m));
 }
+
+/**
+ * Dados de cliente que a pessoa pode gravar. Barbeiro mantém o e-mail e as
+ * autorizações já gravados: trocar o e-mail permitiria tomar a conta pelo
+ * "esqueci minha senha", e as autorizações são escolha do cliente.
+ */
+export function profileForScope<P extends { email: string; consent: unknown }>(
+  submitted: P,
+  stored: { email: string; consent: P["consent"] },
+  scope: Scope,
+): P {
+  if (scope.all) return submitted;
+  return { ...submitted, email: stored.email, consent: stored.consent };
+}
+
+/** Dias fechados que a pessoa vê: admin, todos; barbeiro, os do estúdio todo e os dele. */
+export function closuresFor<C extends { professional?: string }>(closures: C[], scope: Scope): C[] {
+  return scope.all ? closures : closures.filter((c) => !c.professional || c.professional === scope.professional);
+}

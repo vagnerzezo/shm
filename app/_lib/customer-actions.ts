@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { canOpen, scopeOf } from "./access";
+import { canOpen, profileForScope, scopeOf } from "./access";
 import { getCurrentUser, hashPassword, roleOf } from "./auth";
 import { getCustomer } from "./customers";
 import { purgeUser, updateDb } from "./db";
@@ -39,8 +39,9 @@ export async function updateCustomer(_prev: CustomerFormState, formData: FormDat
   const error = await updateDb((db) => {
     const user = db.users.find((u) => u.id === id);
     if (!user || roleOf(user) !== "cliente") return "Cliente não encontrado.";
-    if (db.users.some((u) => u.email === profile.email && u.id !== id)) return "Esse e-mail já está em uso em outra conta.";
-    Object.assign(user, profile, { adminNote: adminNote || undefined });
+    if (scope.all && db.users.some((u) => u.email === profile.email && u.id !== id)) return "Esse e-mail já está em uso em outra conta.";
+    const allowed = profileForScope(profile, { email: user.email, consent: user.consent ?? { email: false, mensagem: false } }, scope);
+    Object.assign(user, allowed, { adminNote: adminNote || undefined });
     return null;
   });
   if (error) return { error, saved: false };

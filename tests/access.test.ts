@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { canOpen, scopeOf, staffLinks, type Scope } from "../app/_lib/access";
+import { canOpen, closuresFor, profileForScope, scopeOf, staffLinks, type Scope } from "../app/_lib/access";
 import { addDays, nowInStudio } from "../app/_lib/availability";
 import { getCustomer, getCustomerPicklist, getCustomers } from "../app/_lib/customers";
 import { updateDb } from "../app/_lib/db";
@@ -119,5 +119,30 @@ describe("buscas com escopo", () => {
     assert.ok(list.some((c) => c.id === USERS.cliente2.id));
     assert.ok(!list.some((c) => c.id === USERS.cliente3.id));
     for (const c of list) assert.deepEqual(Object.keys(c).sort(), ["id", "name", "phone"]);
+  });
+});
+
+describe("correções da revisão final", () => {
+  const heitorScope: Scope = { all: false, professional: "Heitor", userId: "test-heitor" };
+  const stored = { email: "dono@shm.test", consent: { email: true, mensagem: false } };
+  const submitted = { name: "Nome Novo", phone: "51911112222", email: "barbeiro@shm.test", consent: { email: false, mensagem: true } };
+
+  test("barbeiro não troca e-mail nem autorizações do cliente (evita tomar a conta)", () => {
+    const kept = profileForScope(submitted, stored, heitorScope);
+    assert.deepEqual(kept, { ...submitted, email: "dono@shm.test", consent: { email: true, mensagem: false } });
+  });
+
+  test("admin troca tudo", () => {
+    assert.deepEqual(profileForScope(submitted, stored, { all: true }), submitted);
+  });
+
+  test("barbeiro só vê fechamentos do estúdio todo e os dele", () => {
+    const closures = [
+      { id: "1", start: "2026-12-01", end: "2026-12-01", reason: "Feriado" },
+      { id: "2", start: "2026-12-02", end: "2026-12-02", reason: "Consulta", professional: "Jimmy" },
+      { id: "3", start: "2026-12-03", end: "2026-12-03", reason: "Folga", professional: "Heitor" },
+    ];
+    assert.deepEqual(closuresFor(closures, heitorScope).map((c) => c.id), ["1", "3"]);
+    assert.equal(closuresFor(closures, { all: true }).length, 3);
   });
 });

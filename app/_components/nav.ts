@@ -11,6 +11,7 @@ import {
   UserIcon,
   UsersIcon,
 } from "./icons";
+import type { BarberMenu } from "../_lib/roles";
 
 // Menu de cada perfil, usado pela sidebar e pela tela inicial.
 // Telas novas do admin entram em `admin` e aparecem nos dois lugares.
@@ -38,6 +39,15 @@ export const navByArea = {
 };
 
 export type Area = keyof typeof navByArea;
+export type NavItem = (typeof navByArea)[Area][number];
+
+/** Menus do painel que o admin pode liberar para um barbeiro (as telas filtram pelos dados dele). */
+export const staffNav: Record<BarberMenu, NavItem> = {
+  inicio: { href: "/admin", label: "Início", Icon: HomeIcon },
+  agenda: { href: "/admin/agenda", label: "Agenda", Icon: CalendarIcon },
+  clientes: { href: "/admin/clientes", label: "Clientes", Icon: UsersIcon },
+  historico: { href: "/admin/historico", label: "Histórico", Icon: ListIcon },
+};
 
 /** Entra no menu do admin quando a conta dele está ligada a um profissional ("Sou eu"). */
 export const myAgendaLink = { href: "/barbeiro", label: "Minha agenda", Icon: CalendarCheckIcon };

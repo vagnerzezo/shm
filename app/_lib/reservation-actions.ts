@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { agendaHref } from "./agenda";
+import { canOpen, scopeOf } from "./access";
 import { getCurrentUser } from "./auth";
 import { formatLongDate, nowInStudio } from "./availability";
 import { catalogOf } from "./catalog";
@@ -23,16 +24,18 @@ export type ReservationFormState = { error: string | null };
 
 const text = (formData: FormData, name: string) => String(formData.get(name) ?? "").trim();
 
-async function assertAdmin() {
+/** Admin, ou barbeiro com o menu Agenda (só as reservas dele). Sem permissão, volta para o login. */
+async function agendaScope() {
   const user = await getCurrentUser();
-  if (user?.role !== "admin") redirect("/login?next=%2Fadmin%2Fagenda");
+  if (!user || !canOpen(user, "agenda")) redirect("/login?next=%2Fadmin%2Fagenda");
+  return { user, scope: scopeOf(user) };
 }
 
 export async function createReservationByAdmin(
   _prev: ReservationFormState,
   formData: FormData,
 ): Promise<ReservationFormState> {
-  await assertAdmin();
+  const { scope } = await agendaScope();
   const customerId = text(formData, "cliente");
   const serviceId = text(formData, "servico");
   const date = text(formData, "data");
@@ -40,7 +43,7 @@ export async function createReservationByAdmin(
 
   let id: string;
   try {
-    id = await bookByAdmin({ customerId, serviceId, date, time, note: text(formData, "observacao") });
+    id = await bookByAdmin({ customerId, serviceId, date, time, note: text(formData, "observacao") }, scope);
   } catch (error) {
     return { error: messageOf(error) };
   }
@@ -62,14 +65,14 @@ export async function rescheduleReservation(
   _prev: ReservationFormState,
   formData: FormData,
 ): Promise<ReservationFormState> {
-  await assertAdmin();
+  const { scope } = await agendaScope();
   const id = text(formData, "id");
   const date = text(formData, "data");
   const time = text(formData, "hora");
 
   let before;
   try {
-    before = await rescheduleByAdmin(id, date, time);
+    before = await rescheduleByAdmin(id, date, time, scope);
   } catch (error) {
     return { error: messageOf(error) };
   }
@@ -85,12 +88,12 @@ export async function rescheduleReservation(
 }
 
 export async function cancelReservationByAdmin(formData: FormData) {
-  await assertAdmin();
+  const { scope } = await agendaScope();
   const id = text(formData, "id");
   const reason = text(formData, "motivo").slice(0, 200);
 
   const db = await readDb();
-  const target = await markCancelled(id, "admin", { reason });
+  const target = await markCancelled(id, "admin", { reason }, scope);
   if (!target) return;
 
   const upcoming = !isPast(target, nowInStudio());
@@ -108,12 +111,13 @@ export async function cancelReservationByAdmin(formData: FormData) {
 
 /** Compareceu / faltou. Vazio volta para "não marcado" (conta como compareceu). */
 export async function setAttendance(formData: FormData) {
-  await assertAdmin();
+  const { user } = await agendaScope();
   const id = text(formData, "id");
   const raw = text(formData, "situacao");
   const attendance: Attendance | null = raw === "faltou" || raw === "compareceu" ? raw : null;
   // Reserva cancelada, futura ou inexistente: nada muda (a tela nem oferece o botão).
-  await setAttendanceFor({ role: "admin" }, id, attendance).catch(messageOf);
+  // Barbeiro: `setAttendanceFor` só aceita as reservas do profissional dele.
+  await setAttendanceFor(user, id, attendance).catch(messageOf);
   refresh();
 }
 

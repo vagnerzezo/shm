@@ -28,8 +28,3 @@ export function scopeOf(user: Customer): Scope {
 export function staffLinks(user: Customer): BarberMenu[] {
   return BARBER_MENUS.filter((m) => canOpen(user, m));
 }
-
-/** Para buscas que devolvem `null` fora do escopo: vira `not_found`, sem confirmar que existe. */
-export function assertCustomerInScope<T>(customer: T | null): asserts customer is T {
-  if (!customer) throw new DomainError("not_found", "Cliente não encontrado.");
-}

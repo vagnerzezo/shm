@@ -2,23 +2,35 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { canOpen, scopeOf } from "./access";
 import { getCurrentUser, hashPassword, roleOf } from "./auth";
+import { getCustomer } from "./customers";
 import { purgeUser, updateDb } from "./db";
 import { withNotice } from "./notices";
 import { readProfile } from "./profile";
+import type { BarberMenu } from "./roles";
 
 export type CustomerFormState = { error: string | null; saved: boolean };
 
+/** Só admin: definir senha, desativar e excluir mexem na conta da pessoa. */
 async function assertAdmin() {
   const admin = await getCurrentUser();
   if (admin?.role !== "admin") redirect("/login?next=%2Fadmin%2Fclientes");
 }
 
-/** Admin altera os dados de um cliente. A senha tem ação própria. */
+/** Admin, ou barbeiro com algum dos menus (só os clientes dele). Sem permissão, volta para o login. */
+async function staffScope(...menus: BarberMenu[]) {
+  const user = await getCurrentUser();
+  if (!user || !menus.some((m) => canOpen(user, m))) redirect("/login?next=%2Fadmin%2Fclientes");
+  return { user, scope: scopeOf(user) };
+}
+
+/** Admin (ou barbeiro, nos clientes dele) altera os dados de um cliente. A senha tem ação própria. */
 export async function updateCustomer(_prev: CustomerFormState, formData: FormData): Promise<CustomerFormState> {
-  await assertAdmin();
+  const { scope } = await staffScope("clientes");
 
   const id = String(formData.get("id") ?? "");
+  if (!(await getCustomer(id, scope))) return { error: "Cliente não encontrado.", saved: false };
   const profile = readProfile(formData);
   if ("error" in profile) return { error: profile.error.replace("seu nome", "o nome"), saved: false };
   const adminNote = String(formData.get("observacao") ?? "").trim();
@@ -81,9 +93,13 @@ export async function setCustomerActive(formData: FormData) {
 
 export type CreateCustomerState = { error: string | null };
 
-/** Admin cadastra um cliente (ex.: quem marcou por telefone). A senha é passada ao cliente depois. */
+/**
+ * Admin ou barbeiro cadastra um cliente (ex.: quem marcou por telefone). A
+ * senha é passada ao cliente depois. Barbeiro: pelo menu Clientes ou pelo
+ * "Novo horário" da Agenda; o cliente fica ligado a ele (`createdBy`).
+ */
 export async function createCustomer(_prev: CreateCustomerState, formData: FormData): Promise<CreateCustomerState> {
-  await assertAdmin();
+  const { user } = await staffScope("clientes", "agenda");
   const profile = readProfile(formData);
   if ("error" in profile) return { error: profile.error.replace("seu nome", "o nome") };
   const password = String(formData.get("senha") ?? "");
@@ -100,6 +116,7 @@ export async function createCustomer(_prev: CreateCustomerState, formData: FormD
       passwordHash,
       adminNote: adminNote || undefined,
       createdAt: new Date().toISOString(),
+      createdBy: user.id,
     });
     return id;
   });

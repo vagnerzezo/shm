@@ -4,7 +4,7 @@ import { FilterPanel } from "@/app/_components/filter-panel";
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PlusIcon, SearchIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { card, EmptyState, fieldClass, labelClass, PageTitle, primaryButton, scrollArea, secondaryButton, Stat } from "@/app/_components/ui";
-import { requireAdmin } from "@/app/_lib/auth";
+import { requireMenu } from "@/app/_lib/auth";
 import { addDays, nowInStudio } from "@/app/_lib/availability";
 import { initials } from "@/app/_lib/chat-format";
 import { getCustomers, type CustomerSummary } from "@/app/_lib/customers";
@@ -50,7 +50,7 @@ function sortCustomers(list: CustomerSummary[], sort: Sort) {
 }
 
 export default async function ClientesPage(props: PageProps<"/admin/clientes">) {
-  await requireAdmin("/admin/clientes");
+  const { scope } = await requireMenu("clientes", "/admin/clientes");
   const params = await props.searchParams;
   const q = one(params.q).slice(0, 100);
   const sort: Sort = sorts.some((s) => s.id === one(params.ordem)) ? (one(params.ordem) as Sort) : "nome";
@@ -58,7 +58,7 @@ export default async function ClientesPage(props: PageProps<"/admin/clientes">) 
 
   const now = nowInStudio();
   const monthAgo = addDays(now.date, -30);
-  const all = await getCustomers();
+  const all = await getCustomers(scope);
   const needle = normalize(q);
   const digits = q.replace(/\D/g, "");
 
@@ -98,10 +98,17 @@ export default async function ClientesPage(props: PageProps<"/admin/clientes">) 
       <PanelHeader>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <PageTitle title="Clientes" description="Cadastro, contato e histórico de cada cliente." />
+            <PageTitle
+              title="Clientes"
+              description={
+                scope.all
+                  ? "Cadastro, contato e histórico de cada cliente."
+                  : `Quem já marcou com ${scope.professional} ou foi cadastrado por você.`
+              }
+            />
           </div>
           <div className="flex flex-wrap gap-2">
-            {all.length > 0 && (
+            {scope.all && all.length > 0 && (
               <a href="/api/admin/exportar/clientes" download className={cn(secondaryButton, "h-10")}>
                 <DownloadIcon className="size-4" />
                 <span className="hidden sm:inline">Exportar CSV</span>

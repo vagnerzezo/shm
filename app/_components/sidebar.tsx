@@ -8,7 +8,8 @@ import { useState } from "react";
 import { signOut } from "@/app/_lib/actions";
 import { cn } from "@/lib/utils";
 import { LogOutIcon, MenuIcon, XIcon } from "./icons";
-import { isActiveLink, myAgendaLink, navByArea, type Area } from "./nav";
+import type { BarberMenu } from "../_lib/roles";
+import { isActiveLink, myAgendaLink, navByArea, staffNav, type Area } from "./nav";
 
 type NavLink = (typeof navByArea)[Area][number];
 /** Números ao lado dos itens do menu (ex.: mensagens não lidas), por `href`. */
@@ -157,6 +158,7 @@ export function Sidebar({
   studioName,
   badges = {},
   myAgenda = false,
+  staffMenus = [],
 }: {
   area: Area;
   address: string[];
@@ -164,9 +166,16 @@ export function Sidebar({
   badges?: Badges;
   /** Admin ligado a um profissional: "Minha agenda" logo depois de "Agenda". */
   myAgenda?: boolean;
+  /** Barbeiro: menus do painel liberados pelo admin, entre "Minha agenda" e "Meus dados". */
+  staffMenus?: BarberMenu[];
 }) {
   const base: NavLink[] = [...navByArea[area]];
-  const links = myAgenda && area === "admin" ? [...base.slice(0, 2), myAgendaLink, ...base.slice(2)] : base;
+  const links =
+    myAgenda && area === "admin"
+      ? [...base.slice(0, 2), myAgendaLink, ...base.slice(2)]
+      : area === "barbeiro" && staffMenus.length
+        ? [base[0], ...staffMenus.map((m) => staffNav[m]), ...base.slice(1)]
+        : base;
   // Com muitos itens (admin), botões mais baixos para o endereço continuar cabendo.
   const compact = links.length > 4;
   const size = compact ? "h-11 text-sm" : "h-14 text-base";

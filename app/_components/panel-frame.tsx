@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Suspense, type ReactNode } from "react";
+import { staffLinks } from "@/app/_lib/access";
 import { getCurrentUser } from "@/app/_lib/auth";
 import { getCustomerUnreadCount, getUnreadCount } from "@/app/_lib/chat";
 import { getStudio } from "@/app/_lib/studio";
@@ -9,10 +10,12 @@ import { Sidebar } from "./sidebar";
 import { Toaster } from "./toaster";
 
 // Moldura com a sidebar, compartilhada pela área do cliente e pela do admin.
-export async function PanelFrame({ area, children }: { area: Area; children: ReactNode }) {
+export async function PanelFrame({ area: requested, children }: { area: Area; children: ReactNode }) {
   const studio = await getStudio();
-  // Contador do menu: o admin vê as mensagens de clientes; o cliente, as do estúdio.
   const user = await getCurrentUser();
+  // Barbeiro com menus liberados abre telas de /admin, mas com o menu dele.
+  const area: Area = requested === "admin" && user?.role === "barbeiro" ? "barbeiro" : requested;
+  // Contador do menu: o admin vê as mensagens de clientes; o cliente, as do estúdio.
   const badges: Record<string, number> =
     area === "admin"
       ? { "/admin/chat": await getUnreadCount() }
@@ -36,6 +39,7 @@ export async function PanelFrame({ area, children }: { area: Area; children: Rea
         studioName={studio.name}
         badges={badges}
         myAgenda={user?.role === "admin" && Boolean(user.professional)}
+        staffMenus={user?.role === "barbeiro" ? staffLinks(user) : []}
       />
 
       <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">

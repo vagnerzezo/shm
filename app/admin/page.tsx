@@ -4,7 +4,7 @@ import { ChatIcon, PlusIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card, linkButton, PageTitle, primaryButton, scrollArea, Stat } from "@/app/_components/ui";
 import { agendaHref, toneOf, weekStart } from "@/app/_lib/agenda";
-import { requireAdmin } from "@/app/_lib/auth";
+import { requireMenu } from "@/app/_lib/auth";
 import { addDays, formatLongDate, formatWeekday, nowInStudio } from "@/app/_lib/availability";
 import { endTime } from "@/app/_lib/booking";
 import { getCatalog } from "@/app/_lib/catalog";
@@ -27,12 +27,14 @@ function greeting(minutes: number) {
 }
 
 export default async function AdminHomePage() {
-  const admin = await requireAdmin("/admin");
+  const { user: admin, scope } = await requireMenu("inicio", "/admin");
+  // Barbeiro: resumo só dele, sem chat nem marketing (são do admin).
+  const isAdmin = scope.all;
   const now = nowInStudio();
   const monday = weekStart(now.date);
   const [agenda, conversations, catalog, db] = await Promise.all([
-    getAgenda(monday, addDays(now.date, 7)),
-    getConversations(),
+    getAgenda(monday, addDays(now.date, 7), { scope }),
+    isAdmin ? getConversations() : Promise.resolve([]),
     getCatalog(),
     readDb(),
   ]);
@@ -44,9 +46,12 @@ export default async function AdminHomePage() {
   const unread = conversations.filter((c) => c.unread > 0);
   const unreadTotal = unread.reduce((sum, c) => sum + c.unread, 0);
   const monthAgo = addDays(now.date, -30);
-  const failures = db.dispatches.filter((d) => d.status === "falha" && d.updatedAt.slice(0, 10) >= monthAgo).length;
+  const failures = isAdmin
+    ? db.dispatches.filter((d) => d.status === "falha" && d.updatedAt.slice(0, 10) >= monthAgo).length
+    : 0;
   // Fechamentos que começam nas próximas duas semanas ou estão em andamento.
   const closures = db.closures
+    .filter((c) => scope.all || !c.professional || c.professional === scope.professional)
     .filter((c) => c.end >= now.date && c.start <= addDays(now.date, 14))
     .sort((a, b) => a.start.localeCompare(b.start));
   // Horários passados de hoje e da semana ainda sem marcação de comparecimento.
@@ -79,18 +84,22 @@ export default async function AdminHomePage() {
             hint={`${weekDone.length} ${weekDone.length === 1 ? "atendimento" : "atendimentos"} desde domingo`}
             href={`/admin/historico?de=${monday}&ate=${now.date}&situacao=realizados`}
           />
-          <Stat
-            label="MENSAGENS NÃO LIDAS"
-            value={String(unreadTotal)}
-            hint={unread.length ? `De ${unread.length} ${unread.length === 1 ? "cliente" : "clientes"}` : "Tudo respondido"}
-            href="/admin/chat"
-          />
-          <Stat
-            label="FALHAS DE ENVIO"
-            value={String(failures)}
-            hint="Marketing, últimos 30 dias"
-            href="/admin/marketing/historico?status=falha"
-          />
+          {isAdmin && (
+            <>
+              <Stat
+                label="MENSAGENS NÃO LIDAS"
+                value={String(unreadTotal)}
+                hint={unread.length ? `De ${unread.length} ${unread.length === 1 ? "cliente" : "clientes"}` : "Tudo respondido"}
+                href="/admin/chat"
+              />
+              <Stat
+                label="FALHAS DE ENVIO"
+                value={String(failures)}
+                hint="Marketing, últimos 30 dias"
+                href="/admin/marketing/historico?status=falha"
+              />
+            </>
+          )}
         </div>
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
@@ -176,39 +185,41 @@ export default async function AdminHomePage() {
               </section>
             )}
 
-            <section className={cn(card, "p-5")}>
-              <div className="flex items-center gap-2">
-                <h2 className="mr-auto text-lg font-bold text-black">Mensagens</h2>
-                <Link href="/admin/chat" className={linkButton}>
-                  Abrir chat
-                </Link>
-              </div>
-              {unread.length === 0 ? (
-                <p className="mt-2 text-sm text-black/60">Nenhuma mensagem esperando resposta.</p>
-              ) : (
-                <ul className="mt-3 divide-y divide-black/10">
-                  {unread.slice(0, 5).map(({ customer, lastMessage, unread: count }) => (
-                    <li key={customer.id}>
-                      <Link href={`/admin/chat?cliente=${customer.id}`} className="flex items-center gap-3 py-2.5">
-                        <ChatIcon className="size-4 shrink-0 text-black/50" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-black">{customer.name}</span>
-                          <span className="block truncate text-xs text-black/60">{lastMessage?.text}</span>
-                        </span>
-                        <span className="shrink-0 text-right">
-                          {lastMessage && (
-                            <span className="block text-xs text-black/50">{formatListTime(lastMessage.createdAt)}</span>
-                          )}
-                          <span className="inline-block min-w-5 rounded-full bg-red-600 px-1.5 text-center text-xs leading-5 font-bold text-white">
-                            {count}
+            {isAdmin && (
+              <section className={cn(card, "p-5")}>
+                <div className="flex items-center gap-2">
+                  <h2 className="mr-auto text-lg font-bold text-black">Mensagens</h2>
+                  <Link href="/admin/chat" className={linkButton}>
+                    Abrir chat
+                  </Link>
+                </div>
+                {unread.length === 0 ? (
+                  <p className="mt-2 text-sm text-black/60">Nenhuma mensagem esperando resposta.</p>
+                ) : (
+                  <ul className="mt-3 divide-y divide-black/10">
+                    {unread.slice(0, 5).map(({ customer, lastMessage, unread: count }) => (
+                      <li key={customer.id}>
+                        <Link href={`/admin/chat?cliente=${customer.id}`} className="flex items-center gap-3 py-2.5">
+                          <ChatIcon className="size-4 shrink-0 text-black/50" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-black">{customer.name}</span>
+                            <span className="block truncate text-xs text-black/60">{lastMessage?.text}</span>
                           </span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+                          <span className="shrink-0 text-right">
+                            {lastMessage && (
+                              <span className="block text-xs text-black/50">{formatListTime(lastMessage.createdAt)}</span>
+                            )}
+                            <span className="inline-block min-w-5 rounded-full bg-red-600 px-1.5 text-center text-xs leading-5 font-bold text-white">
+                              {count}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
 
             {closures.length > 0 && (
               <section className={cn(card, "p-5")}>
@@ -224,9 +235,11 @@ export default async function AdminHomePage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/admin/configuracoes" className={cn(linkButton, "mt-2 inline-block")}>
-                  Gerenciar
-                </Link>
+                {isAdmin && (
+                  <Link href="/admin/configuracoes" className={cn(linkButton, "mt-2 inline-block")}>
+                    Gerenciar
+                  </Link>
+                )}
               </section>
             )}
           </div>

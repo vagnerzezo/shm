@@ -10,7 +10,8 @@ import { createReservationByAdmin } from "@/app/_lib/reservation-actions";
 import { categoriesOf, formatDuration, formatPrice, type Service } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
 
-type CustomerOption = { id: string; name: string; phone: string; email: string };
+/** `email` só vem para o admin; o barbeiro busca entre todos os clientes vendo só nome e telefone. */
+type CustomerOption = { id: string; name: string; phone: string; email?: string };
 
 const MAX_RESULTS = 6;
 
@@ -23,7 +24,7 @@ function CustomerPicker({ customers, initialId }: { customers: CustomerOption[];
     ? customers
         .filter(
           (c) =>
-            normalize(`${c.name} ${c.email}`).includes(q) || (digits.length >= 3 && c.phone.includes(digits)),
+            normalize(`${c.name} ${c.email ?? ""}`).includes(q) || (digits.length >= 3 && c.phone.includes(digits)),
         )
         .slice(0, MAX_RESULTS)
     : [];
@@ -35,7 +36,8 @@ function CustomerPicker({ customers, initialId }: { customers: CustomerOption[];
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-black">{selected.name}</p>
           <p className="truncate text-xs text-black/60">
-            {formatPhone(selected.phone)} · {selected.email}
+            {formatPhone(selected.phone)}
+            {selected.email && ` · ${selected.email}`}
           </p>
         </div>
         <button
@@ -83,7 +85,8 @@ function CustomerPicker({ customers, initialId }: { customers: CustomerOption[];
                 >
                   <span className="block truncate text-sm font-semibold text-black">{c.name}</span>
                   <span className="block truncate text-xs text-black/60">
-                    {formatPhone(c.phone)} · {c.email}
+                    {formatPhone(c.phone)}
+                    {c.email && ` · ${c.email}`}
                   </span>
                 </button>
               </li>

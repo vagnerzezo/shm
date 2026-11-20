@@ -6,7 +6,7 @@ import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card, EmptyState, fieldClass, labelClass, PageTitle, primaryButton, scrollArea, secondaryButton, Stat } from "@/app/_components/ui";
 import { getCatalog } from "@/app/_lib/catalog";
 import { agendaHref } from "@/app/_lib/agenda";
-import { requireAdmin } from "@/app/_lib/auth";
+import { requireMenu } from "@/app/_lib/auth";
 import { formatLongDate, formatWeekday, nowInStudio } from "@/app/_lib/availability";
 import { endTime } from "@/app/_lib/booking";
 import { formatPhone } from "@/app/_lib/format";
@@ -35,11 +35,11 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
 }
 
 export default async function HistoricoPage(props: PageProps<"/admin/historico">) {
-  await requireAdmin("/admin/historico");
+  const { scope } = await requireMenu("historico", "/admin/historico");
   const filters = parseFilters(await props.searchParams);
   const now = nowInStudio();
 
-  const all = await getAgenda(undefined, undefined, { includeCancelled: true });
+  const all = await getAgenda(undefined, undefined, { includeCancelled: true, scope });
   const { professionals } = await getCatalog();
   const rows = filterHistory(all, filters, now);
   const stats = summarize(rows, now);
@@ -55,7 +55,14 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
   return (
     <>
       <PanelHeader>
-        <PageTitle title="Histórico" description="Todos os horários marcados, com situação e valor." />
+        <PageTitle
+          title="Histórico"
+          description={
+            scope.all
+              ? "Todos os horários marcados, com situação e valor."
+              : `Seus horários (${scope.professional}), com situação e valor.`
+          }
+        />
       </PanelHeader>
 
       <div className={`mt-7 ${scrollArea}`}>
@@ -76,18 +83,20 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
               />
             </span>
           </label>
-          <label>
-            <span className={labelClass}>Profissional</span>
-            <select name="profissional" defaultValue={filters.profissional} className={cn(fieldClass, "mt-1.5")}>
-              <option value="">Todos</option>
-              {professionals.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.name}
-                </option>
-              ))}
-              <option value={NO_PROFESSIONAL}>Sem profissional fixo</option>
-            </select>
-          </label>
+          {scope.all && (
+            <label>
+              <span className={labelClass}>Profissional</span>
+              <select name="profissional" defaultValue={filters.profissional} className={cn(fieldClass, "mt-1.5")}>
+                <option value="">Todos</option>
+                {professionals.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+                <option value={NO_PROFESSIONAL}>Sem profissional fixo</option>
+              </select>
+            </label>
+          )}
           <label>
             <span className={labelClass}>Situação</span>
             <select name="situacao" defaultValue={filters.situacao} className={cn(fieldClass, "mt-1.5")}>
@@ -160,7 +169,7 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
           <p className="text-sm text-black/60">
             {rows.length} {rows.length === 1 ? "horário" : "horários"}
           </p>
-          {rows.length > 0 && (
+          {scope.all && rows.length > 0 && (
             <a href={exportHref} className={cn(secondaryButton, "h-9")} download>
               <DownloadIcon className="size-4" />
               Exportar CSV

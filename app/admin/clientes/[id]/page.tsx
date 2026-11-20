@@ -6,7 +6,8 @@ import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card as cardBase, scrollArea, Stat } from "@/app/_components/ui";
 import { shortDate } from "@/app/_lib/format";
 import { agendaHref } from "@/app/_lib/agenda";
-import { requireAdmin } from "@/app/_lib/auth";
+import { canOpen } from "@/app/_lib/access";
+import { requireMenu } from "@/app/_lib/auth";
 import { formatLongDate, formatWeekday, nowInStudio } from "@/app/_lib/availability";
 import { initials } from "@/app/_lib/chat-format";
 import { getCustomer } from "@/app/_lib/customers";
@@ -69,12 +70,14 @@ function ReservationList({
 
 export default async function ClientePage(props: PageProps<"/admin/clientes/[id]">) {
   const { id } = await props.params;
-  await requireAdmin(`/admin/clientes/${id}`);
-  const customer = await getCustomer(id);
+  const { user, scope } = await requireMenu("clientes", `/admin/clientes/${id}`);
+  // Barbeiro: cliente que não é dele não existe para ele.
+  const customer = await getCustomer(id, scope);
   if (!customer) notFound();
+  const admin = scope.all;
 
   const now = nowInStudio();
-  const reservations = (await getAgenda(undefined, undefined, { includeCancelled: true })).filter((r) => r.customer.id === id);
+  const reservations = (await getAgenda(undefined, undefined, { includeCancelled: true, scope })).filter((r) => r.customer.id === id);
   // Canceladas ficam com as passadas, como registro; os próximos são só os que vão acontecer.
   const upcoming = reservations.filter((r) => !isPast(r, now) && !isCancelled(r));
   const past = reservations.filter((r) => isPast(r, now) || isCancelled(r)).reverse();
@@ -108,30 +111,36 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
             <p className="text-sm text-black/70">Cliente desde {shortDate(customer.createdAt)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/admin/chat?cliente=${id}`}
-              className={cn(actionLink, "border-[#121212] bg-[#121212] text-white hover:bg-black/80")}
-            >
-              <ChatIcon className="size-4" />
-              Conversar
-            </Link>
-            {!customer.disabledAt && (
+            {admin && (
+              <Link
+                href={`/admin/chat?cliente=${id}`}
+                className={cn(actionLink, "border-[#121212] bg-[#121212] text-white hover:bg-black/80")}
+              >
+                <ChatIcon className="size-4" />
+                Conversar
+              </Link>
+            )}
+            {!customer.disabledAt && canOpen(user, "agenda") && (
               <Link href={`/admin/agenda/nova?cliente=${id}`} className={actionLink}>
                 <CalendarIcon className="size-4" />
                 Marcar horário
               </Link>
             )}
-            <Link href={`/admin/historico?cliente=${id}`} className={actionLink}>
-              <ListIcon className="size-4" />
-              Histórico
-            </Link>
-            <Link
-              href={`/admin/marketing/historico?q=${encodeURIComponent(customer.email)}`}
-              className={actionLink}
-            >
-              <MegaphoneIcon className="size-4" />
-              Comunicações
-            </Link>
+            {canOpen(user, "historico") && (
+              <Link href={`/admin/historico?cliente=${id}`} className={actionLink}>
+                <ListIcon className="size-4" />
+                Histórico
+              </Link>
+            )}
+            {admin && (
+              <Link
+                href={`/admin/marketing/historico?q=${encodeURIComponent(customer.email)}`}
+                className={actionLink}
+              >
+                <MegaphoneIcon className="size-4" />
+                Comunicações
+              </Link>
+            )}
           </div>
         </div>
 
@@ -171,15 +180,18 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
               <h2 className="mb-4 text-lg font-bold text-black">Dados do cliente</h2>
               <CustomerEditForm customer={customer} />
             </section>
-            <section className={card}>
-              <h2 className="mb-4 text-lg font-bold text-black">Acesso</h2>
-              <AccessCard
-                customerId={customer.id}
-                customerName={customer.name}
-                disabledAt={customer.disabledAt}
-                upcoming={upcoming.length}
-              />
-            </section>
+            {/* Senha, desativar e excluir mexem na conta da pessoa: só admin. */}
+            {admin && (
+              <section className={card}>
+                <h2 className="mb-4 text-lg font-bold text-black">Acesso</h2>
+                <AccessCard
+                  customerId={customer.id}
+                  customerName={customer.name}
+                  disabledAt={customer.disabledAt}
+                  upcoming={upcoming.length}
+                />
+              </section>
+            )}
           </div>
 
           <div className="flex flex-col gap-5">

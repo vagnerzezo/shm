@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { PageTitle, scrollArea } from "@/app/_components/ui";
-import { requireAdmin } from "@/app/_lib/auth";
+import { redirect } from "next/navigation";
+import { canOpen } from "@/app/_lib/access";
+import { homeOf, requireUser } from "@/app/_lib/auth";
 import { oneParam } from "@/app/_lib/format";
 import { NewCustomerForm } from "./new-customer-form";
 
@@ -12,7 +14,9 @@ export const metadata: Metadata = {
 };
 
 export default async function NovoClientePage(props: PageProps<"/admin/clientes/novo">) {
-  await requireAdmin("/admin/clientes/novo");
+  // Barbeiro cadastra pelo menu Clientes ou pelo "Novo horário" da Agenda.
+  const user = await requireUser("/admin/clientes/novo");
+  if (!canOpen(user, "clientes") && !canOpen(user, "agenda")) redirect(homeOf(user));
   const back = oneParam((await props.searchParams).voltar) === "reserva" ? "reserva" : "";
 
   return (

@@ -9,7 +9,9 @@ import {
   rescheduleByAdmin,
   rescheduleForCustomer,
 } from "../app/_lib/domain/bookings";
+import type { Scope } from "../app/_lib/access";
 import { DomainError } from "../app/_lib/errors";
+import { markCancelled } from "../app/_lib/reservations";
 import { resetTestDb } from "../scripts/test-reset";
 import { USERS } from "./fixtures";
 
@@ -216,5 +218,42 @@ describe("marcação", () => {
     ]);
     assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
     assert.equal((await active()).length, 1);
+  });
+});
+
+describe("reservas do painel com escopo de barbeiro", () => {
+  beforeEach(resetTestDb);
+  const heitor: Scope = { all: false, professional: "Heitor", userId: USERS.heitor.id };
+  const byAdmin = (serviceId: string, time: string) => ({ customerId: cliente.id, serviceId, date: DAY, time });
+
+  test("barbeiro não marca serviço fixo de outro profissional", async () => {
+    await assert.rejects(bookByAdmin(byAdmin("corte-jimmy", "10:00"), heitor), (e) => rejectsWith("validation")(e) && Boolean((e as DomainError).fields?.serviceId));
+    assert.equal((await active()).length, 0);
+  });
+
+  test("serviço sem profissional fixo marcado pelo barbeiro fica com ele", async () => {
+    // Heitor com mais atendimentos no dia: sem escopo, o sistema escolheria o Jimmy.
+    await bookForCustomer(cliente2.id, [item("corte-heitor", "15:00")]);
+    const id = await bookByAdmin(byAdmin("barba-pigmentacao", "10:00"), heitor);
+    assert.equal((await readDb()).reservations.find((r) => r.id === id)!.professional, "Heitor");
+  });
+
+  test("serviço sem fixo com ele ocupado é recusado, mesmo com outro livre", async () => {
+    await bookForCustomer(cliente2.id, [item("corte-heitor", "10:00")]);
+    await assert.rejects(bookByAdmin(byAdmin("barba-pigmentacao", "10:00"), heitor), rejectsWith("slot_unavailable"));
+  });
+
+  test("barbeiro não remarca nem cancela reserva de colega", async () => {
+    const [id] = await bookForCustomer(cliente.id, [item("corte-jimmy", "10:00")]);
+    await assert.rejects(rescheduleByAdmin(id, OTHER_DAY, "15:00", heitor), rejectsWith("not_found"));
+    assert.equal(await markCancelled(id, "admin", {}, heitor), null);
+    const r = (await readDb()).reservations.find((r) => r.id === id)!;
+    assert.deepEqual([r.date, r.time, r.cancelledAt], [DAY, "10:00", undefined]);
+  });
+
+  test("barbeiro remarca e cancela as dele", async () => {
+    const [id] = await bookForCustomer(cliente.id, [item("corte-heitor", "10:00")]);
+    await rescheduleByAdmin(id, OTHER_DAY, "15:00", heitor);
+    assert.ok(await markCancelled(id, "admin", {}, heitor));
   });
 });

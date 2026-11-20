@@ -1,7 +1,7 @@
 import { freeProfessionals, nowInStudio, pickProfessional, toMinutes, type AvailabilityRules, type Busy } from "./availability";
 import type { Scope } from "./access";
 import { catalogOf } from "./catalog";
-import { readDb, updateDb, type Role, type StoredReservation } from "./db";
+import { readDb, updateDb, type Db, type Role, type StoredReservation } from "./db";
 import { findService, type Service } from "./services";
 
 export type Reservation = StoredReservation & { service: Service };
@@ -59,6 +59,11 @@ export function statusOf(r: StatusFields, now: { date: string; minutes: number }
   return r.attendance === "faltou" ? "faltou" : "realizado";
 }
 
+/** A reserva é do profissional do escopo (admin: sempre). */
+export function inScope(db: Db, r: StoredReservation, scope: Scope): boolean {
+  return scope.all || professionalOf(r, findService(catalogOf(db).services, r.serviceId)) === scope.professional;
+}
+
 /**
  * Marca a reserva como cancelada (não apaga: fica no histórico). Devolve a
  * reserva como estava antes, ou `null` se ela não existe ou já estava cancelada.
@@ -67,10 +72,11 @@ export async function markCancelled(
   id: string,
   by: Role,
   options: { userId?: string; reason?: string } = {},
+  scope: Scope = { all: true },
 ): Promise<StoredReservation | null> {
   return updateDb((db) => {
     const r = db.reservations.find((r) => r.id === id && (!options.userId || r.userId === options.userId));
-    if (!r || isCancelled(r)) return null;
+    if (!r || isCancelled(r) || !inScope(db, r, scope)) return null;
     const before = { ...r };
     Object.assign(r, { cancelledAt: new Date().toISOString(), cancelledBy: by, cancelReason: options.reason || undefined });
     return before;

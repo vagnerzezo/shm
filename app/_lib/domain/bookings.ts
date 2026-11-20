@@ -12,9 +12,10 @@ import {
 } from "../availability";
 import { catalogOf } from "../catalog";
 import { updateDb, type Db, type StoredReservation } from "../db";
+import type { Scope } from "../access";
 import { DomainError } from "../errors";
 import { normalizeNewlines } from "./messages";
-import { busyFrom, isCancelled, isPast, keepOrPick, professionalOf } from "../reservations";
+import { busyFrom, inScope, isCancelled, isPast, keepOrPick, professionalOf } from "../reservations";
 import { roleOf } from "../roles";
 import { rulesOf } from "../schedule";
 import { findService, isActiveService, type Service } from "../services";
@@ -188,11 +189,15 @@ function adminSlot(
   serviceId: string,
   date: string,
   time: string,
-  { ignoreId, current }: { ignoreId?: string; current?: string } = {},
+  { ignoreId, current, only }: { ignoreId?: string; current?: string; only?: string } = {},
 ) {
   const { services } = catalogOf(db);
   const service = findService(services, serviceId);
   if (!service) throw invalid("Serviço não encontrado.", "serviceId");
+  // Barbeiro marcando pelo painel: só serviços dele, e quem atende é ele.
+  if (only && service.professional && service.professional !== only) {
+    throw invalid("Esse serviço é de outro profissional.", "serviceId");
+  }
   const rules = rulesOf(db);
   if (isClosed(date, rules, service.professional)) {
     throw invalid(
@@ -203,6 +208,12 @@ function adminSlot(
   const busy = busyFrom(db.reservations, services, { ignoreId });
   const start = toMinutes(time);
   const end = start + service.durationMinutes;
+  if (only && !service.professional) {
+    if (!freeProfessionals(service, date, start, end, busy, rules).includes(only)) {
+      throw new DomainError("slot_unavailable", `${only} não está livre nesse horário. Escolha outro.`);
+    }
+    return { service, professional: only };
+  }
   if (freeProfessionals(service, date, start, end, busy, rules).length === 0) {
     if (!service.professional) {
       throw new DomainError(
@@ -227,13 +238,16 @@ function adminSlot(
 }
 
 /** Estúdio marca para um cliente (pode ser em data passada, para registrar um atendimento). Devolve o id. */
-export async function bookByAdmin(input: {
-  customerId: string;
-  serviceId: string;
-  date: unknown;
-  time: unknown;
-  note?: unknown;
-}): Promise<string> {
+export async function bookByAdmin(
+  input: {
+    customerId: string;
+    serviceId: string;
+    date: unknown;
+    time: unknown;
+    note?: unknown;
+  },
+  scope: Scope = { all: true },
+): Promise<string> {
   if (!isRealDate(input.date)) throw invalid("Escolha a data.", "date");
   if (!isTime(input.time)) throw invalid("Escolha o horário.", "time");
   const { customerId, serviceId, date, time } = input;
@@ -244,7 +258,8 @@ export async function bookByAdmin(input: {
     if (customer.disabledAt) throw invalid("Esse cliente está desativado. Reative a conta antes de marcar.", "customerId");
     const listed = findService(catalogOf(db).services, serviceId);
     if (!listed || !isActiveService(listed)) throw invalid("Escolha um serviço ativo.", "serviceId");
-    const { service, professional } = adminSlot(db, serviceId, date, time);
+    const only = scope.all ? undefined : scope.professional;
+    const { service, professional } = adminSlot(db, serviceId, date, time, { only });
     const id = crypto.randomUUID();
     db.reservations.push({
       id,
@@ -262,15 +277,21 @@ export async function bookByAdmin(input: {
 }
 
 /** Estúdio remarca uma reserva futura. Devolve a reserva como era. */
-export async function rescheduleByAdmin(id: string, date: unknown, time: unknown): Promise<StoredReservation> {
+export async function rescheduleByAdmin(
+  id: string,
+  date: unknown,
+  time: unknown,
+  scope: Scope = { all: true },
+): Promise<StoredReservation> {
   if (!isRealDate(date)) throw invalid("Escolha a data.", "date");
   if (!isTime(time)) throw invalid("Escolha o horário.", "time");
   return updateDb((db) => {
     const r = db.reservations.find((r) => r.id === id);
-    if (!r || isCancelled(r)) throw new DomainError("not_found", "Reserva não encontrada.");
+    if (!r || isCancelled(r) || !inScope(db, r, scope)) throw new DomainError("not_found", "Reserva não encontrada.");
     if (isPast(r, nowInStudio())) throw invalid("Esse horário já passou e não pode ser remarcado.");
     if (r.date === date && r.time === time) throw invalid("Escolha um dia ou horário diferente.");
-    const { professional } = adminSlot(db, r.serviceId, date, time, { ignoreId: id, current: r.professional });
+    const only = scope.all ? undefined : scope.professional;
+    const { professional } = adminSlot(db, r.serviceId, date, time, { ignoreId: id, current: r.professional, only });
     const before: StoredReservation = { ...r };
     Object.assign(r, { date, time, professional });
     return before;

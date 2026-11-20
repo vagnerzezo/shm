@@ -50,6 +50,13 @@
       "when": 1795199594891,
       "tag": "0006_message_author",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795200810779,
+      "tag": "0007_notifications",
+      "breakpoints": true
     }
   ]
 }

@@ -31,6 +31,8 @@ export type User = {
    * admin, dá acesso também à agenda desse profissional.
    */
   professional?: string;
+  /** Até quando viu o sino de notificações. */
+  notificationsSeenAt?: string;
   /** Menus extras do barbeiro (ver `BARBER_MENUS`). Admin e cliente ignoram. */
   menus?: string[];
   /** Conta da equipe que cadastrou este cliente pelo painel. */
@@ -208,6 +210,28 @@ export type ChatMessage = {
   authorId?: string;
 };
 
+export type NotificationKind =
+  | "reserva_marcada"
+  | "reserva_remarcada"
+  | "reserva_cancelada"
+  | "dia_fechado"
+  | "cliente_novo"
+  | "falha_marketing"
+  | "falha_email";
+
+/** Aviso do sino. `actorId`: quem fez (nunca é avisado). `professional`: de quem é a reserva ou o fechamento. */
+export type Notification = {
+  id: string;
+  kind: NotificationKind;
+  at: string;
+  actorId?: string;
+  professional?: string;
+  customerId?: string;
+  reservationId?: string;
+  date?: string;
+  text: string;
+};
+
 export type Db = {
   users: User[];
   sessions: Session[];
@@ -219,6 +243,7 @@ export type Db = {
   marketing: MarketingSettings;
   schedule: ScheduleSettings;
   closures: Closure[];
+  notifications: Notification[];
   /** Ausentes em arquivos antigos: usam os padrões de `catalog.ts`. */
   services?: StoredService[];
   professionals?: StoredProfessional[];
@@ -250,7 +275,8 @@ type ListField =
   | "templates"
   | "rules"
   | "dispatches"
-  | "closures";
+  | "closures"
+  | "notifications";
 
 /** Ordem de gravação: tabelas de quem os outros dependem primeiro (exclusões vão na ordem inversa). */
 const LISTS: { field: ListField; table: PgTable; key: string; nulls?: string[] }[] = [
@@ -266,6 +292,7 @@ const LISTS: { field: ListField; table: PgTable; key: string; nulls?: string[] }
   { field: "rules", table: t.rules, key: "id", nulls: ["templateId"] },
   { field: "dispatches", table: t.dispatches, key: "id" },
   { field: "closures", table: t.closures, key: "id" },
+  { field: "notifications", table: t.notifications, key: "id" },
 ];
 
 const SETTINGS = ["schedule", "marketing", "studio"] as const;

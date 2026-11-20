@@ -25,6 +25,8 @@ export const users = pgTable("users", {
   professional: text(),
   menus: jsonb(),
   createdBy: text(),
+  /** Até quando a pessoa já viu o sino de notificações. */
+  notificationsSeenAt: ts(),
 });
 
 const userRef = () => text().notNull().references(() => users.id, { onDelete: "cascade" });
@@ -187,4 +189,25 @@ export const signupAttempts = pgTable(
     at: bigint({ mode: "number" }).notNull(),
   },
   (t) => [index().on(t.ip)],
+);
+
+/**
+ * Avisos do sino (um por acontecimento). Quem recebe é calculado na leitura.
+ * Sem chave estrangeira: o aviso sobrevive à exclusão do cliente.
+ */
+export const notifications = pgTable(
+  "notifications",
+  {
+    seq: seq(),
+    id: text().primaryKey(),
+    kind: text().notNull(),
+    at: ts().notNull(),
+    actorId: text(),
+    professional: text(),
+    customerId: text(),
+    reservationId: text(),
+    date: day(),
+    text: text().notNull(),
+  },
+  (t) => [index().on(t.at)],
 );

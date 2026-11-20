@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { Suspense, type ReactNode } from "react";
-import { staffLinks } from "@/app/_lib/access";
 import { getCurrentUser } from "@/app/_lib/auth";
 import { getCustomerUnreadCount, getUnreadCount } from "@/app/_lib/chat";
 import { getStudio } from "@/app/_lib/studio";
@@ -39,7 +38,6 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
         studioName={studio.name}
         badges={badges}
         myAgenda={user?.role === "admin" && Boolean(user.professional)}
-        staffMenus={user?.role === "barbeiro" ? staffLinks(user) : []}
       />
 
       <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">

@@ -4,6 +4,8 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card, EmptyState, linkButton, PageTitle, scrollArea } from "@/app/_components/ui";
 import { parseDate } from "@/app/_lib/agenda";
+import { redirect } from "next/navigation";
+import { canOpen } from "@/app/_lib/access";
 import { requireBarberPage } from "@/app/_lib/auth";
 import { addDays, formatLongDate, formatWeekday, nowInStudio, toMinutes, toTime } from "@/app/_lib/availability";
 import { getBarberAgenda } from "@/app/_lib/domain/barber";
@@ -29,6 +31,9 @@ const navButton =
 // Os horários do dia do profissional ligado à conta. Sem preço: o barbeiro não vê faturamento.
 export default async function BarbeiroPage(props: PageProps<"/barbeiro">) {
   const me = await requireBarberPage("/barbeiro");
+  // Barbeiro usa o calendário da Agenda (só com os horários dele); esta lista do
+  // dia fica para o admin que também atende ("Sou eu").
+  if (me.role === "barbeiro" && canOpen(me, "agenda")) redirect("/admin/agenda");
   const now = nowInStudio();
   const date = parseDate(oneParam((await props.searchParams).data), now.date);
   const reservations = await getBarberAgenda(me.professional, date, date);

@@ -88,6 +88,8 @@ export async function requireAdmin(next: string) {
 /** Tela "Minha agenda": barbeiro, ou admin ligado a um profissional. Os outros vão para a área deles. */
 export async function requireBarberPage(next: string): Promise<Customer & { professional: string }> {
   const user = await requireUser(next);
+  // Barbeiro ainda sem profissional ligado: só "Meus dados" (evita voltar para cá em laço).
+  if (user.role === "barbeiro" && !user.professional) redirect("/conta");
   if ((user.role !== "barbeiro" && user.role !== "admin") || !user.professional) redirect(homeOf(user));
   return { ...user, professional: user.professional };
 }

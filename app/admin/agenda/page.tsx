@@ -39,7 +39,7 @@ export default async function AgendaPage(props: PageProps<"/admin/agenda">) {
     <>
       {!visao && <MobileDefaultView date={date} />}
       <PanelHeader>
-        <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">Agenda</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">{scope.all ? "Agenda" : "Minha agenda"}</h1>
         <p className="mt-1 text-sm text-black/70">
           {scope.all ? "Reservas de todos os clientes." : `Reservas com ${scope.professional}.`}
         </p>

@@ -140,13 +140,15 @@ export default async function HistoricoPage(props: PageProps<"/admin/historico">
                 </p>
               )}
             </div>
-            <Link
-              href={`/admin/chat?cliente=${filters.cliente}`}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#121212] px-3 text-sm font-semibold text-white transition hover:bg-black/80"
-            >
-              <ChatIcon className="size-4" />
-              Conversar
-            </Link>
+            {scope.all && (
+              <Link
+                href={`/admin/chat?cliente=${filters.cliente}`}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#121212] px-3 text-sm font-semibold text-white transition hover:bg-black/80"
+              >
+                <ChatIcon className="size-4" />
+                Conversar
+              </Link>
+            )}
             <Link
               href={historyHref(filters, { cliente: "" })}
               aria-label="Ver todos os clientes"

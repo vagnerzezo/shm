@@ -103,7 +103,7 @@ export default async function ClientesPage(props: PageProps<"/admin/clientes">) 
               description={
                 scope.all
                   ? "Cadastro, contato e histórico de cada cliente."
-                  : `Quem já marcou com ${scope.professional} ou foi cadastrado por você.`
+                  : `Quem você já atendeu (${scope.professional}). Clientes novos aparecem aqui depois do primeiro atendimento.`
               }
             />
           </div>

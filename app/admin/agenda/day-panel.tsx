@@ -84,10 +84,13 @@ function Details({
   reservation: r,
   now,
   times,
+  admin,
 }: {
   reservation: AgendaReservation;
   now: Now;
   times: string[];
+  /** O chat é só do admin: barbeiro não vê "Conversar". */
+  admin: boolean;
 }) {
   const row = "flex items-center gap-2 text-sm text-black/70";
   const status = statusOf(r, now);
@@ -142,13 +145,15 @@ function Details({
         <p className="text-sm text-black/70">{formatPhone(r.customer.phone)}</p>
         <p className="truncate text-sm text-black/70">{r.customer.email}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href={`/admin/chat?cliente=${r.customer.id}`}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#121212] px-3 text-sm font-semibold text-white transition hover:bg-black/80"
-          >
-            <ChatIcon className="size-4" />
-            Conversar
-          </Link>
+          {admin && (
+            <Link
+              href={`/admin/chat?cliente=${r.customer.id}`}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#121212] px-3 text-sm font-semibold text-white transition hover:bg-black/80"
+            >
+              <ChatIcon className="size-4" />
+              Conversar
+            </Link>
+          )}
           <Link
             href={`/admin/clientes/${r.customer.id}`}
             className="inline-flex h-9 items-center rounded-lg border border-black/20 bg-white px-3 text-sm font-semibold text-black transition hover:bg-black/5"
@@ -221,6 +226,7 @@ export function DayPanel({
   now,
   times,
   professionals,
+  admin,
 }: {
   date: string;
   today: string;
@@ -229,6 +235,7 @@ export function DayPanel({
   now: Now;
   times: string[];
   professionals: Professional[];
+  admin: boolean;
 }) {
   return (
     <aside
@@ -242,7 +249,7 @@ export function DayPanel({
         <MiniCalendar date={date} today={today} busyDays={new Set(reservations.map((r) => r.date))} />
       </div>
       {selected ? (
-        <Details reservation={selected} now={now} times={times} />
+        <Details reservation={selected} now={now} times={times} admin={admin} />
       ) : (
         <DayList
           date={date}

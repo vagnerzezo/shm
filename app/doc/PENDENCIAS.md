@@ -17,6 +17,8 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
 
 **Área do barbeiro (2026-11-20):** todo barbeiro tem, fixo, Minha agenda (calendário com marcar/remarcar/cancelar), Clientes (só os que já atendeu) e Histórico (só os dele); Configurações → Equipe ficou só com Admin/Barbeiro. Desenhos e planos em `app/doc/specs/` e `app/doc/plans/` (2026-11-19-permissoes-equipe e 2026-11-20-area-barbeiro). Barbeiro **não** troca e-mail nem autorizações do cliente.
+**Início, chat do barbeiro e sino (2026-11-20):** Início com a agenda do dia no visual da Agenda; barbeiro com Chat dos clientes dele (cliente vê o nome de quem respondeu); sino de notificações para admin e barbeiro. Desenho e plano em `app/doc/specs/` e `app/doc/plans/` (2026-11-20-inicio-chat-notificacoes). Migrações `0006` (autor da mensagem) e `0007` (notificações).
+- Pontos menores do sino deixados para depois: "visto" pode engolir um aviso chegado nos 30 s antes de abrir; admin recebe avisos de outro admin; renomear profissional não leva os avisos; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; remarcação do cliente aparece duas vezes (chat + aviso); falha de marketing gera um aviso por envio; acessibilidade do painel do sino (foco).
 - Pequenos pontos deixados para depois: links que levam o barbeiro de volta a "Minha agenda" (Conversar no painel do dia, Ver cliente sem o menu Clientes, Nova reserva no Início sem Agenda); admin de `ADMIN_EMAILS` não é rebaixado de verdade; cancelamento feito pelo barbeiro fica como "admin"; chat do barbeiro ainda a pensar.
 
 **Próximos passos, em ordem:**

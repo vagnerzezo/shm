@@ -27,11 +27,12 @@ export type CustomerSummary = {
 };
 
 /**
- * Clientes com os números das reservas. Com escopo de barbeiro, só os clientes
- * dele (alguma reserva com ele, mesmo cancelada, ou cadastrados por ele), e os
- * números contam só as reservas com ele.
+ * Clientes com os números das reservas. Com escopo de barbeiro, os números
+ * contam só as reservas com ele, e a lista traz só quem ele já atendeu
+ * (modo `"lista"`); `getCustomer` usa `"ficha"`: qualquer reserva com ele ou
+ * cadastrado por ele.
  */
-export async function getCustomers(scope?: Scope): Promise<CustomerSummary[]> {
+export async function getCustomers(scope?: Scope, mode: "lista" | "ficha" = "lista"): Promise<CustomerSummary[]> {
   const db = await readDb();
   const now = nowInStudio();
   const { services } = catalogOf(db);
@@ -43,8 +44,11 @@ export async function getCustomers(scope?: Scope): Promise<CustomerSummary[]> {
   };
   const byUser = new Map<string, typeof db.reservations>();
   for (const r of db.reservations.filter(mine)) byUser.set(r.userId, [...(byUser.get(r.userId) ?? []), r]);
-  const inScope = (u: (typeof db.users)[number]) =>
-    !scope || scope.all || byUser.has(u.id) || u.createdBy === scope.userId;
+  const inScope = (u: (typeof db.users)[number]) => {
+    if (!scope || scope.all) return true;
+    if (mode === "lista") return (byUser.get(u.id) ?? []).some((r) => isDone(r, now));
+    return byUser.has(u.id) || u.createdBy === scope.userId;
+  };
 
   return db.users
     .filter((u) => roleOf(u) === "cliente" && inScope(u))
@@ -79,7 +83,7 @@ export async function getCustomers(scope?: Scope): Promise<CustomerSummary[]> {
 
 /** Um cliente, ou `null` se não existe ou está fora do escopo. */
 export async function getCustomer(id: string, scope?: Scope) {
-  return (await getCustomers(scope)).find((c) => c.id === id) ?? null;
+  return (await getCustomers(scope, "ficha")).find((c) => c.id === id) ?? null;
 }
 
 /** Todos os clientes ativos, só com o que a busca de "Novo horário" precisa (sem histórico). */

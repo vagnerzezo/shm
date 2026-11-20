@@ -4,7 +4,8 @@ import { useActionState, useEffect, useOptimistic, type ReactNode } from "react"
 import { SendIcon } from "@/app/_components/icons";
 import type { SendState } from "@/app/_lib/actions";
 import { dayKey, formatClock, formatDay } from "@/app/_lib/chat-format";
-import type { ChatMessage, Role } from "@/app/_lib/db";
+import type { ShownMessage } from "@/app/_lib/chat";
+import type { Role } from "@/app/_lib/db";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import {
   InputGroup,
@@ -39,7 +40,7 @@ export function ChatPanel({
 }: {
   me: Role;
   customerId: string;
-  messages: ChatMessage[];
+  messages: ShownMessage[];
   send: (formData: FormData) => Promise<SendState>;
   markRead: () => Promise<void>;
   header: ReactNode;
@@ -48,7 +49,7 @@ export function ChatPanel({
   emptyText: string;
 }) {
   // A mensagem aparece na hora; some e volta "de verdade" quando o servidor responde.
-  const [shown, addShown] = useOptimistic(messages, (current, message: ChatMessage) => [
+  const [shown, addShown] = useOptimistic(messages, (current, message: ShownMessage) => [
     ...current,
     message,
   ]);
@@ -96,6 +97,12 @@ export function ChatPanel({
                     )}
                     <Message align={align}>
                       <MessageContent>
+                        {/* Quem da equipe escreveu: para o cliente sempre (ou "Estúdio"); para a equipe, quando houver. */}
+                        {m.from !== "cliente" && (me === "cliente" || m.authorName) && (
+                          <p className={`mb-1 text-xs font-semibold text-black/60 ${mine ? "text-right" : ""}`}>
+                            {m.authorName ?? "Estúdio"}
+                          </p>
+                        )}
                         <Bubble align={align} variant={mine ? "default" : "outline"}>
                           <BubbleContent className="whitespace-pre-wrap">{m.text}</BubbleContent>
                         </Bubble>

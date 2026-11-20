@@ -56,8 +56,15 @@ export function reservationJson(r: Reservation, now: { date: string; minutes: nu
   };
 }
 
-export function messageJson(m: ChatMessage) {
-  return { id: m.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt && { readAt: m.readAt }) };
+export function messageJson(m: ChatMessage & { authorName?: string }) {
+  return {
+    id: m.id,
+    from: m.from,
+    text: m.text,
+    createdAt: m.createdAt,
+    ...(m.readAt && { readAt: m.readAt }),
+    ...(m.authorName && { authorName: m.authorName }),
+  };
 }
 
 /** Horário visto pelo barbeiro: sem preço e sem o e-mail do cliente. */

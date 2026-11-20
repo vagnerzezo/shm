@@ -180,6 +180,7 @@ components:
         text: { type: string }
         createdAt: { type: string, format: date-time }
         readAt: { type: string, format: date-time, description: Quando o destinatário abriu a conversa. Ausente enquanto não lida. }
+        authorName: { type: string, description: "Primeiro nome de quem da equipe escreveu (só em mensagens `admin`). Ausente: mostrar \"Estúdio\"." }
       example: { id: 5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a, from: cliente, text: "Posso levar meu filho junto?", createdAt: "2026-11-18T22:10:00.000Z" }
     BarberReservation:
       type: object

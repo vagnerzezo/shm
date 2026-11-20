@@ -1,5 +1,5 @@
 import { roleOf } from "./auth";
-import { readDb, updateDb, type ChatMessage } from "./db";
+import { readDb, updateDb, type ChatMessage, type User } from "./db";
 
 export type Conversation = {
   customer: { id: string; name: string; phone: string; email: string };
@@ -35,18 +35,40 @@ export async function getConversations(): Promise<Conversation[]> {
 }
 
 /** Conversa de um cliente, em ordem cronológica. */
-export async function getMessages(customerId: string): Promise<ChatMessage[]> {
+/** Mensagem como aparece na tela e na API: com o primeiro nome de quem da equipe escreveu. */
+export type ShownMessage = ChatMessage & { authorName?: string };
+
+export async function getMessages(customerId: string): Promise<ShownMessage[]> {
   const db = await readDb();
   return db.messages
     .filter((m) => m.customerId === customerId)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((m) => {
+      const authorName = authorNameOf(m, db.users);
+      return authorName ? { ...m, authorName } : m;
+    });
 }
 
-/** Devolve a mensagem gravada, ou `null` se o cliente não existe. */
-export function addMessage(customerId: string, from: ChatMessage["from"], text: string): Promise<ChatMessage | null> {
+/**
+ * Devolve a mensagem gravada, ou `null` se o cliente não existe. `authorId`:
+ * quem da equipe escreveu (ignorado em mensagem do cliente).
+ */
+export function addMessage(
+  customerId: string,
+  from: ChatMessage["from"],
+  text: string,
+  authorId?: string,
+): Promise<ChatMessage | null> {
   return updateDb((db) => {
     if (!db.users.some((u) => u.id === customerId)) return null;
-    const message: ChatMessage = { id: crypto.randomUUID(), customerId, from, text, createdAt: new Date().toISOString() };
+    const message: ChatMessage = {
+      id: crypto.randomUUID(),
+      customerId,
+      from,
+      text,
+      createdAt: new Date().toISOString(),
+      ...(from !== "cliente" && authorId && { authorId }),
+    };
     db.messages.push(message);
     return { ...message };
   });
@@ -93,4 +115,10 @@ export function markReadByCustomer(customerId: string) {
     }
     return changed;
   });
+}
+
+/** Primeiro nome de quem da equipe escreveu, ou `null` (a tela mostra "Estúdio"). */
+export function authorNameOf(m: ChatMessage, users: Pick<User, "id" | "name">[]): string | null {
+  if (m.from === "cliente" || !m.authorId) return null;
+  return users.find((u) => u.id === m.authorId)?.name.split(" ")[0] ?? null;
 }

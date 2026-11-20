@@ -94,6 +94,8 @@ export const messages = pgTable(
     text: text().notNull(),
     createdAt: ts().notNull(),
     readAt: ts(),
+    /** Conta da equipe que escreveu (mensagens do estúdio). */
+    authorId: text(),
   },
   (t) => [index().on(t.customerId)],
 );

@@ -204,6 +204,8 @@ export type ChatMessage = {
   createdAt: string;
   /** Quando o destinatário abriu a conversa (o admin, se veio do cliente; o cliente, se veio do admin). */
   readAt?: string;
+  /** Quem da equipe escreveu (mensagens do estúdio). Ausente: "Estúdio". */
+  authorId?: string;
 };
 
 export type Db = {

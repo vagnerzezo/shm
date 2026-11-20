@@ -6,7 +6,9 @@ import { getCurrentUser } from "./auth";
 import { addDays, nowInStudio, STEP_OPTIONS, toMinutes } from "./availability";
 import { getCatalog } from "./catalog";
 import { updateDb, type SocialNetwork } from "./db";
+import { setTeamMember } from "./domain/team";
 import { emailProviderReady, sendEmail } from "./email";
+import { messageOf } from "./errors";
 import { buildSample, isEmailKind } from "./email-templates/preview";
 import { getStudio } from "./studio";
 
@@ -161,4 +163,22 @@ export async function sendSystemEmailTest(_prev: TestEmailState, formData: FormD
     return { error: error instanceof Error ? error.message : "Falha ao enviar.", sentTo: null };
   }
   return { error: null, sentTo: to };
+}
+
+export type TeamState = { error: string | null; saved?: boolean };
+
+/** Configurações → Equipe: papel (admin/barbeiro) e menus liberados de uma pessoa. Só admin. */
+export async function saveTeamMember(_prev: TeamState, formData: FormData): Promise<TeamState> {
+  const user = await getCurrentUser();
+  if (user?.role !== "admin") redirect("/login?next=%2Fadmin%2Fconfiguracoes");
+  try {
+    await setTeamMember(user.id, text(formData, "id"), {
+      role: text(formData, "papel"),
+      menus: formData.getAll("menus").map(String),
+    });
+  } catch (error) {
+    return { error: messageOf(error) };
+  }
+  refresh();
+  return { error: null, saved: true };
 }

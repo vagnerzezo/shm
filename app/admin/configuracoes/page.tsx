@@ -12,11 +12,13 @@ import { card as cardBase, dangerLink, linkButton, PageTitle, scrollArea } from 
 import { getCatalog } from "@/app/_lib/catalog";
 import { shortDate as formatShortDate } from "@/app/_lib/format";
 import { deleteClosure } from "@/app/_lib/settings-actions";
+import { getTeam } from "@/app/_lib/domain/team";
 import { getStudio } from "@/app/_lib/studio";
 import { cn } from "@/lib/utils";
 import { ClosureForm } from "./closure-form";
 import { ScheduleForm } from "./schedule-form";
 import { StudioForm } from "./studio-form";
+import { TeamCard } from "./team-card";
 
 export const metadata: Metadata = {
   title: "Configurações | Studio Heitor Macks",
@@ -113,7 +115,8 @@ function ClosureItem({
 }
 
 export default async function ConfiguracoesPage() {
-  await requireAdmin("/admin/configuracoes");
+  const me = await requireAdmin("/admin/configuracoes");
+  const team = await getTeam();
   const now = nowInStudio();
   const rules = await getAvailabilityRules();
   const { professionals } = await getCatalog();
@@ -131,7 +134,7 @@ export default async function ConfiguracoesPage() {
   return (
     <>
       <PanelHeader>
-        <PageTitle title="Configurações" description="Dias fechados, funcionamento da agenda e dados do estúdio." />
+        <PageTitle title="Configurações" description="Dias fechados, funcionamento da agenda, equipe e dados do estúdio." />
       </PanelHeader>
 
       <div className={cn("mt-7 flex flex-col gap-5", scrollArea)}>
@@ -176,6 +179,14 @@ export default async function ConfiguracoesPage() {
           <h2 className="text-lg font-bold text-black">Funcionamento</h2>
           <p className="mt-1 mb-4 text-sm text-black/70">Dias e horários em que os clientes podem marcar.</p>
           <ScheduleForm settings={rules.settings} />
+        </section>
+
+        <section className={card}>
+          <h2 className="text-lg font-bold text-black">Equipe</h2>
+          <p className="mt-1 mb-4 text-sm text-black/70">
+            Quem é admin e quais menus cada barbeiro vê. O acesso de barbeiro é criado em Serviços → Profissionais.
+          </p>
+          <TeamCard team={team} meId={me.id} />
         </section>
 
         <section className={cn(card, "mb-1")}>

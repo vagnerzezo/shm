@@ -22,41 +22,42 @@ describe("equipe", () => {
     const team = await getTeam();
     assert.deepEqual(team.map((m) => m.role), ["admin", "admin", "barbeiro", "barbeiro"]);
     assert.ok(!team.some((m) => m.id === cliente.id));
-    assert.deepEqual(team.find((m) => m.id === heitor.id), { id: heitor.id, name: heitor.name, email: heitor.email, role: "barbeiro", professional: "Heitor", menus: [] });
+    assert.deepEqual(team.find((m) => m.id === heitor.id), { id: heitor.id, name: heitor.name, email: heitor.email, role: "barbeiro", professional: "Heitor" });
   });
 
-  test("libera menus para um barbeiro, sem repetição e na ordem fixa", async () => {
-    await setTeamMember(admin.id, heitor.id, { role: "barbeiro", menus: ["historico", "agenda", "agenda"] });
-    assert.deepEqual((await userById(heitor.id)).menus, ["agenda", "historico"]);
+  test("define o papel de barbeiro", async () => {
+    await setTeamMember(admin.id, "admin-2", { role: "admin" });
+    await updateDb((db) => {
+      db.users.find((u) => u.id === "admin-2")!.professional = "Jimmy";
+    });
+    await setTeamMember(admin.id, "admin-2", { role: "barbeiro" });
+    assert.equal((await userById("admin-2")).role, "barbeiro");
   });
 
   test("quem não é admin não muda a equipe", async () => {
-    await assert.rejects(setTeamMember(heitor.id, jimmy.id, { role: "admin", menus: [] }), rejectsWith("forbidden"));
+    await assert.rejects(setTeamMember(heitor.id, jimmy.id, { role: "admin" }), rejectsWith("forbidden"));
   });
 
   test("ninguém muda o próprio acesso", async () => {
-    await assert.rejects(setTeamMember(admin.id, admin.id, { role: "barbeiro", menus: [] }), rejectsWith("validation", "role"));
+    await assert.rejects(setTeamMember(admin.id, admin.id, { role: "barbeiro" }), rejectsWith("validation", "role"));
   });
 
   test("cliente não entra na equipe por aqui", async () => {
-    await assert.rejects(setTeamMember(admin.id, cliente.id, { role: "barbeiro", menus: [] }), rejectsWith("not_found"));
+    await assert.rejects(setTeamMember(admin.id, cliente.id, { role: "barbeiro" }), rejectsWith("not_found"));
   });
 
-  test("papel e menus inválidos são recusados", async () => {
-    await assert.rejects(setTeamMember(admin.id, heitor.id, { role: "dono", menus: [] }), rejectsWith("validation", "role"));
-    await assert.rejects(setTeamMember(admin.id, heitor.id, { role: "barbeiro", menus: ["chat"] }), rejectsWith("validation", "menus"));
-    await assert.rejects(setTeamMember(admin.id, heitor.id, { role: "barbeiro", menus: "agenda" }), rejectsWith("validation", "menus"));
+  test("papel inválido é recusado", async () => {
+    await assert.rejects(setTeamMember(admin.id, heitor.id, { role: "dono" }), rejectsWith("validation", "role"));
   });
 
-  test("barbeiro que vira admin mantém o profissional e perde os menus", async () => {
-    await setTeamMember(admin.id, heitor.id, { role: "barbeiro", menus: ["agenda"] });
-    await setTeamMember(admin.id, heitor.id, { role: "admin", menus: ["agenda"] });
+  test("barbeiro que vira admin mantém o profissional", async () => {
+    await setTeamMember(admin.id, heitor.id, { role: "admin" });
     const u = await userById(heitor.id);
-    assert.deepEqual([u.role, u.professional, u.menus], ["admin", "Heitor", undefined]);
+    assert.deepEqual([u.role, u.professional], ["admin", "Heitor"]);
   });
 
   test("admin sem profissional não vira barbeiro", async () => {
-    await assert.rejects(setTeamMember(admin.id, "admin-2", { role: "barbeiro", menus: [] }), rejectsWith("validation", "role"));
+    await assert.rejects(setTeamMember(admin.id, "admin-2", { role: "barbeiro" }), rejectsWith("validation", "role"));
   });
 
   test("admin rebaixado já entra como barbeiro na próxima página", async () => {
@@ -64,8 +65,8 @@ describe("equipe", () => {
       db.users.find((u) => u.id === "admin-2")!.professional = "Jimmy";
     });
     const { token } = await createSessionToken("admin-2");
-    await setTeamMember(admin.id, "admin-2", { role: "barbeiro", menus: ["agenda"] });
+    await setTeamMember(admin.id, "admin-2", { role: "barbeiro" });
     const session = await findSessionUser(token);
-    assert.deepEqual([session!.role, session!.menus], ["barbeiro", ["agenda"]]);
+    assert.equal(session!.role, "barbeiro");
   });
 });

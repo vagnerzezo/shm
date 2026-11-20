@@ -167,15 +167,12 @@ export async function sendSystemEmailTest(_prev: TestEmailState, formData: FormD
 
 export type TeamState = { error: string | null; saved?: boolean };
 
-/** Configurações → Equipe: papel (admin/barbeiro) e menus liberados de uma pessoa. Só admin. */
+/** Configurações → Equipe: papel (admin/barbeiro) de uma pessoa. Só admin. */
 export async function saveTeamMember(_prev: TeamState, formData: FormData): Promise<TeamState> {
   const user = await getCurrentUser();
   if (user?.role !== "admin") redirect("/login?next=%2Fadmin%2Fconfiguracoes");
   try {
-    await setTeamMember(user.id, text(formData, "id"), {
-      role: text(formData, "papel"),
-      menus: formData.getAll("menus").map(String),
-    });
+    await setTeamMember(user.id, text(formData, "id"), { role: text(formData, "papel") });
   } catch (error) {
     return { error: messageOf(error) };
   }

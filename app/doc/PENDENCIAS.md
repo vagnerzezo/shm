@@ -16,7 +16,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Celular: visitante em `/` vê a boas-vindas do login; painel branco sobe com animação (`auth-sheet-in` em `globals.css`); Esqueci/Criar nova senha no mesmo layout (`MobileSheet`).
 - Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
 
-**Permissões da equipe — em produção (2026-11-20):** Configurações → Equipe define admin/barbeiro e os menus extras do barbeiro (Início, Agenda, Clientes, Histórico), sempre só com os dados dele. Migração `0005` aplicada em produção. Desenho e plano em `app/doc/specs/` e `app/doc/plans/` (2026-11-19-permissoes-equipe). Mudança em relação ao aprovado: barbeiro **não** troca e-mail nem autorizações do cliente (evita tomar a conta).
+**Área do barbeiro (2026-11-20):** todo barbeiro tem, fixo, Minha agenda (calendário com marcar/remarcar/cancelar), Clientes (só os que já atendeu) e Histórico (só os dele); Configurações → Equipe ficou só com Admin/Barbeiro. Desenhos e planos em `app/doc/specs/` e `app/doc/plans/` (2026-11-19-permissoes-equipe e 2026-11-20-area-barbeiro). Barbeiro **não** troca e-mail nem autorizações do cliente.
 - Pequenos pontos deixados para depois: links que levam o barbeiro de volta a "Minha agenda" (Conversar no painel do dia, Ver cliente sem o menu Clientes, Nova reserva no Início sem Agenda); admin de `ADMIN_EMAILS` não é rebaixado de verdade; cancelamento feito pelo barbeiro fica como "admin"; chat do barbeiro ainda a pensar.
 
 **Próximos passos, em ordem:**

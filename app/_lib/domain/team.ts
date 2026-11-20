@@ -1,9 +1,10 @@
 import { readDb, updateDb } from "../db";
 import { DomainError } from "../errors";
-import { BARBER_MENUS, menusOf, roleOf, type BarberMenu } from "../roles";
+import { roleOf } from "../roles";
 
-// Equipe: quem é admin e quais menus extras cada barbeiro vê
-// (Configurações → Equipe). Só admin muda.
+// Equipe: quem é admin e quem é barbeiro (Configurações → Equipe). Só admin
+// muda. Todo barbeiro vê a própria agenda, os clientes que já atendeu e o
+// próprio histórico (ver `canOpen`).
 
 export type TeamMember = {
   id: string;
@@ -11,7 +12,6 @@ export type TeamMember = {
   email: string;
   role: "admin" | "barbeiro";
   professional: string | null;
-  menus: BarberMenu[];
 };
 
 const invalid = (message: string, field: string) => new DomainError("validation", message, { [field]: message });
@@ -23,21 +23,18 @@ export async function getTeam(): Promise<TeamMember[]> {
     .flatMap((u) => {
       const role = roleOf(u);
       if (role === "cliente") return [];
-      return [{ id: u.id, name: u.name, email: u.email, role, professional: u.professional ?? null, menus: role === "barbeiro" ? menusOf(u.menus) : [] }];
+      return [{ id: u.id, name: u.name, email: u.email, role, professional: u.professional ?? null }];
     })
     .sort((a, b) => order[a.role] - order[b.role] || a.name.localeCompare(b.name, "pt-BR"));
 }
 
 /**
- * Define o papel e, para barbeiro, os menus liberados. Ninguém muda o próprio
- * acesso, o estúdio não fica sem admin e barbeiro precisa de profissional.
+ * Define o papel. Ninguém muda o próprio acesso, o estúdio não fica sem admin
+ * e barbeiro precisa de profissional.
  */
-export async function setTeamMember(actorId: string, userId: string, input: { role: unknown; menus: unknown }): Promise<void> {
-  const { role, menus } = input;
+export async function setTeamMember(actorId: string, userId: string, input: { role: unknown }): Promise<void> {
+  const { role } = input;
   if (role !== "admin" && role !== "barbeiro") throw invalid("Escolha admin ou barbeiro.", "role");
-  if (role === "barbeiro" && (!Array.isArray(menus) || menus.some((m) => !BARBER_MENUS.includes(m)))) {
-    throw invalid("Escolha menus da lista.", "menus");
-  }
 
   await updateDb((db) => {
     const actor = db.users.find((u) => u.id === actorId);
@@ -53,10 +50,8 @@ export async function setTeamMember(actorId: string, userId: string, input: { ro
         throw invalid("O estúdio precisa de pelo menos um admin.", "role");
       }
       target.role = "barbeiro";
-      target.menus = menusOf(menus);
       return;
     }
     target.role = "admin";
-    delete target.menus;
   });
 }

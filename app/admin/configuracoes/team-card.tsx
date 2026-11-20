@@ -4,18 +4,10 @@ import { useActionState, useEffect, useState } from "react";
 import { toast } from "@/app/_components/toaster";
 import { FormError, fieldClass, labelClass, primaryButton } from "@/app/_components/ui";
 import type { TeamMember } from "@/app/_lib/domain/team";
-import { BARBER_MENUS, type BarberMenu } from "@/app/_lib/roles";
 import { saveTeamMember } from "@/app/_lib/settings-actions";
 import { cn } from "@/lib/utils";
 
-const MENU_LABEL: Record<BarberMenu, string> = {
-  inicio: "Início",
-  agenda: "Agenda",
-  clientes: "Clientes",
-  historico: "Histórico",
-};
-
-/** Uma pessoa da equipe: papel e, para barbeiro, os menus que ele vê (sempre só com os dados dele). */
+/** Uma pessoa da equipe e o papel dela. */
 function MemberRow({ member }: { member: TeamMember }) {
   const [state, action, pending] = useActionState(saveTeamMember, { error: null });
   const [role, setRole] = useState(member.role);
@@ -50,28 +42,11 @@ function MemberRow({ member }: { member: TeamMember }) {
           </label>
         </div>
 
-        {role === "barbeiro" ? (
-          <fieldset>
-            <legend className={labelClass}>Menus extras (só com os dados dele)</legend>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
-              {BARBER_MENUS.map((m) => (
-                <label key={m} className="flex items-center gap-2 text-sm text-black">
-                  <input
-                    type="checkbox"
-                    name="menus"
-                    value={m}
-                    defaultChecked={member.menus.includes(m)}
-                    className="size-4 accent-[#121212]"
-                  />
-                  {MENU_LABEL[m]}
-                </label>
-              ))}
-            </div>
-            <p className="mt-1.5 text-xs text-black/50">Minha agenda e Meus dados aparecem sempre.</p>
-          </fieldset>
-        ) : (
-          <p className="text-sm text-black/60">Admin vê todos os menus e os dados de todo mundo.</p>
-        )}
+        <p className="text-sm text-black/60">
+          {role === "barbeiro"
+            ? "Barbeiro vê a própria agenda, os clientes que já atendeu e o próprio histórico."
+            : "Admin vê todos os menus e os dados de todo mundo."}
+        </p>
 
         <FormError message={state.error} />
         <div>

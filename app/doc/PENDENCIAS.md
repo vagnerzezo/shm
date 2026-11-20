@@ -16,12 +16,10 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Celular: visitante em `/` vê a boas-vindas do login; painel branco sobe com animação (`auth-sheet-in` em `globals.css`); Esqueci/Criar nova senha no mesmo layout (`MobileSheet`).
 - Botão de olho (mostrar/ocultar) em todos os campos de senha (`app/_components/password-input.tsx`).
 
-**Em andamento — permissões da equipe** (branch `feat/permissoes-equipe`, ainda **não** está na `main` nem em produção):
-- Desenho aprovado: `app/doc/specs/2026-11-19-permissoes-equipe-design.md`. Plano: `app/doc/plans/2026-11-19-permissoes-equipe.md` (8 tarefas, execução no próprio chat).
-- **Feito (tarefas 1 a 4):** colunas `menus` e `created_by` (migração `0005`, aplicada **só no banco de teste**); regra central `app/_lib/access.ts` (`canOpen`, `scopeOf`, `requireMenu`, `assertMenu`); agenda e clientes filtrados por profissional; `app/_lib/domain/team.ts` (`getTeam`, `setTeamMember`).
-- **Falta:** tarefa 5 (marcar/remarcar/cancelar respeitando o escopo), 6 (telas e ações usando a regra, menu do barbeiro), 7 (cartão Equipe em Configurações), 8 (docs e produção) e a revisão final.
-- Para retomar: `git checkout feat/permissoes-equipe` e seguir o plano a partir da tarefa 5. O registro do andamento fica em `.superpowers/sdd/2026-11-19-permissoes-equipe/progress.md` (local, fora do git).
-- Lembrete: a migração `0005` vai para o banco de produção **antes** do merge/push na `main`.
+**Permissões da equipe** (branch `feat/permissoes-equipe`, ainda **não** está na `main` nem em produção):
+- Desenho: `app/doc/specs/2026-11-19-permissoes-equipe-design.md`. Plano: `app/doc/plans/2026-11-19-permissoes-equipe.md`.
+- **Feito (tarefas 1 a 7):** campos `menus` e `created_by` (migração `0005`, só no banco de teste), regra central `access.ts`, agenda/clientes/histórico/início filtrados para o barbeiro, reservas do painel com escopo, cartão **Equipe** em Configurações. Testes 146/146, coleção da API 117/117, conferido no navegador (servidor de teste).
+- **Falta:** revisão final do branch e, com o ok do dono, migração `0005` no banco de produção **antes** do merge na `main` e do push.
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real; com ele criado, marcar e cancelar uma reserva para fechar o teste de e-mail da 1.6.

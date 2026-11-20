@@ -167,3 +167,34 @@ describe("leitura do sino", () => {
     assert.match(items[0].text, /1 horário/);
   });
 });
+
+describe("correções da revisão final", () => {
+  beforeEach(resetTestDb);
+  const day = addDays(nowInStudio().date, 5);
+
+  test("aviso com mais de 30 dias é apagado ao gravar um novo", async () => {
+    const old = new Date(Date.now() - 31 * 86400000).toISOString();
+    await updateDb((db) => {
+      db.notifications.push({ id: "velho", kind: "cliente_novo", at: old, text: "antigo" });
+    });
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    assert.ok(!(await readDb()).notifications.some((n) => n.id === "velho"));
+  });
+
+  test("cliente que exclui a conta não fica com avisos ligados a ele (LGPD)", async () => {
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    await deleteOwnAccount(USERS.cliente.id, PASSWORD);
+    assert.ok(!(await readDb()).notifications.some((n) => n.customerId === USERS.cliente.id));
+  });
+
+  test("remarcação que troca de profissional avisa também quem atendia", async () => {
+    // Jimmy ocupado às 10h: o serviço sem fixo fica com o Heitor.
+    await bookForCustomer(USERS.cliente3.id, [{ serviceId: "corte-jimmy", date: day, time: "10:00" }]);
+    const [id] = await bookForCustomer(USERS.cliente.id, [{ serviceId: "barba-pigmentacao", date: day, time: "10:00" }]);
+    // Heitor ocupado às 15h: ao remarcar, vai para o Jimmy.
+    await bookForCustomer(USERS.cliente2.id, [{ serviceId: "corte-heitor", date: day, time: "15:00" }]);
+    await rescheduleForCustomer(USERS.cliente.id, id, day, "15:00");
+    const notices = (await readDb()).notifications.filter((n) => n.reservationId === id && n.kind === "reserva_remarcada");
+    assert.deepEqual(notices.map((n) => n.professional).sort(), ["Heitor", "Jimmy"]);
+  });
+});

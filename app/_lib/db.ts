@@ -425,4 +425,6 @@ export function purgeUser(db: Db, userId: string) {
   db.messages = db.messages.filter((m) => m.customerId !== userId);
   db.dispatches = db.dispatches.filter((d) => d.customerId !== userId);
   if (db.passwordResets) db.passwordResets = db.passwordResets.filter((r) => r.userId !== userId);
+  // LGPD: avisos ligados ao cliente saem junto (os de cancelamento por exclusão não guardam o id e vencem em 30 dias).
+  db.notifications = db.notifications.filter((n) => n.customerId !== userId);
 }

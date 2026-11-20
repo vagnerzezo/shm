@@ -1,7 +1,7 @@
 import type { Scope } from "./access";
 import { roleOf } from "./roles";
 import { nowInStudio } from "./availability";
-import { readDb, type Consent } from "./db";
+import { readDb, type Consent, type Db } from "./db";
 import { catalogOf } from "./catalog";
 import { isCancelled, isDone, isPast, professionalOf } from "./reservations";
 import { findService } from "./services";
@@ -33,7 +33,11 @@ export type CustomerSummary = {
  * cadastrado por ele.
  */
 export async function getCustomers(scope?: Scope, mode: "lista" | "ficha" = "lista"): Promise<CustomerSummary[]> {
-  const db = await readDb();
+  return customersFrom(await readDb(), scope, mode);
+}
+
+/** Igual a `getCustomers`, sobre um banco já lido. */
+export function customersFrom(db: Db, scope?: Scope, mode: "lista" | "ficha" = "lista"): CustomerSummary[] {
   const now = nowInStudio();
   const { services } = catalogOf(db);
   const getService = (id: string) => findService(services, id);

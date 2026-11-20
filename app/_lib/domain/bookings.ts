@@ -161,7 +161,7 @@ export async function rescheduleForCustomer(userId: string, id: string, date: un
       text: rescheduledText(service.name, before, date, time),
       createdAt: new Date().toISOString(),
     });
-    pushReservationNotice(db, "reserva_remarcada", r, userId);
+    pushReservationNotice(db, "reserva_remarcada", r, userId, { previousProfessional: professionalOf(before, service) });
     return { before, serviceName: service.name };
   });
 }
@@ -301,7 +301,9 @@ export async function rescheduleByAdmin(
     const { professional } = adminSlot(db, r.serviceId, date, time, { ignoreId: id, current: r.professional, only });
     const before: StoredReservation = { ...r };
     Object.assign(r, { date, time, professional });
-    pushReservationNotice(db, "reserva_remarcada", r, actorId);
+    pushReservationNotice(db, "reserva_remarcada", r, actorId, {
+      previousProfessional: professionalOf(before, findService(catalogOf(db).services, r.serviceId)),
+    });
     return before;
   });
 }

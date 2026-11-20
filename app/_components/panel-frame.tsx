@@ -4,7 +4,8 @@ import { scopeOf } from "@/app/_lib/access";
 import { getCurrentUser } from "@/app/_lib/auth";
 import { getCustomerUnreadCount, getUnreadCount } from "@/app/_lib/chat";
 import { getBell } from "@/app/_lib/notifications";
-import { getStudio } from "@/app/_lib/studio";
+import { readDb } from "@/app/_lib/db";
+import { studioOf } from "@/app/_lib/studio";
 import { FlashToast } from "./flash-toast";
 import type { Area } from "./nav";
 import { Sidebar } from "./sidebar";
@@ -14,19 +15,21 @@ import { PanelProvider } from "./notification-bell";
 
 // Moldura com a sidebar, compartilhada pela área do cliente e pela do admin.
 export async function PanelFrame({ area: requested, children }: { area: Area; children: ReactNode }) {
-  const studio = await getStudio();
+  // Uma leitura do banco por tela: estúdio, contadores e sino usam a mesma.
+  const db = await readDb();
+  const studio = studioOf(db);
   const user = await getCurrentUser();
   // Barbeiro abre telas de /admin (filtradas para ele), mas com o menu dele.
   const area: Area = requested === "admin" && user?.role === "barbeiro" ? "barbeiro" : requested;
   // Contador do Chat: a equipe vê as mensagens de clientes (barbeiro: dos clientes dele); o cliente, as do estúdio.
   const staff = user && (user.role === "admin" || (user.role === "barbeiro" && user.professional));
   // Sino de notificações só para a equipe.
-  const bell = staff ? await getBell(user) : null;
+  const bell = staff ? await getBell(user, db) : null;
   const badges: Record<string, number> =
     staff && (area === "admin" || area === "barbeiro")
-      ? { "/admin/chat": await getUnreadCount(scopeOf(user)) }
+      ? { "/admin/chat": await getUnreadCount(scopeOf(user), db) }
       : area === "cliente" && user
-        ? { "/mensagens": await getCustomerUnreadCount(user.id) }
+        ? { "/mensagens": await getCustomerUnreadCount(user.id, db) }
         : {};
 
   return (

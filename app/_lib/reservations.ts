@@ -92,9 +92,18 @@ export async function markCancelled(
 export async function getAgenda(
   from = "0000-01-01",
   to = "9999-12-31",
-  { includeCancelled = false, scope }: { includeCancelled?: boolean; scope?: Scope } = {},
+  options: { includeCancelled?: boolean; scope?: Scope } = {},
 ): Promise<AgendaReservation[]> {
-  const db = await readDb();
+  return agendaFrom(await readDb(), from, to, options);
+}
+
+/** Igual a `getAgenda`, sobre um banco já lido (evita ler de novo na mesma tela). */
+export function agendaFrom(
+  db: Db,
+  from = "0000-01-01",
+  to = "9999-12-31",
+  { includeCancelled = false, scope }: { includeCancelled?: boolean; scope?: Scope } = {},
+): AgendaReservation[] {
   const { services } = catalogOf(db);
   const users = new Map(db.users.map((u) => [u.id, u]));
   return db.reservations

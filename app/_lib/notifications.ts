@@ -2,10 +2,10 @@ import { scopeOf } from "./access";
 import { agendaHref, weekStart } from "./agenda";
 import { nowInStudio } from "./availability";
 import { catalogOf } from "./catalog";
-import { getCustomers } from "./customers";
+import { customersFrom } from "./customers";
 import { readDb, updateDb, type Db, type Notification, type StoredReservation } from "./db";
 import { shortDate } from "./format";
-import { getAgenda, professionalOf, statusOf } from "./reservations";
+import { agendaFrom, professionalOf, statusOf } from "./reservations";
 import { findService } from "./services";
 import type { Customer } from "./roles";
 
@@ -18,8 +18,10 @@ export type { Notification, NotificationKind } from "./db";
 /** Avisos que só o admin recebe. */
 const ADMIN_ONLY = new Set<Notification["kind"]>(["cliente_novo", "falha_marketing", "falha_email"]);
 
-/** Grava um aviso. Use dentro de uma `updateDb`. */
+/** Grava um aviso e apaga os com mais de 30 dias (o sino não mostra e a tabela não cresce). Use dentro de uma `updateDb`. */
 export function pushNotification(db: Db, n: Omit<Notification, "id" | "at">): void {
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  db.notifications = db.notifications.filter((x) => x.at > cutoff);
   db.notifications.push({ ...n, id: crypto.randomUUID(), at: new Date().toISOString() });
 }
 
@@ -42,7 +44,7 @@ export function pushReservationNotice(
   kind: "reserva_marcada" | "reserva_remarcada" | "reserva_cancelada",
   r: StoredReservation,
   actorId: string | undefined,
-  options: { customerName?: string; keepCustomer?: boolean } = {},
+  options: { customerName?: string; keepCustomer?: boolean; previousProfessional?: string | null } = {},
 ): void {
   const service = findService(catalogOf(db).services, r.serviceId);
   const customerName = options.customerName ?? db.users.find((u) => u.id === r.userId)?.name ?? "Cliente";
@@ -54,15 +56,19 @@ export function pushReservationNotice(
   const text = byCustomer
     ? `${customerName} ${verb} ${what} · ${when}`
     : `${actor.name.split(" ")[0]} ${verb} ${what} para ${customerName} · ${when}`;
-  pushNotification(db, {
+  const professional = professionalOf(r, service) ?? undefined;
+  const notice = {
     kind,
     actorId,
-    professional: professionalOf(r, service) ?? undefined,
     ...(options.keepCustomer !== false && { customerId: r.userId }),
     reservationId: r.id,
     date: r.date,
     text,
-  });
+  };
+  pushNotification(db, { ...notice, professional });
+  // Remarcação que trocou de profissional: quem atendia também fica sabendo (o horário saiu da agenda dele).
+  const previous = options.previousProfessional ?? undefined;
+  if (previous && previous !== professional) pushNotification(db, { ...notice, professional: previous });
 }
 
 const DAY_MS = 86_400_000;
@@ -96,11 +102,12 @@ function hrefOf(n: Notification): string {
  * escopo dela e um item "Confirme quem veio" quando houver horários desta
  * semana sem veio/faltou. Mais recentes primeiro, até 30.
  */
-export async function getBell(user: Customer): Promise<{ unseen: number; items: BellItem[] }> {
+export async function getBell(user: Customer, preloaded?: Db): Promise<{ unseen: number; items: BellItem[] }> {
   const staff = user.role === "admin" || (user.role === "barbeiro" && Boolean(user.professional));
   if (!staff) return { unseen: 0, items: [] };
   const scope = scopeOf(user);
-  const db = await readDb();
+  // A moldura do painel passa o banco que já leu: uma leitura só por tela.
+  const db = preloaded ?? (await readDb());
   const since = new Date(Date.now() - WINDOW_DAYS * DAY_MS).toISOString();
   const seenAt = db.users.find((u) => u.id === user.id)?.notificationsSeenAt;
   const seen = seenAt && seenAt > since ? seenAt : since;
@@ -110,7 +117,7 @@ export async function getBell(user: Customer): Promise<{ unseen: number; items: 
     if (n.at > since && isForUser(n, user)) items.push({ id: n.id, text: n.text, at: n.at, href: hrefOf(n) });
   }
 
-  const allowed = scope.all ? null : new Set((await getCustomers(scope, "ficha")).map((c) => c.id));
+  const allowed = scope.all ? null : new Set(customersFrom(db, scope, "ficha").map((c) => c.id));
   const names = new Map(db.users.map((u) => [u.id, u.name]));
   for (const m of db.messages) {
     if (m.from !== "cliente" || m.createdAt <= since || (allowed && !allowed.has(m.customerId))) continue;
@@ -124,7 +131,7 @@ export async function getBell(user: Customer): Promise<{ unseen: number; items: 
 
   // Horários desta semana que já passaram e estão sem veio/faltou: um item só, com a contagem.
   const now = nowInStudio();
-  const pending = (await getAgenda(weekStart(now.date), now.date, { scope })).filter(
+  const pending = agendaFrom(db, weekStart(now.date), now.date, { scope }).filter(
     (r) => statusOf(r, now) !== "agendado" && !r.attendance,
   );
   if (pending.length > 0) {

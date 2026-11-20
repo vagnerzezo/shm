@@ -1,7 +1,7 @@
 import type { Scope } from "./access";
 import { roleOf } from "./auth";
-import { getCustomers } from "./customers";
-import { readDb, updateDb, type ChatMessage, type User } from "./db";
+import { customersFrom, getCustomers } from "./customers";
+import { readDb, updateDb, type ChatMessage, type Db, type User } from "./db";
 
 export type Conversation = {
   customer: { id: string; name: string; phone: string; email: string };
@@ -84,9 +84,10 @@ export function addMessage(
 }
 
 /** Total de mensagens de clientes ainda não lidas pela equipe (barbeiro: só dos clientes dele). */
-export async function getUnreadCount(scope?: Scope) {
-  const allowed = await chatCustomerIds(scope);
-  return (await readDb()).messages.filter((m) => isUnread(m) && (!allowed || allowed.has(m.customerId))).length;
+export async function getUnreadCount(scope?: Scope, preloaded?: Db) {
+  const db = preloaded ?? (await readDb());
+  const allowed = scope && !scope.all ? new Set(customersFrom(db, scope, "ficha").map((c) => c.id)) : null;
+  return db.messages.filter((m) => isUnread(m) && (!allowed || allowed.has(m.customerId))).length;
 }
 
 /** Marca como lidas as mensagens do cliente. Devolve quantas mudaram. */
@@ -108,8 +109,8 @@ const isUnreadByCustomer = (m: ChatMessage, customerId: string) =>
   m.customerId === customerId && m.from === "admin" && !m.readAt;
 
 /** Mensagens do estúdio que o cliente ainda não abriu. */
-export async function getCustomerUnreadCount(customerId: string) {
-  return (await readDb()).messages.filter((m) => isUnreadByCustomer(m, customerId)).length;
+export async function getCustomerUnreadCount(customerId: string, preloaded?: Db) {
+  return (preloaded ?? (await readDb())).messages.filter((m) => isUnreadByCustomer(m, customerId)).length;
 }
 
 /** Cliente abriu a conversa: marca como lidas as mensagens do estúdio. Devolve quantas mudaram. */

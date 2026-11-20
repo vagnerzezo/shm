@@ -14,6 +14,7 @@ import { catalogOf } from "../catalog";
 import { updateDb, type Db, type StoredReservation } from "../db";
 import type { Scope } from "../access";
 import { DomainError } from "../errors";
+import { pushReservationNotice } from "../notifications";
 import { normalizeNewlines } from "./messages";
 import { busyFrom, inScope, isCancelled, isPast, keepOrPick, professionalOf } from "../reservations";
 import { roleOf } from "../roles";
@@ -95,6 +96,7 @@ export async function bookForCustomer(userId: string, items: BookingInput[], not
         time,
         note: cleanedNote,
       });
+      pushReservationNotice(db, "reserva_marcada", db.reservations.at(-1)!, userId);
       ids.push(id);
       // Os próximos itens do mesmo pedido enxergam este: o cliente e o profissional ficam ocupados.
       const start = toMinutes(time);
@@ -159,6 +161,7 @@ export async function rescheduleForCustomer(userId: string, id: string, date: un
       text: rescheduledText(service.name, before, date, time),
       createdAt: new Date().toISOString(),
     });
+    pushReservationNotice(db, "reserva_remarcada", r, userId);
     return { before, serviceName: service.name };
   });
 }
@@ -175,6 +178,7 @@ export async function cancelForCustomer(userId: string, id: string): Promise<Sto
     if (isPast(r, nowInStudio())) throw invalid("Esse horário já passou e não pode ser cancelado.");
     const before: StoredReservation = { ...r };
     Object.assign(r, { cancelledAt: new Date().toISOString(), cancelledBy: "cliente" });
+    pushReservationNotice(db, "reserva_cancelada", r, userId);
     return before;
   });
 }
@@ -247,6 +251,7 @@ export async function bookByAdmin(
     note?: unknown;
   },
   scope: Scope = { all: true },
+  actorId?: string,
 ): Promise<string> {
   if (!isRealDate(input.date)) throw invalid("Escolha a data.", "date");
   if (!isTime(input.time)) throw invalid("Escolha o horário.", "time");
@@ -272,6 +277,7 @@ export async function bookByAdmin(
       note,
       createdBy: "admin",
     });
+    pushReservationNotice(db, "reserva_marcada", db.reservations.at(-1)!, actorId);
     return id;
   });
 }
@@ -282,6 +288,7 @@ export async function rescheduleByAdmin(
   date: unknown,
   time: unknown,
   scope: Scope = { all: true },
+  actorId?: string,
 ): Promise<StoredReservation> {
   if (!isRealDate(date)) throw invalid("Escolha a data.", "date");
   if (!isTime(time)) throw invalid("Escolha o horário.", "time");
@@ -294,6 +301,7 @@ export async function rescheduleByAdmin(
     const { professional } = adminSlot(db, r.serviceId, date, time, { ignoreId: id, current: r.professional, only });
     const before: StoredReservation = { ...r };
     Object.assign(r, { date, time, professional });
+    pushReservationNotice(db, "reserva_remarcada", r, actorId);
     return before;
   });
 }

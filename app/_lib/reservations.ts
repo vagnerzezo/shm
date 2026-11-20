@@ -2,6 +2,7 @@ import { freeProfessionals, nowInStudio, pickProfessional, toMinutes, type Avail
 import type { Scope } from "./access";
 import { catalogOf } from "./catalog";
 import { readDb, updateDb, type Db, type Role, type StoredReservation } from "./db";
+import { pushReservationNotice } from "./notifications";
 import { findService, type Service } from "./services";
 
 export type Reservation = StoredReservation & { service: Service };
@@ -71,7 +72,7 @@ export function inScope(db: Db, r: StoredReservation, scope: Scope): boolean {
 export async function markCancelled(
   id: string,
   by: Role,
-  options: { userId?: string; reason?: string } = {},
+  options: { userId?: string; reason?: string; actorId?: string } = {},
   scope: Scope = { all: true },
 ): Promise<StoredReservation | null> {
   return updateDb((db) => {
@@ -79,6 +80,7 @@ export async function markCancelled(
     if (!r || isCancelled(r) || !inScope(db, r, scope)) return null;
     const before = { ...r };
     Object.assign(r, { cancelledAt: new Date().toISOString(), cancelledBy: by, cancelReason: options.reason || undefined });
+    pushReservationNotice(db, "reserva_cancelada", r, options.actorId ?? options.userId);
     return before;
   });
 }

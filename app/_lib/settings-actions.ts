@@ -7,6 +7,8 @@ import { addDays, nowInStudio, STEP_OPTIONS, toMinutes } from "./availability";
 import { getCatalog } from "./catalog";
 import { updateDb, type SocialNetwork } from "./db";
 import { setTeamMember } from "./domain/team";
+import { shortDate } from "./format";
+import { pushNotification } from "./notifications";
 import { emailProviderReady, sendEmail } from "./email";
 import { messageOf } from "./errors";
 import { buildSample, isEmailKind } from "./email-templates/preview";
@@ -20,12 +22,13 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 async function assertAdmin() {
   const user = await getCurrentUser();
   if (user?.role !== "admin") redirect("/login?next=%2Fadmin%2Fconfiguracoes");
+  return user;
 }
 
 const text = (formData: FormData, name: string) => String(formData.get(name) ?? "").trim();
 
 export async function addClosure(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const start = text(formData, "inicio");
   const end = text(formData, "fim") || start;
   const professional = text(formData, "profissional");
@@ -47,6 +50,15 @@ export async function addClosure(_prev: SettingsState, formData: FormData): Prom
       professional: professional || undefined,
       reason,
       createdAt: new Date().toISOString(),
+    });
+    // Quem atende nesse período fica sabendo (barbeiro do profissional, ou todos se for o estúdio todo).
+    const period = start === end ? shortDate(start, { year: false }) : `${shortDate(start, { year: false })} a ${shortDate(end, { year: false })}`;
+    pushNotification(db, {
+      kind: "dia_fechado",
+      actorId: admin.id,
+      professional: professional || undefined,
+      date: start,
+      text: `Agenda fechada: ${reason} · ${period}${professional ? ` · ${professional}` : ""}`,
     });
   });
   refresh();

@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { describe, test } from "node:test";
+import { beforeEach, describe, test } from "node:test";
+import { addDays, nowInStudio } from "../app/_lib/availability";
+import { readDb } from "../app/_lib/db";
+import { deleteOwnAccount, registerCustomer } from "../app/_lib/domain/account";
+import { bookByAdmin, bookForCustomer, cancelForCustomer, rescheduleByAdmin, rescheduleForCustomer } from "../app/_lib/domain/bookings";
+import { sendWelcomeEmail } from "../app/_lib/email-templates/send";
+import { markCancelled } from "../app/_lib/reservations";
+import { resetTestDb } from "../scripts/test-reset";
+import { PASSWORD, USERS } from "./fixtures";
 import { isForUser, type Notification } from "../app/_lib/notifications";
 import { toCustomer } from "../app/_lib/roles";
 
@@ -37,5 +45,68 @@ describe("quem recebe cada aviso", () => {
   test("cliente nunca recebe", () => {
     const cli = toCustomer({ ...base, id: "c", name: "C", email: "c@shm.test" });
     assert.equal(isForUser(n({ professional: "Heitor" }), cli), false);
+  });
+});
+
+describe("acontecimentos viram avisos", () => {
+  beforeEach(resetTestDb);
+  const day = addDays(nowInStudio().date, 5);
+  const last = async () => (await readDb()).notifications.at(-1);
+  const all = async () => (await readDb()).notifications;
+
+  test("cliente marca: aviso com profissional, cliente, reserva e quem fez", async () => {
+    const [id] = await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    const n = await last();
+    assert.deepEqual(
+      { kind: n!.kind, professional: n!.professional, customerId: n!.customerId, actorId: n!.actorId, reservationId: n!.reservationId, date: n!.date },
+      { kind: "reserva_marcada", professional: "Heitor", customerId: USERS.cliente.id, actorId: USERS.cliente.id, reservationId: id, date: day },
+    );
+    assert.match(n!.text, /Cliente Teste marcou Corte com Heitor/);
+  });
+
+  test("serviço sem profissional fixo: aviso vai para quem atende", async () => {
+    const [id] = await bookForCustomer(USERS.cliente.id, [{ serviceId: "barba-pigmentacao", date: day, time: "10:00" }]);
+    const r = (await readDb()).reservations.find((x) => x.id === id)!;
+    assert.equal((await last())!.professional, r.professional);
+  });
+
+  test("cliente remarca e cancela", async () => {
+    const [id] = await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    await rescheduleForCustomer(USERS.cliente.id, id, day, "15:00");
+    assert.equal((await last())!.kind, "reserva_remarcada");
+    await cancelForCustomer(USERS.cliente.id, id);
+    assert.deepEqual([(await last())!.kind, (await last())!.actorId], ["reserva_cancelada", USERS.cliente.id]);
+  });
+
+  test("equipe marca, remarca e cancela: quem fez fica gravado", async () => {
+    const id = await bookByAdmin({ customerId: USERS.cliente.id, serviceId: "corte-heitor", date: day, time: "10:00" }, { all: true }, USERS.admin.id);
+    assert.deepEqual([(await last())!.kind, (await last())!.actorId], ["reserva_marcada", USERS.admin.id]);
+    await rescheduleByAdmin(id, day, "15:00", { all: true }, USERS.admin.id);
+    assert.equal((await last())!.kind, "reserva_remarcada");
+    await markCancelled(id, "admin", { reason: "x", actorId: USERS.admin.id });
+    assert.deepEqual([(await last())!.kind, (await last())!.actorId], ["reserva_cancelada", USERS.admin.id]);
+  });
+
+  test("ação recusada não grava aviso", async () => {
+    await assert.rejects(bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: "2026-02-31", time: "10:00" }]));
+    assert.equal((await all()).length, 0);
+  });
+
+  test("cadastro pelo site avisa o admin", async () => {
+    const u = await registerCustomer({ name: "Nova Pessoa", phone: "51911112222", email: "nova@shm.test" }, "senha-boa-1", "203.0.113.5");
+    assert.deepEqual([(await last())!.kind, (await last())!.customerId], ["cliente_novo", u.id]);
+  });
+
+  test("cliente que exclui a conta: aviso de cancelamento das reservas futuras", async () => {
+    await bookForCustomer(USERS.cliente2.id, [{ serviceId: "corte-jimmy", date: day, time: "10:00" }]);
+    await deleteOwnAccount(USERS.cliente2.id, PASSWORD);
+    const n = (await last())!;
+    assert.deepEqual([n.kind, n.professional, n.customerId], ["reserva_cancelada", "Jimmy", undefined]);
+    assert.match(n.text, /Cliente Dois/);
+  });
+
+  test("e-mail com o envio desligado não vira falha", async () => {
+    await sendWelcomeEmail(USERS.cliente.id);
+    assert.equal((await all()).length, 0);
   });
 });

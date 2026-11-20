@@ -43,7 +43,7 @@ export async function createReservationByAdmin(
 
   let id: string;
   try {
-    id = await bookByAdmin({ customerId, serviceId, date, time, note: text(formData, "observacao") }, scope);
+    id = await bookByAdmin({ customerId, serviceId, date, time, note: text(formData, "observacao") }, scope, user.id);
   } catch (error) {
     return { error: messageOf(error) };
   }
@@ -73,7 +73,7 @@ export async function rescheduleReservation(
 
   let before;
   try {
-    before = await rescheduleByAdmin(id, date, time, scope);
+    before = await rescheduleByAdmin(id, date, time, scope, user.id);
   } catch (error) {
     return { error: messageOf(error) };
   }
@@ -95,7 +95,7 @@ export async function cancelReservationByAdmin(formData: FormData) {
   const reason = text(formData, "motivo").slice(0, 200);
 
   const db = await readDb();
-  const target = await markCancelled(id, "admin", { reason }, scope);
+  const target = await markCancelled(id, "admin", { reason, actorId: user.id }, scope);
   if (!target) return;
 
   const upcoming = !isPast(target, nowInStudio());

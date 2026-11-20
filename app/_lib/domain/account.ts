@@ -1,7 +1,10 @@
 import { and, count, eq, gt, lt } from "drizzle-orm";
 import { orm, purgeUser, readDb, updateDb, type User } from "../db";
 import { loginAttempts, signupAttempts } from "../db-schema";
+import { nowInStudio } from "../availability";
 import { DomainError } from "../errors";
+import { pushNotification, pushReservationNotice } from "../notifications";
+import { isCancelled, isPast } from "../reservations";
 import { completePasswordReset, startPasswordReset } from "../password-reset";
 import { hashPassword, verifyPassword } from "../passwords";
 import { parseProfile, type ProfileInput } from "../profile";
@@ -80,6 +83,7 @@ export async function registerCustomer(input: ProfileInput, password: unknown, i
     if (db.users.some((u) => u.email === profile.email)) return null;
     const user: User = { id: crypto.randomUUID(), ...profile, passwordHash, createdAt: new Date().toISOString() };
     db.users.push(user);
+    pushNotification(db, { kind: "cliente_novo", actorId: user.id, customerId: user.id, text: `Novo cliente: ${user.name}` });
     return user;
   });
   if (!user) {
@@ -149,7 +153,16 @@ export async function deleteOwnAccount(userId: string, password: unknown): Promi
   if (typeof password !== "string" || !(await verifyPassword(password, user.passwordHash))) {
     throw new DomainError("validation", "Senha incorreta.", { password: "Senha incorreta." });
   }
-  await updateDb((db) => purgeUser(db, userId));
+  await updateDb((db) => {
+    // Os horários futuros somem com a conta: quem atende fica sabendo do cancelamento.
+    const now = nowInStudio();
+    for (const r of db.reservations) {
+      if (r.userId === userId && !isCancelled(r) && !isPast(r, now)) {
+        pushReservationNotice(db, "reserva_cancelada", r, userId, { customerName: user.name, keepCustomer: false });
+      }
+    }
+    purgeUser(db, userId);
+  });
 }
 
 /** Nova senha a partir do código enviado por e-mail. Encerra as sessões abertas. */

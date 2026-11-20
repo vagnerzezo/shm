@@ -6,6 +6,7 @@ import {
   readDb,
   updateDb,
   type Channel,
+  type Db,
   type Dispatch,
   type SendRule,
   type StoredReservation,
@@ -15,6 +16,7 @@ import {
 import { appUrl, sendEmail as sendRawEmail } from "./email";
 import { contentToHtml, emailReadyHtml, escapeHtml, htmlToText, renderHtmlTemplate } from "./email-html";
 import { renderTemplate, sampleValues, type VariableKey } from "./marketing-template";
+import { pushNotification } from "./notifications";
 import { isPast } from "./reservations";
 import { catalogOf } from "./catalog";
 import { getStudio, studioOf } from "./studio";
@@ -157,6 +159,12 @@ export function runMarketing({ send = true } = {}): Promise<RunResult> {
   return running;
 }
 
+/** Aviso no sino do admin quando um envio de marketing falha. */
+function marketingFailed(db: Db, d: Dispatch) {
+  const name = db.users.find((u) => u.id === d.customerId)?.name ?? "cliente";
+  pushNotification(db, { kind: "falha_marketing", customerId: d.customerId, text: `Falha no envio de marketing para ${name}: ${d.ruleName}` });
+}
+
 async function run(send: boolean): Promise<RunResult> {
   const now = nowInStudio();
   const stamp = () => new Date().toISOString();
@@ -169,6 +177,7 @@ async function run(send: boolean): Promise<RunResult> {
     const finish = (d: Dispatch, status: "cancelado" | "falha", reason: string) => {
       Object.assign(d, { status, reason, updatedAt: stamp() });
       result[status === "cancelado" ? "cancelled" : "failed"]++;
+      if (status === "falha") marketingFailed(db, d);
     };
 
     // 1. Pendentes que perderam o sentido.
@@ -304,6 +313,7 @@ async function run(send: boolean): Promise<RunResult> {
         if (error) {
           Object.assign(d, { status: "falha", reason: error, updatedAt: stamp() });
           result.failed++;
+          marketingFailed(db, d);
         } else {
           Object.assign(d, { status: "enviado", reason: undefined, sentAt: stamp(), updatedAt: stamp() });
           result.sent++;

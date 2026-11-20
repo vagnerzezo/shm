@@ -1,6 +1,7 @@
 import { catalogOf } from "../catalog";
 import { appUrl, emailProviderReady, sendEmail } from "../email";
-import { readDb, type StoredReservation } from "../db";
+import { readDb, updateDb, type StoredReservation } from "../db";
+import { pushNotification } from "../notifications";
 import { findService, type Service } from "../services";
 import { studioOf } from "../studio";
 import {
@@ -32,6 +33,15 @@ async function deliver(to: string, email: BuiltEmail, idempotencyKey: string, ki
     });
   } catch (error) {
     console.error(`[e-mail:${kind}] Falha ao enviar para ${to}:`, error);
+    // O cliente pode ter ficado sem a confirmação: avisa o admin pelo sino.
+    await updateDb((db) => {
+      const user = db.users.find((u) => u.email === to);
+      pushNotification(db, {
+        kind: "falha_email",
+        customerId: user?.id,
+        text: `E-mail não enviado (${kind}) para ${user?.name ?? to}`,
+      });
+    }).catch((e) => console.error("[e-mail] Não deu para registrar o aviso da falha:", e));
   }
 }
 

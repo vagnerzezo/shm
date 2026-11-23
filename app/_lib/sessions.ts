@@ -58,3 +58,14 @@ export async function revokeUserSessions(userId: string, exceptToken?: string | 
     .delete(sessions)
     .where(exceptToken ? and(eq(sessions.userId, userId), ne(sessions.token, hashToken(exceptToken))) : eq(sessions.userId, userId));
 }
+
+/**
+ * Token da requisição. `Authorization: Bearer <token>` (app) tem prioridade
+ * sobre o cookie (site); um Bearer malformado não cai no cookie. Cabeçalho de
+ * outro tipo (ex.: Basic, posto por um proxy) é ignorado e vale o cookie.
+ */
+export function tokenFrom(authorization: string | null, cookie: string | null): string | null {
+  const value = authorization?.trim() ?? "";
+  if (!/^bearer(\s|$)/i.test(value)) return cookie;
+  return /^Bearer\s+(\S+)$/i.exec(value)?.[1] ?? null;
+}

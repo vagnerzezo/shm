@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { before, test } from "node:test";
+import { before, describe, test } from "node:test";
 import { eq } from "drizzle-orm";
 import { orm, updateDb } from "../app/_lib/db";
 import { sessions } from "../app/_lib/db-schema";
-import { createSessionToken, findSessionUser, hashToken, revokeSession, revokeUserSessions } from "../app/_lib/sessions";
+import { createSessionToken, findSessionUser, hashToken, revokeSession, revokeUserSessions, tokenFrom } from "../app/_lib/sessions";
 import { resetTestDb } from "../scripts/test-reset";
 import { USERS } from "./fixtures";
 
@@ -77,4 +77,26 @@ test("conta desativada perde o acesso mesmo com sessão aberta", async () => {
     db.users.find((u) => u.id === USERS.cliente2.id)!.disabledAt = new Date().toISOString();
   });
   assert.equal(await findSessionUser(token), null);
+});
+
+describe("token da requisição", () => {
+  test("Bearer vale e tem prioridade sobre o cookie", () => {
+    assert.equal(tokenFrom("Bearer abc", "cookie"), "abc");
+    assert.equal(tokenFrom("  bearer   abc ", null), "abc");
+  });
+
+  test("Bearer malformado não cai no cookie", () => {
+    assert.equal(tokenFrom("Bearer", "cookie"), null);
+    assert.equal(tokenFrom("Bearer a b", "cookie"), null);
+  });
+
+  test("cabeçalho de outro tipo é ignorado e vale o cookie", () => {
+    assert.equal(tokenFrom("Basic dXNlcjpzZW5oYQ==", "cookie"), "cookie");
+    assert.equal(tokenFrom("lixo", null), null);
+  });
+
+  test("sem cabeçalho, vale o cookie", () => {
+    assert.equal(tokenFrom(null, "cookie"), "cookie");
+    assert.equal(tokenFrom(null, null), null);
+  });
 });

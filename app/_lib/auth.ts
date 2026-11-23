@@ -4,7 +4,7 @@ import { cache } from "react";
 import { canOpen, scopeOf, type Scope } from "./access";
 import { DomainError } from "./errors";
 import { homeOf, type BarberMenu, type Customer } from "./roles";
-import { createSessionToken, findSessionUser, revokeSession } from "./sessions";
+import { createSessionToken, findSessionUser, revokeSession, tokenFrom } from "./sessions";
 
 export { hashPassword, verifyPassword } from "./passwords";
 export { homeOf, roleOf, type Customer } from "./roles";
@@ -31,14 +31,9 @@ export async function deleteSession() {
   store.delete(SESSION_COOKIE);
 }
 
-/** Token da requisição: `Authorization: Bearer <token>` (app) tem prioridade sobre o cookie (site). */
+/** Token da requisição (regra em `tokenFrom`): Bearer do app, senão o cookie do site. */
 export async function currentToken(): Promise<string | null> {
-  const authorization = (await headers()).get("authorization");
-  if (authorization !== null) {
-    const match = /^Bearer\s+(\S+)$/i.exec(authorization.trim());
-    return match ? match[1] : null;
-  }
-  return (await cookies()).get(SESSION_COOKIE)?.value ?? null;
+  return tokenFrom((await headers()).get("authorization"), (await cookies()).get(SESSION_COOKIE)?.value ?? null);
 }
 
 export const getCurrentUser = cache(async (): Promise<Customer | null> => {

@@ -23,7 +23,10 @@ export type Customer = {
   consent: Consent;
   /** Profissional ligado (barbeiro, ou admin que também atende). */
   professional?: string;
-  /** Menus extras liberados (só barbeiro; `[]` para admin e cliente). */
+  /**
+   * Resto das permissões por menu (2026-11-19). Desde a área do barbeiro, os
+   * menus dele são fixos (ver `canOpen`) e nada lê este campo.
+   */
   menus: BarberMenu[];
 };
 

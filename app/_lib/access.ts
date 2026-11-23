@@ -2,8 +2,9 @@ import { DomainError } from "./errors";
 import type { BarberMenu, Customer } from "./roles";
 
 // Regra central de acesso da equipe: quem abre cada menu do painel e de quais
-// dados. Admin vê tudo; barbeiro só os menus liberados, filtrados pelo
-// profissional dele. Sem dependência do Next, para servir a testes e ações.
+// dados. Admin vê tudo; barbeiro com profissional abre os menus fixos da área
+// dele (agenda, clientes, histórico, chat), só com os dados do profissional.
+// Sem dependência do Next, para servir a testes e ações.
 
 /** De quais dados: todos (admin) ou só os do profissional e da conta do barbeiro. */
 export type Scope = { all: true } | { all: false; professional: string; userId: string };

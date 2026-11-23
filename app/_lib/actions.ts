@@ -26,9 +26,19 @@ import { addMessage, markConversationRead, markReadByCustomer } from "./chat";
 import { sendBookingCancelledEmail, sendBookingConfirmedEmail, sendWelcomeEmail } from "./email-templates/send";
 
 export type FormState = { error: string | null };
+/** Login e cadastro: com erro, devolve o que foi digitado (sem a senha) para o formulário não voltar vazio. */
+export type AuthFormState = FormState & { values?: Record<string, string> };
+
+/** Campos do login/cadastro a preencher de novo depois de um erro. */
+function typedValues(formData: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const name of ["nome", "telefone", "email"]) values[name] = String(formData.get(name) ?? "");
+  for (const name of ["aceita_email", "aceita_mensagem"]) if (formData.get(name) === "on") values[name] = "on";
+  return values;
+}
 export type ProfileState = { error: string | null; saved: boolean };
 
-export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function signUp(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   let user;
   try {
     user = await registerCustomer(
@@ -38,9 +48,9 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     );
   } catch (error) {
     if (error instanceof DomainError && error.code === "email_taken") {
-      return { error: "Já existe uma conta com esse e-mail. Use a aba Entrar." };
+      return { error: "Já existe uma conta com esse e-mail. Use a aba Entrar.", values: typedValues(formData) };
     }
-    return { error: messageOf(error) };
+    return { error: messageOf(error), values: typedValues(formData) };
   }
   const userId = user.id;
   await createSession(userId);
@@ -48,12 +58,12 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   redirect(safeNext(formData.get("next"), homeOf(user)));
 }
 
-export async function signIn(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function signIn(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   let user;
   try {
     user = await authenticate(String(formData.get("email") ?? ""), String(formData.get("senha") ?? ""));
   } catch (error) {
-    return { error: messageOf(error) };
+    return { error: messageOf(error), values: typedValues(formData) };
   }
   await createSession(user.id);
   redirect(safeNext(formData.get("next"), homeOf(user)));

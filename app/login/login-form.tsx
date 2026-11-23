@@ -62,6 +62,8 @@ export function LoginForm({
   const signingUp = mode === "cadastro";
   const mobile = variant === "mobile";
   const [state, action, pending] = useActionState(signingUp ? signUp : signIn, { error: null });
+  // Depois de um erro, o React limpa o formulário; estes valores o preenchem de novo (a senha não volta).
+  const typed = state.values ?? {};
 
   return (
     <form action={action} className={mobile ? "flex flex-col gap-3.5" : "mt-6 flex flex-col gap-4"}>
@@ -73,6 +75,7 @@ export function LoginForm({
             variant={variant}
             label="Nome"
             name="nome"
+            defaultValue={typed.nome}
             minLength={2}
             autoComplete="name"
             placeholder={mobile ? "Seu nome completo" : undefined}
@@ -81,6 +84,7 @@ export function LoginForm({
             variant={variant}
             label="Telefone / WhatsApp"
             name="telefone"
+            defaultValue={typed.telefone}
             type="tel"
             inputMode="tel"
             autoComplete={mobile ? "tel-national" : "tel"}
@@ -93,6 +97,7 @@ export function LoginForm({
         variant={variant}
         label="E-mail"
         name="email"
+        defaultValue={typed.email}
         type="email"
         maxLength={120}
         autoComplete="email"
@@ -107,7 +112,11 @@ export function LoginForm({
         autoComplete={signingUp ? "new-password" : "current-password"}
         placeholder={signingUp ? "Mínimo de 8 caracteres" : undefined}
       />
-      {signingUp && <ConsentFields />}
+      {signingUp && (
+        <ConsentFields
+          {...(state.values && { consent: { email: typed.aceita_email === "on", mensagem: typed.aceita_mensagem === "on" } })}
+        />
+      )}
 
       {state.error && (
         <p role="alert" className={`${mobile ? "rounded-[14px]" : "rounded-lg"} bg-red-50 px-4 py-3 text-sm font-medium text-red-800`}>

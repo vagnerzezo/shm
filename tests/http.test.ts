@@ -69,3 +69,23 @@ test("parseRange: um dia só passa; data impossível aponta o campo", () => {
   assert.throws(() => parseRange("2026-02-31", "2026-03-01"), isValidation("from"));
   assert.throws(() => parseRange("2026-03-01", undefined), isValidation("to"));
 });
+
+const req = (method: string, headers: Record<string, string>) =>
+  new Request("https://shm.example/api/v1/me", { method, headers });
+const ok = handle(async () => ({ ok: true }));
+
+test("handle: pedido com cookie vindo de outro site é recusado (403)", async () => {
+  const res = await ok(req("POST", { origin: "https://malicioso.example", cookie: "shm_sessao=x" }), undefined);
+  assert.equal(res.status, 403);
+  assert.equal((await res.json()).error.code, "forbidden");
+});
+
+test("handle: mesmo site, sem Origin, GET ou Bearer continuam passando", async () => {
+  const cases = [
+    req("POST", { origin: "https://shm.example", cookie: "shm_sessao=x" }),
+    req("PATCH", { cookie: "shm_sessao=x" }),
+    req("GET", { origin: "https://malicioso.example", cookie: "shm_sessao=x" }),
+    req("POST", { origin: "https://malicioso.example", authorization: "Bearer abc" }),
+  ];
+  for (const r of cases) assert.equal((await ok(r, undefined)).status, 200, `${r.method} ${[...r.headers.keys()].join(",")}`);
+});

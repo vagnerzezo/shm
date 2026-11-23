@@ -14,7 +14,7 @@ import { catalogOf } from "../catalog";
 import { updateDb, type Db, type StoredReservation } from "../db";
 import type { Scope } from "../access";
 import { DomainError } from "../errors";
-import { pushReservationNotice } from "../notifications";
+import { pushReservationNotice, RESCHEDULED_PREFIX } from "../notifications";
 import { normalizeNewlines } from "./messages";
 import { busyFrom, inScope, isCancelled, isPast, keepOrPick, professionalOf } from "../reservations";
 import { roleOf } from "../roles";
@@ -168,7 +168,7 @@ export async function rescheduleForCustomer(userId: string, id: string, date: un
 
 /** Aviso no chat quando o cliente remarca (o estúdio fica sabendo). */
 export function rescheduledText(serviceName: string, before: { date: string; time: string }, date: string, time: string) {
-  return `Remarquei ${serviceName}: de ${formatLongDate(before.date)} às ${before.time} para ${formatLongDate(date)} às ${time}.`;
+  return `${RESCHEDULED_PREFIX}${serviceName}: de ${formatLongDate(before.date)} às ${before.time} para ${formatLongDate(date)} às ${time}.`;
 }
 
 /** Cliente cancela uma reserva futura. Devolve a reserva como era. */

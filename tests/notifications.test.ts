@@ -161,6 +161,19 @@ describe("leitura do sino", () => {
     assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 0);
   });
 
+  test("remarcação do cliente aparece uma vez no sino (o aviso, não a mensagem automática)", async () => {
+    const [id] = await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    await markBellSeen(USERS.heitor.id);
+    await new Promise((r) => setTimeout(r, 5));
+    await rescheduleForCustomer(USERS.cliente.id, id, day, "15:00");
+    const novos = (await getBell(await me(USERS.heitor.id))).items.filter((i) => i.unseen);
+    assert.equal(novos.length, 1);
+    assert.match(novos[0].href, /\/admin\/agenda\?/);
+    // Mensagem que o cliente escreve de verdade continua aparecendo.
+    await addMessage(USERS.cliente.id, "cliente", "chego 5 min atrasado");
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 2);
+  });
+
   test("mensagens: barbeiro só dos clientes dele; admin de todos", async () => {
     await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
     await markBellSeen(USERS.heitor.id);

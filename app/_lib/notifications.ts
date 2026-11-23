@@ -9,6 +9,9 @@ import { agendaFrom, professionalOf, statusOf } from "./reservations";
 import { findService } from "./services";
 import type { Customer } from "./roles";
 
+/** Começo da mensagem automática que o cliente manda ao remarcar (ver `rescheduledText`). */
+export const RESCHEDULED_PREFIX = "Remarquei ";
+
 // Sino de notificações: cada acontecimento vira um aviso (gravado na mesma
 // transação da ação). Quem recebe é decidido na leitura: o admin vê tudo, o
 // barbeiro o que é do profissional dele, e ninguém vê o que ele mesmo fez.
@@ -119,8 +122,17 @@ export async function getBell(user: Customer, preloaded?: Db): Promise<{ unseen:
 
   const allowed = scope.all ? null : new Set(customersFrom(db, scope, "ficha").map((c) => c.id));
   const names = new Map(db.users.map((u) => [u.id, u.name]));
+  // Ao remarcar, o cliente gera um aviso e uma mensagem automática no chat, gravados juntos:
+  // o sino mostra só o aviso (que leva à agenda). A mensagem continua no chat.
+  const rescheduledBy = db.notifications
+    .filter((n) => n.kind === "reserva_remarcada" && n.actorId && n.at > since)
+    .map((n) => ({ customerId: n.actorId!, at: Date.parse(n.at) }));
+  const isRescheduleEcho = (m: { customerId: string; createdAt: string; text: string }) =>
+    m.text.startsWith(RESCHEDULED_PREFIX) &&
+    rescheduledBy.some((r) => r.customerId === m.customerId && Math.abs(r.at - Date.parse(m.createdAt)) <= 2000);
   for (const m of db.messages) {
     if (m.from !== "cliente" || m.createdAt <= since || (allowed && !allowed.has(m.customerId))) continue;
+    if (isRescheduleEcho(m)) continue;
     items.push({
       id: `msg-${m.id}`,
       text: `Mensagem de ${names.get(m.customerId) ?? "cliente"}: ${m.text.length > 60 ? `${m.text.slice(0, 60)}…` : m.text}`,

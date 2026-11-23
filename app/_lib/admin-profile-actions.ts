@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "./auth";
 import { updateDb } from "./db";
@@ -26,5 +27,7 @@ export async function updateAdminProfile(_prev: AdminProfileState, formData: For
     return true;
   });
   if (!ok) return { error: "Esse e-mail já está em uso em outra conta.", saved: false };
+  // O formulário volta aos valores da página depois de salvar; sem recarregar, mostraria os antigos.
+  refresh();
   return { error: null, saved: true };
 }

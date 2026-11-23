@@ -114,6 +114,8 @@ export async function updateProfile(_prev: ProfileState, formData: FormData): Pr
   } catch (error) {
     return { error: messageOf(error), saved: false };
   }
+  // O formulário volta aos valores da página depois de salvar; sem recarregar, mostraria os antigos.
+  refresh();
   return { error: null, saved: true };
 }
 

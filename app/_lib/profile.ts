@@ -34,13 +34,16 @@ export function parseConsent(raw: unknown, base: Consent = { email: false, mensa
   };
 }
 
-/** Valida e normaliza. Lança `validation` apontando o campo. `baseConsent` completa um `consent` parcial. */
-export function parseProfile(input: ProfileInput, baseConsent?: Consent): Profile {
+/**
+ * Valida e normaliza. Lança `validation` apontando o campo. `baseConsent` completa um `consent` parcial.
+ * Com `phoneOptional` (barbeiro, cuja conta nasce sem telefone), o telefone vazio é aceito.
+ */
+export function parseProfile(input: ProfileInput, baseConsent?: Consent, { phoneOptional = false } = {}): Profile {
   const name = typeof input.name === "string" ? input.name.trim() : "";
   const phone = phoneDigits(input.phone);
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   if (name.length < 2) throw invalid("name", "Informe seu nome.");
-  if (phone.length < 10 || phone.length > 11) throw invalid("phone", "Informe um WhatsApp válido, com DDD.");
+  if ((phone || !phoneOptional) && (phone.length < 10 || phone.length > 11)) throw invalid("phone", "Informe um WhatsApp válido, com DDD.");
   if (email.length > 120 || !EMAIL_RE.test(email)) throw invalid("email", "Informe um e-mail válido.");
   return { name, phone, email, consent: parseConsent(input.consent, baseConsent) };
 }

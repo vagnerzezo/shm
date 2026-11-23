@@ -110,6 +110,16 @@ describe("conta", () => {
     await assert.rejects(registerCustomer({ ...novo, email: "tipo@shm.test", consent: [true] }, "senha-boa-1", IP), rejectsWith("validation", "consent"));
   });
 
+  test("barbeiro salva os dados sem telefone; cliente não", async () => {
+    await updateOwnProfile(USERS.heitor.id, { name: "Heitor Sem Telefone", phone: "" });
+    const heitor = (await readDb()).users.find((u) => u.id === USERS.heitor.id)!;
+    assert.equal(heitor.name, "Heitor Sem Telefone");
+    assert.equal(heitor.phone, "");
+    // Telefone informado continua sendo conferido.
+    await assert.rejects(updateOwnProfile(USERS.heitor.id, { phone: "123" }), rejectsWith("validation", "phone"));
+    await assert.rejects(updateOwnProfile(USERS.cliente2.id, { phone: "" }), rejectsWith("validation", "phone"));
+  });
+
   test("atualizar perfil com e-mail de outra conta é recusado", async () => {
     await assert.rejects(updateOwnProfile(USERS.cliente.id, { email: USERS.cliente2.email }), rejectsWith("email_taken"));
   });

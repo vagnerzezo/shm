@@ -26,7 +26,7 @@ export default async function ContaPage() {
           phone={formatPhone(customer.phone)}
           email={customer.email}
           consent={customer.consent}
-          {...(customer.role === "barbeiro" && { returnHref: "/barbeiro", returnLabel: "Minha agenda" })}
+          {...(customer.role === "barbeiro" && { returnHref: "/barbeiro", returnLabel: "Minha agenda", phoneOptional: true })}
         />
         <div className="mt-5 flex max-w-xl flex-col gap-5">
           <PasswordForm />

@@ -106,6 +106,7 @@ export async function updateOwnProfile(userId: string, input: ProfileInput): Pro
         consent: input.consent,
       },
       current.consent,
+      { phoneOptional: current.role === "barbeiro" },
     );
     if (db.users.some((u) => u.email === profile.email && u.id !== userId)) return "taken";
     Object.assign(current, profile);

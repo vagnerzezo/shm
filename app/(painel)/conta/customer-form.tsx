@@ -17,6 +17,8 @@ type Props = {
   consent: Consent;
   returnHref?: string;
   returnLabel?: string;
+  /** Barbeiro: a conta nasce sem telefone, então ele pode deixar vazio. */
+  phoneOptional?: boolean;
 };
 
 export function CustomerForm({
@@ -26,6 +28,7 @@ export function CustomerForm({
   consent,
   returnHref = "/reservas",
   returnLabel = "Minhas reservas",
+  phoneOptional = false,
 }: Props) {
   const [state, action, pending] = useActionState(updateProfile, { error: null, saved: false });
 
@@ -43,11 +46,13 @@ export function CustomerForm({
         />
       </label>
       <label className="mt-5 block">
-        <span className="block text-sm font-semibold text-black">Telefone / WhatsApp</span>
+        <span className="block text-sm font-semibold text-black">
+          Telefone / WhatsApp{phoneOptional && <span className="font-normal text-black/60"> (opcional)</span>}
+        </span>
         <input
           name="telefone"
           type="tel"
-          required
+          required={!phoneOptional}
           inputMode="tel"
           autoComplete="tel"
           placeholder="(51) 99999-9999"

@@ -48,13 +48,21 @@ export function NotificationBell() {
   const bell = panel?.bell;
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   // Zera na hora ao abrir; volta a valer o do servidor quando chegar um aviso novo.
   const unseen = panel?.seenAll ? 0 : (bell?.unseen ?? 0);
 
   useEffect(() => {
     if (!open) return;
+    // Ao abrir, o foco vai para a lista; Esc fecha e devolve o foco ao sino.
+    panelRef.current?.focus();
     const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !box.current?.contains(e.target as Node)) setOpen(false);
+      if (e instanceof KeyboardEvent) {
+        if (e.key !== "Escape") return;
+        setOpen(false);
+        button.current?.focus();
+      } else if (!box.current?.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", close);
@@ -75,6 +83,7 @@ export function NotificationBell() {
   return (
     <div ref={box} className="relative">
       <button
+        ref={button}
         type="button"
         onClick={toggle}
         aria-label={unseen > 0 ? `Notificações: ${unseen} ${unseen === 1 ? "nova" : "novas"}` : "Notificações"}
@@ -91,9 +100,11 @@ export function NotificationBell() {
 
       {open && (
         <div
+          ref={panelRef}
+          tabIndex={-1}
           role="dialog"
           aria-label="Notificações"
-          className="absolute top-13 right-0 z-30 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-black/10 bg-white text-left shadow-2xl"
+          className="absolute top-13 right-0 z-30 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-black/10 bg-white text-left shadow-2xl outline-none"
         >
           <p className="border-b border-black/10 px-4 py-3 text-sm font-bold text-black">Notificações</p>
           {bell.items.length === 0 ? (

@@ -28,8 +28,8 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele.
-2. **Trocar o snapshot do Neon:** o atual é de 2026-11-19, antes das migrações `0005` a `0007` (ver "Como restaurar").
-3. **Seção 3:** conferir no navegador (servidor de teste, porta 3100) as 4 telas cobertas só por teste automático.
+2. ~~**Trocar o snapshot do Neon**~~ **Feito (2026-11-23):** `base-2026-11-23-sino-chat`, com as migrações até a `0007`.
+3. ~~**Seção 3**~~ **Feito (2026-11-23):** as 4 telas conferidas no navegador (ver seção 3).
 4. **Seção 4:** visual novo no celular para Descadastrar; barbeiro salvar "Meus dados" sem telefone; admin redefinir a senha do barbeiro; rodapé novo nos e-mails de marketing.
 5. **Pontos menores** acima e **seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
 6. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
@@ -49,7 +49,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 | 1.1 | ~~Criar a conta de admin e apagar as contas de teste~~ **Feito (2026-11-19):** admin é a conta pessoal do dono do projeto; `cliente@`, `admin@` e `heitor@shm.test` apagadas da produção. **Falta:** criar pelo painel o acesso de barbeiro do Heitor com o e-mail real | O `.data/contas-teste.txt` local ficou obsoleto |
 | 1.2 | Se um dia voltar a usar `ADMIN_EMAILS`, criar antes a conta de cada e-mail da lista | Quem se cadastrar com um e-mail da lista que ainda não tem conta vira admin. Por isso `ADMIN_EMAILS` não está configurado na Vercel |
 | 1.3 | ~~Limitar tentativas também no **cadastro**~~ **Feito (2026-11-19):** até 10 cadastros por hora por IP, contando os recusados por e-mail em uso (tabela `signup_attempts`, migração `0004`) | Igual ao login, a contagem fica fora de trava (ver 2.3) |
-| 1.4 | ~~Conferir os **backups do Neon**~~ **Feito (2026-11-19):** plano Free = volta até **6 horas** no tempo, 1 snapshot manual, sem backup agendado. Snapshot `base-2026-11-19-admin-real` criado e restauração testada num branch separado (apagado depois). Ver "Como restaurar" abaixo | Antes de mudanças grandes, apagar o snapshot antigo e criar outro (o Free só guarda 1). Backup recorrente (Launch ou `pg_dump` próprio) fica para quando houver clientes de verdade |
+| 1.4 | ~~Conferir os **backups do Neon**~~ **Feito (2026-11-19):** plano Free = volta até **6 horas** no tempo, 1 snapshot manual, sem backup agendado. Snapshot `base-2026-11-19-admin-real` criado e restauração testada num branch separado (apagado depois). Ver "Como restaurar" abaixo. **Trocado em 2026-11-23** por `base-2026-11-23-sino-chat` | Antes de mudanças grandes, apagar o snapshot antigo e criar outro (o Free só guarda 1). Backup recorrente (Launch ou `pg_dump` próprio) fica para quando houver clientes de verdade |
 | 1.5 | **Domínio próprio** (ex.: `agenda.studioheitormacks.com.br`) na Vercel e trocar o `APP_URL` | Os links dos e-mails usam o `APP_URL`; hoje é `shm-eta.vercel.app` |
 | 1.6 | ~~Mandar um **e-mail de teste** em produção~~ **Boas-vindas e redefinição de senha conferidos (2026-11-19):** chegaram na caixa de entrada do Hotmail, com imagens; o link de redefinição abre o formulário em produção (e um pedido novo invalida o link anterior, como esperado). Domínio `vagnerzezo.com.br` verificado no Resend (DKIM e SPF ok, DMARC `p=none`); imagens em `/img/email/` respondem 200. **Falta:** confirmação/cancelamento de reserva (testar depois de criar o acesso do Heitor) | O remetente é `vagnerzezo.com.br`, não um domínio do estúdio; rever junto com a 1.5 |
 
@@ -58,7 +58,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 Projeto Neon **`shm`** (`long-lake-61916363`), branch `production`.
 
 - **Algo apagado há menos de 6 horas:** `neon branches restore production production@<horário RFC 3339> --project-id long-lake-61916363` (ou no console: Branches → production → Restore). Dá para criar antes um branch no horário para conferir.
-- **Voltar ao snapshot:** `neon snapshots restore base-2026-11-19-admin-real --project-id long-lake-61916363 --name conferir` cria um branch separado para olhar; só `neon snapshots finalize <branch>` troca a produção por ele.
+- **Voltar ao snapshot:** `neon snapshots restore base-2026-11-23-sino-chat --project-id long-lake-61916363 --name conferir` cria um branch separado para olhar; só `neon snapshots finalize <branch>` troca a produção por ele.
 - **Novo snapshot** (o Free guarda 1): `neon snapshots delete <id>` e depois `neon snapshots create --project-id long-lake-61916363 --branch production --name <nome>`.
 
 ## 2. Itens adiados da revisão final (menores)
@@ -75,12 +75,12 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 8. A foto do login do celular também é baixada no computador. ~~"+55" digitado no telefone dá erro~~ **Feito (2026-11-19):** o DDI 55 na frente de 12 ou 13 dígitos é removido.
 9. As rotas da API aceitam o cookie do site sem checar `Content-Type`/`Origin` (o `SameSite=Lax` já protege).
 
-## 3. Não conferido no navegador (só por teste automático)
+## 3. ~~Não conferido no navegador~~ Conferido no navegador (2026-11-23, servidor de teste)
 
-- Mensagem de conta desativada no login.
-- Remarcar uma reserva pelo admin.
-- Mensagem de senha errada ao excluir a conta.
-- "Compareceu/Faltou" do admin na Agenda, que agora usa a mesma regra da API.
+- ~~Mensagem de conta desativada no login~~ ok: "Sua conta está desativada. Fale com o estúdio." (detalhe: o campo de e-mail fica vazio depois do erro).
+- ~~Remarcar uma reserva pelo admin~~ ok: horário muda na Agenda, aviso "Reserva remarcada." e gravado no banco.
+- ~~Mensagem de senha errada ao excluir a conta~~ ok: "Senha incorreta." e a conta continua ativa.
+- ~~"Compareceu/Faltou" do admin na Agenda~~ ok: troca nos dois sentidos (Faltou ↔ Realizado) e grava no banco.
 
 ## 4. Produto e telas
 

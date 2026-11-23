@@ -25,6 +25,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 **Feito em 2026-11-23:**
 - Snapshot do Neon trocado (`base-2026-11-23-sino-chat`) e a seção 3 conferida no navegador.
 - Seção 4: Descadastrar no layout de celular; barbeiro salva Meus dados sem telefone; admin define nova senha do barbeiro; e-mails de marketing com o rodapé do estúdio.
+- Seção 2 inteira: limite de login também em paralelo; login com o mesmo tempo com ou sem conta; `Authorization` não-Bearer não derruba o cookie; API recusa cookie vindo de outro site; foto do login conferida.
 - Pontos menores: login/cadastro não perdem o que foi digitado; sino não marca como visto aviso que não apareceu, leva os avisos ao renomear profissional, mostra a remarcação do cliente uma vez, junta falhas de marketing num aviso e passa o foco para a lista; cancelamento do barbeiro registrado como barbeiro; barbeiro sem profissional vê só Meus dados; 404 do painel leva direto ao início de cada um.
 
 **Pontos menores que sobraram** (os feitos estão no resumo de 2026-11-23 acima):
@@ -37,7 +38,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
-3. **Pontos menores que sobraram** (acima) e **seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
+3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
 4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
 Estado em 2026-11-23: tudo enviado e no ar na Vercel (último deploy da `main`); `pnpm test` com 184 de 184; nenhuma migração nova depois da `0007`; snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
@@ -75,13 +76,13 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 
 1. ~~Observação de reserva com mais de 300 caracteres é cortada sem aviso~~ **Feito (2026-11-19).** Agora é `400` no campo `note`; `\r\n` do formulário conta como 1 caractere.
 2. ~~`PATCH /me` com só uma das autorizações zera a outra; tipo errado não dá 400~~ **Feito (2026-11-19).** Só as chaves enviadas mudam; tipo errado é `400` no campo `consent`.
-3. Limite de login burlável com várias tentativas ao mesmo tempo (conta e grava fora de trava).
-4. O tempo de resposta do login revela se o e-mail tem conta (já era assim antes da API).
-5. Um cabeçalho `Authorization` que não é `Bearer` faz o site ignorar o cookie (a pessoa aparece deslogada).
+3. ~~Limite de login burlável com várias tentativas ao mesmo tempo~~ **Feito (2026-11-23):** a tentativa é gravada antes de conferir a senha e entra na contagem.
+4. ~~O tempo de resposta do login revela se o e-mail tem conta~~ **Feito (2026-11-23):** sem conta, a senha é conferida contra um hash de mentira (mesmo tempo).
+5. ~~Um cabeçalho `Authorization` que não é `Bearer` faz o site ignorar o cookie~~ **Feito (2026-11-23):** só `Bearer` tem prioridade; outro tipo é ignorado e vale o cookie.
 6. ~~Remarcar e o aviso no chat em transações separadas~~ **Feito (2026-11-19).** O aviso é gravado dentro de `rescheduleForCustomer`.
 7. ~~"Remover profissional" mostra sucesso com outro admin ligado~~ **Feito (2026-11-19).** A tela mostra "Ligado a outro admin" e, se o domínio recusar, o erro aparece (o `ConfirmButton` aceita `{ error }`).
-8. A foto do login do celular também é baixada no computador. ~~"+55" digitado no telefone dá erro~~ **Feito (2026-11-19):** o DDI 55 na frente de 12 ou 13 dígitos é removido.
-9. As rotas da API aceitam o cookie do site sem checar `Content-Type`/`Origin` (o `SameSite=Lax` já protege).
+8. ~~A foto do login do celular também é baixada no computador~~ **Conferido (2026-11-23):** todas as telas usam a mesma foto com os mesmos tamanhos; o navegador baixa uma vez só. ~~"+55" digitado no telefone dá erro~~ **Feito (2026-11-19):** o DDI 55 na frente de 12 ou 13 dígitos é removido.
+9. ~~As rotas da API aceitam o cookie do site sem checar `Origin`~~ **Feito (2026-11-23):** pedido que muda dados, com cookie e `Origin` de outro site, recebe 403 (app com Bearer e clientes sem `Origin` passam).
 
 ## 3. ~~Não conferido no navegador~~ Conferido no navegador (2026-11-23, servidor de teste)
 

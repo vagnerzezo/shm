@@ -27,18 +27,22 @@ export const normalizeEmail = (email: unknown) => String(email ?? "").trim().toL
 export async function authenticate(emailInput: string, password: string): Promise<User> {
   const email = normalizeEmail(emailInput);
   const since = Date.now() - LOGIN_WINDOW_MS;
+  // A tentativa é gravada antes de conferir a senha e a contagem já a inclui:
+  // tentativas ao mesmo tempo veem umas às outras, e no máximo 10 testam a senha.
+  await orm.delete(loginAttempts).where(lt(loginAttempts.at, since));
+  const [attempt] = await orm.insert(loginAttempts).values({ email, at: Date.now() }).returning({ seq: loginAttempts.seq });
   const [{ failures }] = await orm
     .select({ failures: count() })
     .from(loginAttempts)
     .where(and(eq(loginAttempts.email, email), gt(loginAttempts.at, since)));
-  if (failures >= MAX_LOGIN_FAILURES) {
+  if (failures > MAX_LOGIN_FAILURES) {
+    // Recusada sem testar: não conta, para o bloqueio acabar no mesmo horário de antes.
+    await orm.delete(loginAttempts).where(eq(loginAttempts.seq, attempt.seq));
     throw new DomainError("rate_limited", "Muitas tentativas. Tente de novo em alguns minutos.");
   }
 
   const user = (await readDb()).users.find((u) => u.email === email);
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    await orm.delete(loginAttempts).where(lt(loginAttempts.at, since));
-    await orm.insert(loginAttempts).values({ email, at: Date.now() });
     throw new DomainError("invalid_credentials", "E-mail ou senha incorretos.");
   }
   // Só depois da senha certa, para não revelar a situação de contas alheias.

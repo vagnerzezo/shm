@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
-import { readDb, updateDb } from "../app/_lib/db";
+import { count, eq } from "drizzle-orm";
+import { orm, readDb, updateDb } from "../app/_lib/db";
+import { loginAttempts } from "../app/_lib/db-schema";
 import {
   authenticate,
   changeOwnPassword,
@@ -47,6 +49,18 @@ describe("authenticate", () => {
     await assert.rejects(authenticate(USERS.cliente2.email, PASSWORD), rejectsWith("rate_limited"));
     // O bloqueio é por e-mail: outra conta continua entrando.
     assert.equal((await authenticate(USERS.cliente.email, PASSWORD)).id, USERS.cliente.id);
+  });
+
+  test("tentativas ao mesmo tempo não passam do limite", async () => {
+    const results = await Promise.all(
+      Array.from({ length: 30 }, () => authenticate(USERS.cliente3.email, "errada").catch((e) => e.code)),
+    );
+    const tested = results.filter((code) => code === "invalid_credentials").length;
+    assert.ok(tested <= 10, `${tested} tentativas chegaram a testar a senha`);
+    assert.equal(tested + results.filter((code) => code === "rate_limited").length, 30);
+    // Só as que testaram a senha ficam contadas; as recusadas não prolongam o bloqueio.
+    const [{ rows }] = await orm.select({ rows: count() }).from(loginAttempts).where(eq(loginAttempts.email, USERS.cliente3.email));
+    assert.equal(rows, tested);
   });
 });
 

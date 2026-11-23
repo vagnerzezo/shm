@@ -6,7 +6,7 @@ import { DomainError } from "../errors";
 import { pushNotification, pushReservationNotice } from "../notifications";
 import { isCancelled, isPast } from "../reservations";
 import { completePasswordReset, startPasswordReset } from "../password-reset";
-import { hashPassword, verifyPassword } from "../passwords";
+import { hashPassword, verifyAgainstDummy, verifyPassword } from "../passwords";
 import { parseProfile, type ProfileInput } from "../profile";
 import { roleOf } from "../roles";
 import { revokeUserSessions } from "../sessions";
@@ -42,7 +42,9 @@ export async function authenticate(emailInput: string, password: string): Promis
   }
 
   const user = (await readDb()).users.find((u) => u.email === email);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // Sem conta, confere contra um hash de mentira: a resposta leva o mesmo tempo.
+  const ok = user ? await verifyPassword(password, user.passwordHash) : await verifyAgainstDummy(password);
+  if (!user || !ok) {
     throw new DomainError("invalid_credentials", "E-mail ou senha incorretos.");
   }
   // Só depois da senha certa, para não revelar a situação de contas alheias.

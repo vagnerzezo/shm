@@ -17,3 +17,16 @@ export async function verifyPassword(password: string, stored: string) {
   const actual = await scryptAsync(password, salt, expected.length);
   return timingSafeEqual(actual, expected);
 }
+
+// Hash de uma senha aleatória, criado uma vez por processo.
+let dummyHash: Promise<string> | undefined;
+
+/**
+ * Para e-mail sem conta: gasta o mesmo tempo de uma conferência de senha e
+ * devolve `false`, para o tempo de resposta não revelar quais e-mails têm conta.
+ */
+export async function verifyAgainstDummy(password: string) {
+  dummyHash ??= hashPassword(randomBytes(16).toString("hex"));
+  await verifyPassword(password, await dummyHash);
+  return false;
+}

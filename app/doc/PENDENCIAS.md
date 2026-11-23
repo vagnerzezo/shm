@@ -25,11 +25,12 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 **Feito em 2026-11-23:**
 - Snapshot do Neon trocado (`base-2026-11-23-sino-chat`) e a seção 3 conferida no navegador.
 - Seção 4: Descadastrar no layout de celular; barbeiro salva Meus dados sem telefone; admin define nova senha do barbeiro; e-mails de marketing com o rodapé do estúdio.
+- Pontos menores: login/cadastro não perdem o que foi digitado; sino não marca como visto aviso que não apareceu; cancelamento do barbeiro registrado como barbeiro.
 
 **Pontos menores deixados para depois:**
-- Sino: aviso chegado nos 30 s antes de abrir pode contar como visto sem aparecer; admin recebe avisos de outro admin; renomear profissional não leva os avisos; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; remarcação do cliente aparece duas vezes (mensagem + aviso); falha de marketing gera um aviso por envio; foco do teclado não vai para a lista do sino; número pode atrasar até 30 s ao trocar de página.
-- Login: depois do erro (ex.: conta desativada), o campo de e-mail fica vazio e a pessoa digita de novo.
-- Barbeiro: botão "Ir para o início" da página "não encontrado" passa por dois redirecionamentos; barbeiro sem profissional vê o menu completo (cada item volta para Meus dados); cancelamento feito pelo barbeiro fica registrado como "admin"; admin de `ADMIN_EMAILS` não é rebaixado de verdade; comentários antigos no código citando "menus liberados".
+- Sino: ~~aviso chegado nos 30 s antes de abrir pode contar como visto sem aparecer~~ (feito em 2026-11-23); admin recebe avisos de outro admin; renomear profissional não leva os avisos; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; remarcação do cliente aparece duas vezes (mensagem + aviso); falha de marketing gera um aviso por envio; foco do teclado não vai para a lista do sino; número pode atrasar até 30 s ao trocar de página.
+- ~~Login: depois do erro, o campo de e-mail fica vazio~~ **Feito (2026-11-23):** login e cadastro mantêm o que foi digitado (menos a senha).
+- Barbeiro: botão "Ir para o início" da página "não encontrado" passa por dois redirecionamentos; barbeiro sem profissional vê o menu completo (cada item volta para Meus dados); ~~cancelamento feito pelo barbeiro fica registrado como "admin"~~ (feito em 2026-11-23); admin de `ADMIN_EMAILS` não é rebaixado de verdade; comentários antigos no código citando "menus liberados".
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele.

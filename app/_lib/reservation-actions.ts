@@ -95,7 +95,9 @@ export async function cancelReservationByAdmin(formData: FormData) {
   const reason = text(formData, "motivo").slice(0, 200);
 
   const db = await readDb();
-  const target = await markCancelled(id, "admin", { reason, actorId: user.id }, scope);
+  // Registra quem cancelou: o barbeiro na agenda dele, ou o admin.
+  const by = user.role === "barbeiro" ? "barbeiro" : "admin";
+  const target = await markCancelled(id, by, { reason, actorId: user.id }, scope);
   if (!target) return;
 
   const upcoming = !isPast(target, nowInStudio());

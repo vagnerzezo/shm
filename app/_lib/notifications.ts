@@ -149,10 +149,17 @@ export async function getBell(user: Customer, preloaded?: Db): Promise<{ unseen:
   return { unseen: shown.filter((i) => i.unseen).length, items: shown };
 }
 
-/** Abrir o sino: tudo o que já chegou passa a ser visto. */
-export async function markBellSeen(userId: string): Promise<void> {
+/**
+ * Abrir o sino: o que a tela mostrou passa a ser visto. `upTo` é o horário do
+ * aviso mais novo da lista aberta, para não marcar um que chegou depois e não
+ * apareceu. Sem ele (ou no futuro, ou inválido), vale agora. Nunca volta atrás.
+ */
+export async function markBellSeen(userId: string, upTo?: string): Promise<void> {
+  const now = new Date().toISOString();
+  const valid = typeof upTo === "string" && !Number.isNaN(Date.parse(upTo));
+  const at = valid ? new Date(Math.min(Date.parse(upTo), Date.parse(now))).toISOString() : now;
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === userId);
-    if (user) user.notificationsSeenAt = new Date().toISOString();
+    if (user && !(user.notificationsSeenAt && user.notificationsSeenAt >= at)) user.notificationsSeenAt = at;
   });
 }

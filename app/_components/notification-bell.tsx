@@ -31,7 +31,8 @@ export function PanelProvider({ value, children }: { value: PanelValue; children
   }, [value.bell?.unseen]);
   const markSeen = () => {
     setSeenAll(true);
-    void markBellSeenAction().then(() => router.refresh());
+    // Até o aviso mais novo da lista na tela (vem ordenada): um que chegue depois continua novo.
+    void markBellSeenAction(value.bell?.items[0]?.at).then(() => router.refresh());
   };
   return <Ctx.Provider value={{ ...value, seenAll, markSeen }}>{children}</Ctx.Provider>;
 }

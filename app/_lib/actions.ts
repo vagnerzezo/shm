@@ -182,9 +182,9 @@ export async function markCustomerReadAction() {
   if ((await markReadByCustomer(user.id)) > 0) refresh();
 }
 
-/** Abriu o sino: tudo o que chegou até agora passa a ser visto. */
-export async function markBellSeenAction() {
+/** Abriu o sino: o que estava na lista (até o aviso mais novo, `upTo`) passa a ser visto. */
+export async function markBellSeenAction(upTo?: string) {
   const user = await getCurrentUser();
   if (!user || (user.role !== "admin" && user.role !== "barbeiro")) return;
-  await markBellSeen(user.id);
+  await markBellSeen(user.id, upTo);
 }

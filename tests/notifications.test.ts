@@ -146,6 +146,21 @@ describe("leitura do sino", () => {
     assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 1);
   });
 
+  test("abrir o sino marca só até o aviso mais novo que a tela mostrou", async () => {
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
+    const shown = await getBell(await me(USERS.heitor.id));
+    await new Promise((r) => setTimeout(r, 5));
+    // Chega um aviso depois de a tela montar a lista, antes do clique.
+    await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "15:00" }]);
+    await markBellSeen(USERS.heitor.id, shown.items[0].at);
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 1);
+    // Horário no futuro vale como "agora"; mais antigo que o já visto não volta atrás.
+    await markBellSeen(USERS.heitor.id, "2999-01-01T00:00:00.000Z");
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 0);
+    await markBellSeen(USERS.heitor.id, shown.items[0].at);
+    assert.equal((await getBell(await me(USERS.heitor.id))).unseen, 0);
+  });
+
   test("mensagens: barbeiro só dos clientes dele; admin de todos", async () => {
     await bookForCustomer(USERS.cliente.id, [{ serviceId: "corte-heitor", date: day, time: "10:00" }]);
     await markBellSeen(USERS.heitor.id);

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { LockIcon } from "../_components/icons";
 import { PasswordInput } from "../_components/password-input";
 import { resetPassword } from "../_lib/account-actions";
-import { authFormStyles, type Variant } from "../login/login-form";
+import { authFormStyles, type Variant } from "../login/auth-form-styles";
 
 /** No celular (`mobile`), mesmos campos e botão do login do celular. */
 export function ResetForm({ token, email, variant = "desktop" }: { token: string; email: string; variant?: Variant }) {

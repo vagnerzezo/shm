@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { CheckIcon } from "../_components/icons";
 import { requestPasswordReset } from "../_lib/account-actions";
-import { authFormStyles, type Variant } from "../login/login-form";
+import { authFormStyles, type Variant } from "../login/auth-form-styles";
 
 /** No celular (`mobile`), mesmos campos e botão do login do celular. */
 export function ForgotForm({ variant = "desktop" }: { variant?: Variant }) {

@@ -5,7 +5,7 @@
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
 
-## Onde paramos (2026-11-20)
+## Onde paramos (2026-11-23)
 
 **Feito em 2026-11-19:**
 - 1.1 Admin real em produção (conta pessoal do dono); contas `@shm.test` apagadas da produção.
@@ -22,15 +22,20 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - **Sino de notificações** (parte 3, migração `0007`): ao lado do ícone de usuário, para admin e barbeiro; marcações, remarcações, cancelamentos, mensagens, dia fechado, "Confirme quem veio", cliente novo e falhas de envio. Abrir marca tudo como visto; avisos com mais de 30 dias são apagados.
 - Ícone de usuário do barbeiro leva a Meus dados (`/conta`).
 
+**Feito em 2026-11-23:**
+- Snapshot do Neon trocado (`base-2026-11-23-sino-chat`) e a seção 3 conferida no navegador.
+- Seção 4: Descadastrar no layout de celular; barbeiro salva Meus dados sem telefone; admin define nova senha do barbeiro; e-mails de marketing com o rodapé do estúdio.
+
 **Pontos menores deixados para depois:**
 - Sino: aviso chegado nos 30 s antes de abrir pode contar como visto sem aparecer; admin recebe avisos de outro admin; renomear profissional não leva os avisos; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; remarcação do cliente aparece duas vezes (mensagem + aviso); falha de marketing gera um aviso por envio; foco do teclado não vai para a lista do sino; número pode atrasar até 30 s ao trocar de página.
+- Login: depois do erro (ex.: conta desativada), o campo de e-mail fica vazio e a pessoa digita de novo.
 - Barbeiro: botão "Ir para o início" da página "não encontrado" passa por dois redirecionamentos; barbeiro sem profissional vê o menu completo (cada item volta para Meus dados); cancelamento feito pelo barbeiro fica registrado como "admin"; admin de `ADMIN_EMAILS` não é rebaixado de verdade; comentários antigos no código citando "menus liberados".
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele.
 2. ~~**Trocar o snapshot do Neon**~~ **Feito (2026-11-23):** `base-2026-11-23-sino-chat`, com as migrações até a `0007`.
 3. ~~**Seção 3**~~ **Feito (2026-11-23):** as 4 telas conferidas no navegador (ver seção 3).
-4. **Seção 4:** visual novo no celular para Descadastrar; barbeiro salvar "Meus dados" sem telefone; admin redefinir a senha do barbeiro; rodapé novo nos e-mails de marketing.
+4. ~~**Seção 4**~~ **Feito (2026-11-23):** Descadastrar no celular, barbeiro sem telefone, nova senha do barbeiro e rodapé do marketing (ver seção 4).
 5. **Pontos menores** acima e **seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
 6. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
@@ -84,11 +89,11 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 
 ## 4. Produto e telas
 
-- ~~Outras telas fora do painel no celular~~ **Feito (2026-11-19):** Esqueci minha senha e Criar nova senha usam o `MobileSheet` (mesmo layout de Entrar/Criar conta). **Falta:** Descadastrar.
-- **Barbeiro em "Meus dados":** a conta nasce sem telefone, então ele precisa informar um para salvar.
-- **O admin não redefine a senha do barbeiro** (só a de clientes). Hoje o barbeiro usa "Esqueci minha senha", ou o admin recria o acesso.
+- ~~Outras telas fora do painel no celular~~ **Feito (2026-11-19):** Esqueci minha senha e Criar nova senha usam o `MobileSheet` (mesmo layout de Entrar/Criar conta). **Descadastrar também (2026-11-23).**
+- ~~**Barbeiro em "Meus dados"** precisa informar telefone~~ **Feito (2026-11-23):** para barbeiro o telefone é opcional (se informado, é conferido). De quebra, Meus dados e o perfil do admin recarregam ao salvar; antes o formulário voltava a mostrar os valores antigos.
+- ~~**O admin não redefine a senha do barbeiro**~~ **Feito (2026-11-23):** "Nova senha" em Serviços → Profissionais, ao lado do acesso; encerra as sessões dele.
 - ~~**Chat do site** corta mensagens acima de 2000 caracteres sem avisar~~ **Feito (2026-11-19):** o site usa a mesma regra da API e mostra o erro.
-- **E-mails de marketing** ainda usam o rodapé simples antigo.
+- ~~**E-mails de marketing** com rodapé simples~~ **Feito (2026-11-23):** mesmo rodapé dos e-mails do sistema, com "Deixar de receber" na última linha. O corpo continua o texto do template, sem a moldura com logo.
 - **App de celular:** a API está pronta (`app/doc/api/openapi.yaml`), mas o app em si não começou.
 
 ## 5. Evolução da API e do banco (do mapeamento, seção 9)

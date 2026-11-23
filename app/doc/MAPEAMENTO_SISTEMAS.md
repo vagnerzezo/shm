@@ -291,7 +291,7 @@ Quatro modelos fixos em código, com layout próprio, que **não dependem** de a
 | Agendamento cancelado | cliente cancela; admin cancela reserva futura e marca "avisar" |
 | Redefinição de senha | pedido em "esqueci minha senha" |
 
-O admin vê a prévia e envia um teste em Marketing > Templates. Os textos não são editáveis pela tela. Imagens vão embutidas (cid) enquanto `APP_URL` não for https. Os e-mails de marketing ainda usam um rodapé simples, diferente desse layout.
+O admin vê a prévia e envia um teste em Marketing > Templates. Os textos não são editáveis pela tela. Imagens vão embutidas (cid) enquanto `APP_URL` não for https. Os e-mails de marketing usam o mesmo rodapé (com o descadastro na última linha), mas não a moldura com logo e cartão.
 
 Não saem por e-mail: remarcação (cliente ou admin), cadastro feito pelo admin, lembrete antes do horário, nova mensagem no chat.
 

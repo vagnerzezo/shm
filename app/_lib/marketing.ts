@@ -166,9 +166,16 @@ export function runMarketing({ send = true } = {}): Promise<RunResult> {
 }
 
 /** Aviso no sino do admin quando um envio de marketing falha. */
-function marketingFailed(db: Db, d: Dispatch) {
-  const name = db.users.find((u) => u.id === d.customerId)?.name ?? "cliente";
-  pushNotification(db, { kind: "falha_marketing", customerId: d.customerId, text: `Falha no envio de marketing para ${name}: ${d.ruleName}` });
+/** Um aviso por rodada: com uma falha, cliente e regra; com várias, a contagem (o aviso leva ao histórico de falhas). */
+function marketingFailed(db: Db, failed: Dispatch[]) {
+  if (failed.length === 0) return;
+  if (failed.length === 1) {
+    const [d] = failed;
+    const name = db.users.find((u) => u.id === d.customerId)?.name ?? "cliente";
+    pushNotification(db, { kind: "falha_marketing", customerId: d.customerId, text: `Falha no envio de marketing para ${name}: ${d.ruleName}` });
+    return;
+  }
+  pushNotification(db, { kind: "falha_marketing", text: `Falha no envio de marketing: ${failed.length} envios` });
 }
 
 async function run(send: boolean): Promise<RunResult> {
@@ -177,13 +184,14 @@ async function run(send: boolean): Promise<RunResult> {
   const result: RunResult = { scheduled: 0, cancelled: 0, sent: 0, failed: 0 };
 
   const ready = await updateDb((db) => {
+    const failed: Dispatch[] = [];
     const visits = visitsOf(db.reservations, now);
     const users = new Map(db.users.map((u) => [u.id, u]));
     const rules = new Map(db.rules.map((r) => [r.id, r]));
     const finish = (d: Dispatch, status: "cancelado" | "falha", reason: string) => {
       Object.assign(d, { status, reason, updatedAt: stamp() });
       result[status === "cancelado" ? "cancelled" : "failed"]++;
-      if (status === "falha") marketingFailed(db, d);
+      if (status === "falha") failed.push(d);
     };
 
     // 1. Pendentes que perderam o sentido.
@@ -245,7 +253,10 @@ async function run(send: boolean): Promise<RunResult> {
       }
     }
 
-    if (!send) return [];
+    if (!send) {
+      marketingFailed(db, failed);
+      return [];
+    }
     db.marketing.lastRunAt = stamp();
 
     // 3. Separa os que venceram e marca como "enviando", para nenhuma outra execução pegá-los.
@@ -297,6 +308,7 @@ async function run(send: boolean): Promise<RunResult> {
       });
       due.push({ dispatch: { ...d }, to: user.email });
     }
+    marketingFailed(db, failed);
     return due;
   });
 
@@ -313,18 +325,20 @@ async function run(send: boolean): Promise<RunResult> {
 
   if (outcomes.length > 0) {
     await updateDb((db) => {
+      const failed: Dispatch[] = [];
       for (const { id, error } of outcomes) {
         const d = db.dispatches.find((x) => x.id === id);
         if (!d) continue;
         if (error) {
           Object.assign(d, { status: "falha", reason: error, updatedAt: stamp() });
           result.failed++;
-          marketingFailed(db, d);
+          failed.push(d);
         } else {
           Object.assign(d, { status: "enviado", reason: undefined, sentAt: stamp(), updatedAt: stamp() });
           result.sent++;
         }
       }
+      marketingFailed(db, failed);
     });
   }
   return result;

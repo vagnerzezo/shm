@@ -11,6 +11,7 @@ import { resetTestDb } from "../scripts/test-reset";
 import { PASSWORD, USERS } from "./fixtures";
 import { getBell, isForUser, markBellSeen, type Notification } from "../app/_lib/notifications";
 import { toCustomer } from "../app/_lib/roles";
+import { runMarketing } from "../app/_lib/marketing";
 
 const base = { phone: "", consent: undefined };
 const admin = toCustomer({ ...base, id: "adm", name: "Admin", email: "a@shm.test", role: "admin" });
@@ -224,5 +225,47 @@ describe("correções da revisão final", () => {
     await rescheduleForCustomer(USERS.cliente.id, id, day, "15:00");
     const notices = (await readDb()).notifications.filter((n) => n.reservationId === id && n.kind === "reserva_remarcada");
     assert.deepEqual(notices.map((n) => n.professional).sort(), ["Heitor", "Jimmy"]);
+  });
+});
+
+describe("falhas de marketing no sino", () => {
+  beforeEach(resetTestDb);
+
+  test("várias falhas numa rodada viram um aviso só, com a contagem", async () => {
+    const old = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const stuck = (id: string, customerId: string) => ({
+      id,
+      key: `k-${id}`,
+      customerId,
+      channel: "email" as const,
+      ruleId: "regra-x",
+      ruleName: "Volte logo",
+      lastVisitId: "v",
+      lastVisitDate: "2026-01-01",
+      dueDate: "2026-01-01",
+      status: "enviando" as const,
+      createdAt: old,
+      updatedAt: old,
+    });
+    await updateDb((db) => {
+      db.dispatches.push(stuck("d1", USERS.cliente.id), stuck("d2", USERS.cliente2.id), stuck("d3", USERS.cliente3.id));
+    });
+    await runMarketing({ send: false });
+    const falhas = (await readDb()).notifications.filter((n) => n.kind === "falha_marketing");
+    assert.equal(falhas.length, 1);
+    assert.match(falhas[0].text, /3 envios/);
+  });
+
+  test("uma falha só continua com o nome do cliente", async () => {
+    const old = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    await updateDb((db) => {
+      db.dispatches.push({
+        id: "d1", key: "k1", customerId: USERS.cliente.id, channel: "email", ruleId: "regra-x", ruleName: "Volte logo",
+        lastVisitId: "v", lastVisitDate: "2026-01-01", dueDate: "2026-01-01", status: "enviando", createdAt: old, updatedAt: old,
+      });
+    });
+    await runMarketing({ send: false });
+    const falhas = (await readDb()).notifications.filter((n) => n.kind === "falha_marketing");
+    assert.deepEqual(falhas.map((n) => n.text), [`Falha no envio de marketing para ${USERS.cliente.name}: Volte logo`]);
   });
 });

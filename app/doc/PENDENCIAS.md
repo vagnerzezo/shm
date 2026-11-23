@@ -41,7 +41,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
 4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-Estado em 2026-11-23: tudo enviado e no ar na Vercel (último deploy da `main`); `pnpm test` com 184 de 184; nenhuma migração nova depois da `0007`; snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
+Estado em 2026-11-23: tudo enviado e no ar na Vercel (último deploy da `main`); `pnpm test` com 191 de 191; nenhuma migração nova depois da `0007`; snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
 
 **Lembretes:**
 - Testes: `pnpm test` leva uns 13 minutos (banco de teste no Neon); não rodar junto com o servidor de teste (mesmo banco).

@@ -36,12 +36,17 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Código: o campo `menus` de `Customer` (`app/_lib/roles.ts`) ficou sem uso; dá para remover junto com `menusOf`.
 
 **Próximos passos, em ordem:**
+0. **Enviar a seção 2** (ver "Estado" abaixo): `git push origin main` e conferir o deploy na Vercel.
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
 3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
 4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-Estado em 2026-11-23: tudo enviado e no ar na Vercel (último deploy da `main`); `pnpm test` com 191 de 191; nenhuma migração nova depois da `0007`; snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
+Estado no fim de 2026-11-23:
+- **No ar na Vercel:** tudo até `e012774` (seção 4 e os pontos menores do sino e do barbeiro).
+- **Só na `main` local, falta enviar:** a seção 2 (limite de login em paralelo, tempo do login, `Authorization` não-Bearer, API recusando cookie de outro site). Conferir com `git log --oneline origin/main..main` e enviar com `git push origin main` depois do ok do dono. Não tem migração.
+- `pnpm test` com 191 de 191; coleção da API (`pnpm test:api`) com 117 pedidos e 238 verificações, sem falhas.
+- Nenhuma migração nova depois da `0007`; o snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
 
 **Lembretes:**
 - Testes: `pnpm test` leva uns 13 minutos (banco de teste no Neon); não rodar junto com o servidor de teste (mesmo banco).

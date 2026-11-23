@@ -9,6 +9,7 @@ import {
   createBarberAccess,
   linkAdminToProfessional,
   removeBarberAccess,
+  setBarberPassword,
   removeProfessional,
   saveProfessional as saveProfessionalData,
 } from "./domain/barber";
@@ -172,6 +173,17 @@ export async function linkOwnAccountAction(formData: FormData) {
   const admin = await assertAdmin();
   await linkAdminToProfessional(admin.id, text(formData, "profissional") || null);
   refresh();
+}
+
+/** Admin define uma nova senha provisória para o barbeiro (as sessões dele são encerradas). */
+export async function setBarberPasswordAction(_prev: CatalogFormState, formData: FormData): Promise<CatalogFormState> {
+  await assertAdmin();
+  try {
+    await setBarberPassword(text(formData, "id"), String(formData.get("senha") ?? ""));
+  } catch (error) {
+    return { error: messageOf(error) };
+  }
+  return { error: null, saved: true };
 }
 
 export async function removeBarberAccessAction(formData: FormData) {

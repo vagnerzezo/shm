@@ -78,6 +78,18 @@ export async function removeBarberAccess(userId: string): Promise<void> {
   });
 }
 
+/** Admin define uma nova senha para o barbeiro e encerra as sessões abertas dele. Só vale para contas `barbeiro`. */
+export async function setBarberPassword(userId: string, password: unknown): Promise<void> {
+  assertPassword(password);
+  const passwordHash = await hashPassword(password);
+  await updateDb((db) => {
+    const user = db.users.find((u) => u.id === userId);
+    if (!user || roleOf(user) !== "barbeiro") throw notAllowed();
+    user.passwordHash = passwordHash;
+    db.sessions = db.sessions.filter((s) => s.userId !== userId);
+  });
+}
+
 /**
  * Adiciona ou altera um profissional. Renomear leva junto os serviços, os
  * períodos fechados, as reservas e as contas ligadas a ele.

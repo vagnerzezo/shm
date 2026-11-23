@@ -10,6 +10,7 @@ import {
   linkOwnAccountAction,
   removeBarberAccessAction,
   saveProfessional,
+  setBarberPasswordAction,
   type CatalogFormState,
 } from "@/app/_lib/catalog-actions";
 import type { ProfessionalColor } from "@/app/_lib/db";
@@ -159,12 +160,58 @@ function AccessForm({ professional, onDone }: { professional: string; onDone: ()
   );
 }
 
+/** Nova senha provisória para o acesso do barbeiro; as sessões abertas dele são encerradas. */
+function PasswordForm({ access, professional, onDone }: { access: { id: string; email: string }; professional: string; onDone: () => void }) {
+  const [state, action, pending] = useActionState(async (prev: CatalogFormState, formData: FormData) => {
+    const result = await setBarberPasswordAction(prev, formData);
+    if (result.saved) {
+      toast(`Nova senha definida para ${professional}.`);
+      onDone();
+    }
+    return result;
+  }, { error: null });
+
+  return (
+    <form action={action} className="mt-3 flex w-full flex-col gap-3 rounded-lg border border-black/10 bg-white p-4">
+      <input type="hidden" name="id" value={access.id} />
+      <p className="text-sm text-black/70">
+        {access.email} passa a entrar com esta senha e sai do site e do app onde estiver conectado. Passe a senha para a
+        pessoa, que pode trocar depois em Meus dados.
+      </p>
+      <label className="sm:max-w-xs">
+        <span className={labelClass}>Nova senha provisória</span>
+        <input
+          name="senha"
+          type="text"
+          required
+          minLength={8}
+          maxLength={100}
+          autoComplete="off"
+          autoFocus
+          className={cn(fieldClass, "mt-1.5")}
+        />
+      </label>
+      <FormError message={state.error} />
+      <div className="flex gap-2">
+        <button type="submit" disabled={pending} className={cn(primaryButton, "h-10")}>
+          {pending ? "Salvando..." : "Definir senha"}
+        </button>
+        <button type="button" onClick={onDone} className={cn(secondaryButton, "h-10")}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function ProfessionalsCard({ professionals, linkedToMe }: { professionals: Row[]; linkedToMe: string | null }) {
   // Nome em edição, "novo" para adicionar, ou null.
   const [selected, setEditing] = useState<string | null>(null);
   const close = () => setEditing(null);
   // Profissional com o formulário de acesso aberto.
   const [accessFor, setAccessFor] = useState<string | null>(null);
+  // Acesso (id da conta) com o formulário de nova senha aberto.
+  const [passwordFor, setPasswordFor] = useState<string | null>(null);
   // Nome que não existe mais (renomeado ou removido em outra aba) conta como nada em edição.
   const editing = selected === "novo" || professionals.some((p) => p.name === selected) ? selected : null;
 
@@ -206,6 +253,11 @@ export function ProfessionalsCard({ professionals, linkedToMe }: { professionals
                 {p.access.map((a) => (
                   <div key={a.id} className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-black/70">
                     <span className="break-all">Acesso: {a.email}</span>
+                    {passwordFor !== a.id && (
+                      <button type="button" onClick={() => setPasswordFor(a.id)} className={linkButton}>
+                        Nova senha
+                      </button>
+                    )}
                     <ConfirmButton
                       action={removeBarberAccessAction}
                       fields={{ id: a.id }}
@@ -281,6 +333,11 @@ export function ProfessionalsCard({ professionals, linkedToMe }: { professionals
                 )}
               </div>
               {accessFor === p.name && <AccessForm professional={p.name} onDone={() => setAccessFor(null)} />}
+              {p.access
+                .filter((a) => a.id === passwordFor)
+                .map((a) => (
+                  <PasswordForm key={a.id} access={a} professional={p.name} onDone={() => setPasswordFor(null)} />
+                ))}
             </li>
           ),
         )}

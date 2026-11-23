@@ -12,6 +12,7 @@ import {
   removeBarberAccess,
   removeProfessional,
   saveProfessional,
+  setBarberPassword,
 } from "../app/_lib/domain/barber";
 import { bookForCustomer } from "../app/_lib/domain/bookings";
 import { homeOf, roleOf, toCustomer } from "../app/_lib/roles";
@@ -117,6 +118,19 @@ describe("perfil barbeiro", () => {
     await removeBarberAccess(USERS.heitor.id);
     assert.equal(await userById(USERS.heitor.id), undefined);
     assert.equal(await findSessionUser(token), null);
+  });
+
+  test("admin define nova senha do barbeiro e encerra as sessões dele", async () => {
+    const { token } = await createSessionToken(USERS.heitor.id);
+    await setBarberPassword(USERS.heitor.id, "nova-senha-barbeiro");
+    assert.equal(await findSessionUser(token), null);
+    assert.equal((await authenticate(USERS.heitor.email, "nova-senha-barbeiro")).id, USERS.heitor.id);
+  });
+
+  test("nova senha curta ou para conta que não é de barbeiro é recusada", async () => {
+    await assert.rejects(setBarberPassword(USERS.heitor.id, "curta"), rejectsWith("validation", "password"));
+    await assert.rejects(setBarberPassword(USERS.cliente.id, "nova-senha-boa"), rejectsWith("forbidden"));
+    await assert.rejects(setBarberPassword(USERS.admin.id, "nova-senha-boa"), rejectsWith("forbidden"));
   });
 
   test("remover acesso de conta de cliente é recusado", async () => {

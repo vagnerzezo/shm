@@ -27,18 +27,20 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Seção 4: Descadastrar no layout de celular; barbeiro salva Meus dados sem telefone; admin define nova senha do barbeiro; e-mails de marketing com o rodapé do estúdio.
 - Pontos menores: login/cadastro não perdem o que foi digitado; sino não marca como visto aviso que não apareceu, leva os avisos ao renomear profissional, mostra a remarcação do cliente uma vez, junta falhas de marketing num aviso e passa o foco para a lista; cancelamento do barbeiro registrado como barbeiro; barbeiro sem profissional vê só Meus dados; 404 do painel leva direto ao início de cada um.
 
-**Pontos menores deixados para depois:**
-- Sino: ~~aviso chegado nos 30 s antes de abrir pode contar como visto sem aparecer~~ (feito em 2026-11-23); admin recebe avisos de outro admin; ~~renomear profissional não leva os avisos~~; exclusão de cliente/barbeiro pelo admin não avisa cancelamentos; ~~remarcação do cliente aparece duas vezes (mensagem + aviso)~~; ~~falha de marketing gera um aviso por envio~~; ~~foco do teclado não vai para a lista do sino~~; número pode atrasar até 30 s ao trocar de página.
-- ~~Login: depois do erro, o campo de e-mail fica vazio~~ **Feito (2026-11-23):** login e cadastro mantêm o que foi digitado (menos a senha).
-- Barbeiro: ~~botão "Ir para o início" da página "não encontrado" passa por dois redirecionamentos~~; ~~barbeiro sem profissional vê o menu completo~~; ~~cancelamento feito pelo barbeiro fica registrado como "admin"~~ (feito em 2026-11-23); admin de `ADMIN_EMAILS` não é rebaixado de verdade; ~~comentários antigos no código citando "menus liberados"~~ (o campo `menus` de `Customer` ficou sem uso; dá para remover).
+**Pontos menores que sobraram** (os feitos estão no resumo de 2026-11-23 acima):
+- Sino: **admin recebe avisos de outro admin**. Falta decidir com o dono: com mais de um admin, cada um vê o que o outro fez ou não?
+- Sino: excluir cliente ou barbeiro pelo admin não gera aviso dos horários cancelados junto.
+- Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática).
+- Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel).
+- Código: o campo `menus` de `Customer` (`app/_lib/roles.ts`) ficou sem uso; dá para remover junto com `menusOf`.
 
 **Próximos passos, em ordem:**
-1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele.
-2. ~~**Trocar o snapshot do Neon**~~ **Feito (2026-11-23):** `base-2026-11-23-sino-chat`, com as migrações até a `0007`.
-3. ~~**Seção 3**~~ **Feito (2026-11-23):** as 4 telas conferidas no navegador (ver seção 3).
-4. ~~**Seção 4**~~ **Feito (2026-11-23):** Descadastrar no celular, barbeiro sem telefone, nova senha do barbeiro e rodapé do marketing (ver seção 4).
-5. **Pontos menores** acima e **seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
-6. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
+2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
+3. **Pontos menores que sobraram** (acima) e **seção 2, o que sobrou** (risco baixo): itens 3, 4, 5, 9 e a foto do login no computador (8).
+4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+
+Estado em 2026-11-23: tudo enviado e no ar na Vercel (último deploy da `main`); `pnpm test` com 184 de 184; nenhuma migração nova depois da `0007`; snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
 
 **Lembretes:**
 - Testes: `pnpm test` leva uns 13 minutos (banco de teste no Neon); não rodar junto com o servidor de teste (mesmo banco).

@@ -20,6 +20,7 @@ import { pushNotification } from "./notifications";
 import { isPast } from "./reservations";
 import { catalogOf } from "./catalog";
 import { getStudio, studioOf } from "./studio";
+import { renderStudioFooter } from "./email-templates/layout";
 import { findService, type Service } from "./services";
 import { unsubscribeTokenFor, unsubscribeUrl } from "./unsubscribe";
 
@@ -98,15 +99,19 @@ async function sendEmailContent(
   idempotencyKey: string,
   customerId?: string,
 ) {
-  const studio = (await getStudio()).name;
+  const studio = await getStudio();
   const token = customerId ? await unsubscribeTokenFor(customerId) : null;
   const leaveUrl = token ? unsubscribeUrl(token) : `${appUrl()}/conta`;
-  const footer = `Você recebe este e-mail porque autorizou comunicações do ${studio}. Para deixar de receber, acesse ${leaveUrl}`;
+  const why = `Você recebe este e-mail porque autorizou comunicações do ${studio.name}.`;
+  // Mesmo rodapé dos e-mails do sistema, com o descadastro na última linha.
+  const footer = renderStudioFooter(studio, {
+    html: `${escapeHtml(why)} <a href="${escapeHtml(leaveUrl)}" style="color:#7a7a7a;text-decoration:underline;">Deixar de receber</a>`,
+    text: `${why} Para deixar de receber, acesse ${leaveUrl}`,
+  });
   // `body` já é HTML filtrado (ou texto puro de templates antigos).
   const content = emailReadyHtml(contentToHtml(body), appUrl());
-  const text = `${htmlToText(body)}\n\n—\n${footer}`;
-  const footerHtml = `Você recebe este e-mail porque autorizou comunicações do ${escapeHtml(studio)}. <a href="${escapeHtml(leaveUrl)}" style="color:#666">Deixar de receber</a>`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#121212">${content}<hr style="margin:24px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">${footerHtml}</p></div>`;
+  const text = `${htmlToText(body)}\n\n—\n${footer.text}`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#121212">${content}${footer.html}</div>`;
 
   await sendRawEmail({
     to,
@@ -114,6 +119,7 @@ async function sendEmailContent(
     text,
     html,
     idempotencyKey,
+    attachments: footer.attachments,
     // Botão "Cancelar inscrição" do Gmail/Outlook: um clique faz POST nesse endereço.
     headers: token
       ? {

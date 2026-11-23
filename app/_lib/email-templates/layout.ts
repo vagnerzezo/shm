@@ -118,7 +118,10 @@ function buttonHtml(cta: NonNullable<EmailContent["cta"]>) {
         </table>`;
 }
 
-function footerHtml(studio: StudioInfo, src: (p: string) => string) {
+const AUTO_NOTICE = "Este é um e-mail automático. Por favor, não responda a esta mensagem.";
+
+/** `noticeHtml`: a última linha (aviso de e-mail automático, ou o descadastro no marketing). */
+function footerHtml(studio: StudioInfo, src: (p: string) => string, noticeHtml: string = esc(AUTO_NOTICE)) {
   const contact = [
     studio.phone ? esc(formatPhone(studio.phone)) : "",
     studio.email ? `<a href="mailto:${esc(studio.email)}" style="color:${TEXT};text-decoration:underline;">${esc(studio.email)}</a>` : "",
@@ -145,7 +148,7 @@ function footerHtml(studio: StudioInfo, src: (p: string) => string) {
     }
     <tr>
       <td align="center" class="px" style="padding:16px 40px 0;font-family:${FONT};font-size:12px;line-height:18px;color:${MUTED};">
-        Este é um e-mail automático. Por favor, não responda a esta mensagem.
+        ${noticeHtml}
       </td>
     </tr>`;
 }
@@ -226,9 +229,6 @@ function renderText(content: EmailContent, studio: StudioInfo) {
   const cards = (content.cards ?? []).map((card) =>
     [card.title, ...card.rows.map((r) => `${r.label}: ${r.value}`)].filter(Boolean).join("\n"),
   );
-  const social = (Object.keys(SOCIAL_LABEL) as SocialNetwork[])
-    .filter((n) => studio.social?.[n])
-    .map((n) => `${SOCIAL_LABEL[n]}: ${studio.social![n]}`);
   return [
     content.title,
     "",
@@ -237,11 +237,36 @@ function renderText(content: EmailContent, studio: StudioInfo) {
     ...(content.cta ? [`${content.cta.label}: ${content.cta.url}`, ""] : []),
     ...(content.notes ?? []).flatMap((n) => [n, ""]),
     "—",
+    footerText(studio),
+    "",
+    AUTO_NOTICE,
+  ].join("\n");
+}
+
+/** Rodapé em texto puro: estúdio, contatos e redes. */
+function footerText(studio: StudioInfo) {
+  const social = (Object.keys(SOCIAL_LABEL) as SocialNetwork[])
+    .filter((n) => studio.social?.[n])
+    .map((n) => `${SOCIAL_LABEL[n]}: ${studio.social![n]}`);
+  return [
     studio.name,
     ...studio.address,
     ...[studio.phone ? formatPhone(studio.phone) : "", studio.email ?? ""].filter(Boolean),
     ...social,
-    "",
-    "Este é um e-mail automático. Por favor, não responda a esta mensagem.",
   ].join("\n");
+}
+
+/**
+ * O rodapé dos e-mails do sistema, para e-mails fora da moldura (marketing):
+ * estúdio, contatos e redes, com `notice` (HTML e texto) na última linha.
+ */
+export function renderStudioFooter(
+  studio: StudioInfo,
+  notice: { html: string; text: string },
+  mode: ImageMode = defaultImageMode(),
+): RenderedEmail {
+  const { src, attachments } = imageSource(mode);
+  const html = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid ${LINE};">${footerHtml(studio, src, notice.html)}
+  </table>`;
+  return { html, text: `${footerText(studio)}\n\n${notice.text}`, attachments };
 }

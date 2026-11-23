@@ -93,6 +93,15 @@ describe("perfil barbeiro", () => {
     assert.equal((await userById(USERS.jimmy.id))!.professional, "Jimmy Silva");
   });
 
+  test("renomear o profissional leva os avisos do sino junto", async () => {
+    await updateDb((db) => {
+      db.notifications.push({ id: "aviso-jimmy", kind: "reserva_marcada", at: new Date().toISOString(), text: "x", professional: "Jimmy" });
+    });
+    await saveProfessional({ original: "Jimmy", name: "Jimmy Silva", color: "violet" });
+    const aviso = (await readDb()).notifications.find((n) => n.id === "aviso-jimmy");
+    assert.equal(aviso?.professional, "Jimmy Silva");
+  });
+
   test("profissional com conta ligada não é removido", async () => {
     await saveProfessional({ name: "Novato", color: "rose" });
     await createBarberAccess({ ...NEW, professional: "Novato" });

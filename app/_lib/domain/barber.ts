@@ -92,7 +92,7 @@ export async function setBarberPassword(userId: string, password: unknown): Prom
 
 /**
  * Adiciona ou altera um profissional. Renomear leva junto os serviços, os
- * períodos fechados, as reservas e as contas ligadas a ele.
+ * períodos fechados, as reservas, as contas ligadas a ele e os avisos do sino.
  */
 export async function saveProfessional(input: { original?: string; name: string; color: ProfessionalColor }): Promise<void> {
   const name = String(input.name ?? "").trim();
@@ -117,6 +117,7 @@ export async function saveProfessional(input: { original?: string; name: string;
     for (const c of db.closures) if (c.professional === original) c.professional = name;
     for (const r of db.reservations) if (r.professional === original) r.professional = name;
     for (const u of db.users) if (u.professional === original) u.professional = name;
+    for (const n of db.notifications) if (n.professional === original) n.professional = name;
   });
 }
 

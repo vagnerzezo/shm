@@ -157,6 +157,7 @@ export function Sidebar({
   studioName,
   badges = {},
   myAgenda = false,
+  accountOnly = false,
 }: {
   area: Area;
   address: string[];
@@ -164,8 +165,10 @@ export function Sidebar({
   badges?: Badges;
   /** Admin ligado a um profissional: "Minha agenda" logo depois de "Agenda". */
   myAgenda?: boolean;
+  /** Barbeiro ainda sem profissional: só "Meus dados" (as outras telas voltam para lá). */
+  accountOnly?: boolean;
 }) {
-  const base: NavLink[] = [...navByArea[area]];
+  const base: NavLink[] = accountOnly ? navByArea[area].filter((l) => l.href === "/conta") : [...navByArea[area]];
   const links = myAgenda && area === "admin" ? [...base.slice(0, 2), myAgendaLink, ...base.slice(2)] : base;
   // Com muitos itens (admin), botões mais baixos para o endereço continuar cabendo.
   const compact = links.length > 4;
@@ -180,7 +183,7 @@ export function Sidebar({
         compact ? "lg:gap-5 lg:py-8" : "lg:gap-6 lg:py-12",
       )}
     >
-      <Link href={area === "admin" ? "/admin" : area === "barbeiro" ? "/admin/agenda" : "/"} aria-label="Início" className="lg:contents">
+      <Link href={accountOnly ? "/conta" : area === "admin" ? "/admin" : area === "barbeiro" ? "/admin/agenda" : "/"} aria-label="Início" className="lg:contents">
         <Image
           src="/img/logo.png"
           alt={studioName}

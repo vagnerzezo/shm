@@ -48,6 +48,7 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
         studioName={studio.name}
         badges={badges}
         myAgenda={user?.role === "admin" && Boolean(user.professional)}
+        accountOnly={area === "barbeiro" && user?.role === "barbeiro" && !user.professional}
       />
 
       <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">

@@ -211,3 +211,25 @@ export const notifications = pgTable(
   },
   (t) => [index().on(t.at)],
 );
+
+/**
+ * Aparelhos que ligaram os avisos no celular (Web Push). Cada inscrição
+ * pertence à sessão em que foi feita: sair, trocar a senha ou ser desativado
+ * apaga a sessão e, em cascata, a inscrição. Lida e gravada com consultas
+ * diretas (fora do `readDb`/`updateDb`), em `app/_lib/push/subscriptions.ts`.
+ */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    seq: seq(),
+    endpoint: text().primaryKey(),
+    p256dh: text().notNull(),
+    auth: text().notNull(),
+    userId: userRef(),
+    sessionToken: text()
+      .notNull()
+      .references(() => sessions.token, { onDelete: "cascade" }),
+    createdAt: ts().notNull(),
+  },
+  (t) => [index().on(t.userId)],
+);

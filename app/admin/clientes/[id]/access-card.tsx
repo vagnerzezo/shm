@@ -4,12 +4,12 @@ import { useActionState, useState } from "react";
 import { CheckIcon } from "@/app/_components/icons";
 import { ConfirmButton } from "@/app/_components/confirm-button";
 import { PasswordInput } from "@/app/_components/password-input";
-import { deleteCustomer, setCustomerActive, setCustomerPassword } from "@/app/_lib/customer-actions";
+import { setCustomerActive, setCustomerPassword } from "@/app/_lib/customer-actions";
 import { generatePassword } from "@/app/_lib/password";
 import { fieldClass as baseField, labelClass, primaryButton, secondaryButton } from "@/app/_components/ui";
 import { cn } from "@/lib/utils";
+import { deleteCustomerDialog } from "../delete-customer";
 
-const fieldClass = cn(baseField, "mt-1.5");
 const darkButton = primaryButton;
 const lightButton = secondaryButton;
 
@@ -161,31 +161,7 @@ function ActiveToggle({
 function DeleteData({ customerId, name }: { customerId: string; name: string }) {
   return (
     <ConfirmButton
-      action={deleteCustomer}
-      fields={{ id: customerId }}
-      title={`Excluir todos os dados de ${name}?`}
-      description={
-        <>
-          Some o cadastro, as reservas (inclusive do histórico e do faturamento), a conversa do chat e os envios de
-          marketing. <strong className="font-semibold text-black">Não dá para desfazer.</strong> Use para pedidos de
-          exclusão de dados (LGPD); para só bloquear o acesso, desative a conta.
-        </>
-      }
-      extra={
-        <label className="block">
-          <span className={labelClass}>Digite EXCLUIR para confirmar</span>
-          <input
-            name="confirmacao"
-            required
-            pattern="EXCLUIR"
-            autoComplete="off"
-            placeholder="EXCLUIR"
-            title="Digite EXCLUIR em maiúsculas"
-            className={fieldClass}
-          />
-        </label>
-      }
-      confirmLabel="Excluir definitivamente"
+      {...deleteCustomerDialog(customerId, name)}
       className={cn(lightButton, "border-red-200 text-red-700 hover:bg-red-50")}
     >
       Excluir dados do cliente

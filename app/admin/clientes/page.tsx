@@ -11,6 +11,7 @@ import { getCustomers, type CustomerSummary } from "@/app/_lib/customers";
 import { formatPhone, normalize, oneParam as one, shortDate } from "@/app/_lib/format";
 import { formatPrice } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
+import { CustomerRowMenu } from "./customer-row-menu";
 
 export const metadata: Metadata = {
   title: "Clientes | Studio Heitor Macks",
@@ -203,12 +204,15 @@ export default async function ClientesPage(props: PageProps<"/admin/clientes">) 
                   <th className="px-4 py-3">VISITAS</th>
                   <th className="px-4 py-3">ÚLTIMA VISITA</th>
                   <th className="px-4 py-3">PRÓXIMO HORÁRIO</th>
+                  <th className="w-14 px-4 py-3">
+                    <span className="sr-only">Ações</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10">
                 {visible.map((c) => (
                   // No mobile cada linha vira um cartão.
-                  <tr key={c.id} className="grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-3 md:table-row md:p-0">
+                  <tr key={c.id} className="relative grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-3 pr-14 md:table-row md:p-0">
                     <td className="col-span-2 md:px-4 md:py-3">
                       <Link href={`/admin/clientes/${c.id}`} className="group flex items-center gap-3">
                         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-black/10 text-sm font-semibold text-black">
@@ -260,6 +264,10 @@ export default async function ClientesPage(props: PageProps<"/admin/clientes">) 
                       ) : (
                         <span className="text-black/50">Nenhum</span>
                       )}
+                    </td>
+                    {/* No mobile, o "⋮" fica no canto do cartão. */}
+                    <td className="absolute top-3 right-3 md:static md:px-4 md:py-3 md:text-right">
+                      <CustomerRowMenu id={c.id} name={c.name} canDelete={scope.all} />
                     </td>
                   </tr>
                 ))}

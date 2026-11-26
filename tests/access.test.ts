@@ -7,49 +7,25 @@ import { updateDb } from "../app/_lib/db";
 import { bookForCustomer, cancelForCustomer } from "../app/_lib/domain/bookings";
 import { getAgenda } from "../app/_lib/reservations";
 import { resetTestDb } from "../scripts/test-reset";
-import { BARBER_MENUS, menusOf, toCustomer } from "../app/_lib/roles";
+import { BARBER_MENUS, toCustomer } from "../app/_lib/roles";
 import { rejectsWith, USERS } from "./fixtures";
 
 const base = { id: "u1", name: "Pessoa", phone: "51900000000", email: "p@shm.test", consent: undefined };
 
-describe("menus da equipe", () => {
-  test("menusOf filtra, tira repetidos e segue a ordem fixa", () => {
-    assert.deepEqual(menusOf(["agenda", "xyz", "agenda", "inicio"]), ["inicio", "agenda"]);
-  });
-
-  test("menusOf com lixo devolve vazio", () => {
-    assert.deepEqual(menusOf(null), []);
-    assert.deepEqual(menusOf("agenda"), []);
-    assert.deepEqual(menusOf(undefined), []);
-  });
-
-  test("toCustomer traz os menus só para barbeiro", () => {
-    const barber = toCustomer({ ...base, role: "barbeiro", professional: "Heitor", menus: ["clientes"] });
-    assert.deepEqual(barber.menus, ["clientes"]);
-    assert.deepEqual(toCustomer({ ...base, role: "admin", menus: ["agenda"] }).menus, []);
-    assert.deepEqual(toCustomer({ ...base, menus: ["agenda"] }).menus, []);
-  });
-});
-
 const admin = toCustomer({ ...base, id: "a1", role: "admin" });
-const barber = toCustomer({ ...base, id: "b1", role: "barbeiro", professional: "Heitor", menus: ["agenda"] });
-const barberNoPro = toCustomer({ ...base, id: "b2", role: "barbeiro", menus: ["agenda"] });
+const barber = toCustomer({ ...base, id: "b1", role: "barbeiro", professional: "Heitor" });
+const barberNoPro = toCustomer({ ...base, id: "b2", role: "barbeiro" });
 const client = toCustomer({ ...base, id: "c1" });
 
 describe("regra central", () => {
-  test("admin abre todos os menus, mesmo sem menus marcados", () => {
+  test("admin abre todos os menus", () => {
     for (const m of BARBER_MENUS) assert.equal(canOpen(admin, m), true);
   });
 
-  test("barbeiro abre agenda, clientes e histórico sem menus marcados; Início não", () => {
-    const plain = toCustomer({ ...base, id: "b3", role: "barbeiro", professional: "Jimmy", menus: [] });
+  test("barbeiro abre agenda, clientes e histórico; Início não", () => {
+    const plain = toCustomer({ ...base, id: "b3", role: "barbeiro", professional: "Jimmy" });
     for (const m of ["agenda", "clientes", "historico"] as const) assert.equal(canOpen(plain, m), true);
     assert.equal(canOpen(plain, "inicio"), false);
-  });
-
-  test("menus antigos gravados não liberam o Início", () => {
-    const old = toCustomer({ ...base, id: "b4", role: "barbeiro", professional: "Jimmy", menus: ["inicio"] });
-    assert.equal(canOpen(old, "inicio"), false);
   });
 
   test("barbeiro sem profissional não abre nada", () => {

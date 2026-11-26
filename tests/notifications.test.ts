@@ -3,7 +3,7 @@ import { beforeEach, describe, test } from "node:test";
 import { addDays, nowInStudio } from "../app/_lib/availability";
 import { addMessage } from "../app/_lib/chat";
 import { readDb, updateDb } from "../app/_lib/db";
-import { deleteOwnAccount, registerCustomer } from "../app/_lib/domain/account";
+import { deleteCustomerByAdmin, deleteOwnAccount, registerCustomer } from "../app/_lib/domain/account";
 import { bookByAdmin, bookForCustomer, cancelForCustomer, rescheduleByAdmin, rescheduleForCustomer } from "../app/_lib/domain/bookings";
 import { sendWelcomeEmail } from "../app/_lib/email-templates/send";
 import { markCancelled } from "../app/_lib/reservations";
@@ -29,6 +29,12 @@ describe("quem recebe cada aviso", () => {
     assert.equal(isForUser(n({ kind: "reserva_cancelada", professional: "Heitor", actorId: "hei" }), heitor), false);
     assert.equal(isForUser(n({ kind: "reserva_marcada", professional: "Heitor", actorId: "adm" }), admin), false);
     assert.equal(isForUser(n({ kind: "reserva_marcada", professional: "Heitor", actorId: "adm" }), heitor), true);
+  });
+
+  test("admin é avisado do que outro admin fez (decidido com o dono em 2026-11-25)", () => {
+    const admin2 = toCustomer({ ...base, id: "adm2", name: "Outro", email: "o@shm.test", role: "admin" });
+    const r = n({ kind: "reserva_cancelada", professional: "Jimmy", actorId: "adm2" });
+    assert.deepEqual([isForUser(r, admin), isForUser(r, admin2)], [true, false]);
   });
 
   test("dia fechado: barbeiro recebe o dele e o do estúdio todo; admin não (foi ele)", () => {
@@ -105,6 +111,20 @@ describe("acontecimentos viram avisos", () => {
     const n = (await last())!;
     assert.deepEqual([n.kind, n.professional, n.customerId], ["reserva_cancelada", "Jimmy", undefined]);
     assert.match(n.text, /Cliente Dois/);
+  });
+
+  test("admin que exclui o cliente: aviso de cancelamento com o admin como autor", async () => {
+    await bookForCustomer(USERS.cliente2.id, [{ serviceId: "corte-heitor", date: day, time: "11:00" }]);
+    assert.equal(await deleteCustomerByAdmin(USERS.cliente2.id, USERS.admin.id), true);
+    const n = (await last())!;
+    assert.deepEqual([n.kind, n.professional, n.customerId, n.actorId], ["reserva_cancelada", "Heitor", undefined, USERS.admin.id]);
+    assert.match(n.text, /Admin cancelou Corte com Heitor para Cliente Dois/);
+    assert.equal((await readDb()).users.some((u) => u.id === USERS.cliente2.id), false);
+  });
+
+  test("admin não exclui pela tela de cliente quem é da equipe", async () => {
+    assert.equal(await deleteCustomerByAdmin(USERS.heitor.id, USERS.admin.id), false);
+    assert.ok((await readDb()).users.some((u) => u.id === USERS.heitor.id));
   });
 
   test("e-mail com o envio desligado não vira falha", async () => {

@@ -7,12 +7,6 @@ import type { Consent, Role, User } from "./db";
 export const BARBER_MENUS = ["inicio", "agenda", "clientes", "historico", "chat"] as const;
 export type BarberMenu = (typeof BARBER_MENUS)[number];
 
-/** Menus válidos de um valor qualquer (do banco ou de um formulário): sem repetição, na ordem de `BARBER_MENUS`. */
-export function menusOf(raw: unknown): BarberMenu[] {
-  if (!Array.isArray(raw)) return [];
-  return BARBER_MENUS.filter((m) => raw.includes(m));
-}
-
 /** Dados do usuário logado que podem ir para a tela ou para a API. */
 export type Customer = {
   id: string;
@@ -23,11 +17,6 @@ export type Customer = {
   consent: Consent;
   /** Profissional ligado (barbeiro, ou admin que também atende). */
   professional?: string;
-  /**
-   * Resto das permissões por menu (2026-11-19). Desde a área do barbeiro, os
-   * menus dele são fixos (ver `canOpen`) e nada lê este campo.
-   */
-  menus: BarberMenu[];
 };
 
 /** E-mails em `ADMIN_EMAILS` (separados por vírgula) também entram como admin. */
@@ -48,7 +37,7 @@ export function homeOf(user: Pick<User, "email" | "role">) {
 }
 
 export function toCustomer(
-  user: Pick<User, "id" | "name" | "phone" | "email" | "role" | "consent" | "professional"> & { menus?: unknown },
+  user: Pick<User, "id" | "name" | "phone" | "email" | "role" | "consent" | "professional">,
 ): Customer {
   return {
     id: user.id,
@@ -58,6 +47,5 @@ export function toCustomer(
     role: roleOf(user),
     consent: user.consent ?? { email: false, mensagem: false },
     ...(user.professional && { professional: user.professional }),
-    menus: roleOf(user) === "barbeiro" ? menusOf(user.menus) : [],
   };
 }

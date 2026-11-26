@@ -172,6 +172,26 @@ export async function deleteOwnAccount(userId: string, password: unknown): Promi
   });
 }
 
+/**
+ * Admin exclui o cliente e tudo ligado a ele (LGPD). Como na exclusão pelo
+ * próprio cliente, os horários futuros viram aviso de cancelamento para quem
+ * atende (e para os outros admins), com o admin como autor.
+ */
+export async function deleteCustomerByAdmin(customerId: string, adminId: string): Promise<boolean> {
+  return updateDb((db) => {
+    const user = db.users.find((u) => u.id === customerId);
+    if (!user || roleOf(user) !== "cliente") return false;
+    const now = nowInStudio();
+    for (const r of db.reservations) {
+      if (r.userId === customerId && !isCancelled(r) && !isPast(r, now)) {
+        pushReservationNotice(db, "reserva_cancelada", r, adminId, { customerName: user.name, keepCustomer: false });
+      }
+    }
+    purgeUser(db, customerId);
+    return true;
+  });
+}
+
 /** Nova senha a partir do código enviado por e-mail. Encerra as sessões abertas. */
 export async function resetPasswordWithToken(token: unknown, password: unknown) {
   assertPassword(password);

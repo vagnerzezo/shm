@@ -34,24 +34,22 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Login no computador com botões em pílula como no celular; Início do admin sem "Confirme quem veio" (continua no sino) e com Próximos dias na largura toda; Desativar e Excluir lado a lado no detalhe do cliente.
 - Profissionais saíram de Serviços e foram para Configurações; linha de serviço no celular arrumada.
 - E-mails do sistema com textos editáveis (Marketing → Templates → E-mails do sistema): assunto, título, texto, botão e observações, com marcadores; link, card da reserva e rodapé continuam automáticos; "Voltar ao texto original". Guardado em `settings` (chave `systemEmails`), sem migração.
+- Sino: decidido com o dono que **admin vê o que outro admin fez** (menos o que ele mesmo fez), que já era o comportamento; ficou um teste para isso. Admin excluir cliente agora avisa os horários futuros cancelados (como quando o próprio cliente exclui a conta).
+- Código: saiu o campo `menus` de `Customer` e o `menusOf` (sem uso desde a área do barbeiro). A coluna `users.menus` continua no banco, sem uso; a resposta de login/cadastro da API não traz mais `menus`.
 - Horários de 15 em 15 min: não reproduziu. Em produção o intervalo já é 45 min (10:00, 10:45, 11:30...). Falta o dono dizer onde viu.
 
 **Pontos menores que sobraram** (os feitos estão nos resumos acima):
-- Sino: **admin recebe avisos de outro admin**. Falta decidir com o dono: com mais de um admin, cada um vê o que o outro fez ou não?
-- Sino: excluir cliente ou barbeiro pelo admin não gera aviso dos horários cancelados junto.
-- Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática).
-- Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel).
-- Código: o campo `menus` de `Customer` (`app/_lib/roles.ts`) ficou sem uso; dá para remover junto com `menusOf`.
+- Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática). Deixado assim de propósito: corrigir pediria recarregar a moldura a cada troca de página (o dobro de consultas).
+- Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel). Só importa se a 1.2 voltar.
 
 **Próximos passos, em ordem:**
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
-2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
-3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
-4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
+3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
 Estado no fim de 2026-11-25:
 - **No ar na Vercel:** tudo até `040943d` (ajustes de 2026-11-25 enviados e deploy conferido).
-- `pnpm test` com 202 de 202 (inclui `tests/email-texts.test.ts`); a coleção da API não mudou desde 2026-11-23 (117 pedidos, 238 verificações).
+- `pnpm test` com 201 de 201 (inclui `tests/email-texts.test.ts`); a coleção da API não mudou desde 2026-11-23 (117 pedidos, 238 verificações).
 - Nenhuma migração nova depois da `0007`; o snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
 
 **Lembretes:**

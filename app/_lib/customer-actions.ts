@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { canOpen, profileForScope, scopeOf } from "./access";
 import { getCurrentUser, hashPassword, roleOf } from "./auth";
 import { getCustomer } from "./customers";
-import { purgeUser, updateDb } from "./db";
+import { deleteCustomerByAdmin } from "./domain/account";
+import { updateDb } from "./db";
 import { withNotice } from "./notices";
 import { readProfile } from "./profile";
 import type { BarberMenu } from "./roles";
@@ -16,6 +17,7 @@ export type CustomerFormState = { error: string | null; saved: boolean };
 async function assertAdmin() {
   const admin = await getCurrentUser();
   if (admin?.role !== "admin") redirect("/login?next=%2Fadmin%2Fclientes");
+  return admin;
 }
 
 /** Admin, ou barbeiro com algum dos menus (só os clientes dele). Sem permissão, volta para o login. */
@@ -133,14 +135,10 @@ export async function createCustomer(_prev: CreateCustomerState, formData: FormD
  * Para pedidos de exclusão de dados (LGPD). Não tem volta.
  */
 export async function deleteCustomer(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "");
   const confirmation = String(formData.get("confirmacao") ?? "").trim().toUpperCase();
   if (confirmation !== "EXCLUIR") return;
-  await updateDb((db) => {
-    const user = db.users.find((u) => u.id === id);
-    if (!user || roleOf(user) !== "cliente") return;
-    purgeUser(db, id);
-  });
+  await deleteCustomerByAdmin(id, admin.id);
   redirect(withNotice("/admin/clientes", "cliente-excluido"));
 }

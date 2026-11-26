@@ -31,7 +31,8 @@ export default async function LoginPage(props: PageProps<"/login">) {
         <MobileAuth mode={mobileMode} href={tabHref} next={target} />
       </div>
       <div className="hidden sm:contents">
-        <AuthShell>
+        {/* Sem "Voltar": a página inicial também é o login. */}
+        <AuthShell backHref={null}>
           <DesktopAuthForm mode={signUp ? "cadastro" : "entrar"} href={tabHref} next={target} />
         </AuthShell>
       </div>

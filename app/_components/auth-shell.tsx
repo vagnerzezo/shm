@@ -10,7 +10,8 @@ export function AuthShell({
   backLabel = "Voltar",
 }: {
   children: ReactNode;
-  backHref?: string;
+  /** `null`: sem "Voltar" (o login já é a página inicial). */
+  backHref?: string | null;
   backLabel?: string;
 }) {
   return (
@@ -25,13 +26,15 @@ export function AuthShell({
       />
 
       <section className="relative z-10 flex w-full flex-col items-center gap-8 overflow-y-auto rounded-2xl border border-black/20 bg-white/40 px-8 py-10 backdrop-blur-xl sm:max-w-[470px] sm:px-9">
-        <Link
-          href={backHref}
-          className="flex items-center gap-1.5 self-start text-sm font-semibold text-black hover:text-black/70"
-        >
-          <ArrowLeftIcon className="size-4" />
-          {backLabel}
-        </Link>
+        {backHref !== null && (
+          <Link
+            href={backHref}
+            className="flex items-center gap-1.5 self-start text-sm font-semibold text-black hover:text-black/70"
+          >
+            <ArrowLeftIcon className="size-4" />
+            {backLabel}
+          </Link>
+        )}
 
         <Image
           src="/img/logo.png"

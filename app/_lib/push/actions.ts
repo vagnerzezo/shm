@@ -1,7 +1,7 @@
 "use server";
 
 import { currentToken, getCurrentUser } from "../auth";
-import { pushEnabled } from "./dispatch";
+import { isPushEndpoint, pushEnabled } from "./dispatch";
 import { deletePushSubscription, hasPushSubscription, savePushSubscription, type PushKeys } from "./subscriptions";
 
 // Ligar e desligar os avisos no celular deste aparelho. Só equipe (barbeiro e
@@ -17,7 +17,7 @@ async function staff() {
 function isPushKeys(v: unknown): v is PushKeys {
   if (!v || typeof v !== "object") return false;
   const { endpoint, keys } = v as Partial<PushKeys>;
-  if (typeof endpoint !== "string" || endpoint.length > 2048 || !endpoint.startsWith("https://")) return false;
+  if (typeof endpoint !== "string" || endpoint.length > 2048 || !isPushEndpoint(endpoint)) return false;
   return Boolean(keys && typeof keys.p256dh === "string" && typeof keys.auth === "string" && keys.p256dh && keys.auth);
 }
 

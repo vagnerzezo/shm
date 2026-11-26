@@ -1,13 +1,13 @@
-import { after } from "next/server";
 import { sendNotification } from "web-push";
-import { pendingPush, readDb, type Notification } from "../db";
+import { orm, pendingPush, type Notification } from "../db";
+import { users as usersTable } from "../db-schema";
 import { hrefOf, isForUser } from "../notifications";
 import { toCustomer, type Customer } from "../roles";
 import { activePushSubscriptions, deletePushSubscription, type PushKeys } from "./subscriptions";
 
-// Avisos no celular: depois que o updateDb grava, os avisos de reserva novos
-// chegam aqui. Quem recebe segue a regra do sino (isForUser); o envio roda
-// depois da resposta (after) e nunca derruba a ação.
+// Avisos no celular: depois que o updateDb grava, ele agenda (after) o envio
+// dos avisos de reserva novos para cá. Quem recebe segue a regra do sino
+// (isForUser); o envio nunca derruba a ação.
 
 export type PushPayload = { title: string; body: string; url: string; tag: string };
 export type PushMessage = { userId: string; payload: PushPayload };
@@ -37,6 +37,20 @@ export function pushMessagesFor(notices: Notification[], users: (Customer & { di
   return out;
 }
 
+/** Serviços de push dos navegadores (Chrome/Edge, Firefox, Windows, Safari). */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /\.notify\.windows\.com$/, /(^|\.)push\.apple\.com$/];
+
+/** O endereço é de um serviço de push conhecido? Evita o servidor mandar pedidos para qualquer lugar. */
+export function isPushEndpoint(endpoint: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  return url.protocol === "https:" && !url.port && PUSH_HOSTS.some((h) => h.test(url.hostname));
+}
+
 export function pushEnabled(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT,
@@ -48,6 +62,8 @@ export function pushSendOptions() {
   return {
     TTL: 86_400,
     urgency: "high" as const,
+    // Serviço de push travado não segura a função até o limite da Vercel.
+    timeout: 10_000,
     vapidDetails: {
       subject: process.env.VAPID_SUBJECT!,
       publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
@@ -64,11 +80,26 @@ export function setPushSender(fake: PushSender | null): void {
   sender = fake ?? realSender;
 }
 
-const running = new Set<Promise<void>>();
-
-async function send(notices: Notification[]): Promise<void> {
-  const db = await readDb();
-  const users = db.users.map((u) => ({ ...toCustomer(u), disabledAt: u.disabledAt }));
+/** Envia os avisos de reserva aos aparelhos de quem deve saber. Chamado pelo updateDb (via after). Sem chaves, não faz nada. */
+export async function sendPush(notices: Notification[]): Promise<void> {
+  if (!pushEnabled() || !notices.some((n) => TITLES[n.kind])) return;
+  // Só as colunas que decidem quem recebe, sem carregar o banco inteiro. Todos os
+  // usuários: ADMIN_EMAILS faz admin quem não tem papel gravado.
+  const rows = await orm
+    .select({
+      id: usersTable.id,
+      name: usersTable.name,
+      phone: usersTable.phone,
+      email: usersTable.email,
+      role: usersTable.role,
+      professional: usersTable.professional,
+      disabledAt: usersTable.disabledAt,
+    })
+    .from(usersTable);
+  const users = rows.map((u) => ({
+    ...toCustomer({ ...u, role: (u.role ?? undefined) as Customer["role"] | undefined, consent: undefined, professional: u.professional ?? undefined }),
+    disabledAt: u.disabledAt ? u.disabledAt.toISOString() : undefined,
+  }));
   const messages = pushMessagesFor(notices, users);
   if (messages.length === 0) return;
   const subs = await activePushSubscriptions([...new Set(messages.map((m) => m.userId))]);
@@ -89,25 +120,7 @@ async function send(notices: Notification[]): Promise<void> {
   await Promise.allSettled(jobs);
 }
 
-/** Chamado pelo updateDb depois de gravar. Sem chaves configuradas, não faz nada. */
-export function dispatchPush(notices: Notification[]): void {
-  if (!pushEnabled() || !notices.some((n) => TITLES[n.kind])) return;
-  const task = () => {
-    const p = send(notices).catch((e) => console.error("Falha ao preparar avisos ao celular:", e));
-    running.add(p);
-    void p.finally(() => running.delete(p));
-    return p;
-  };
-  try {
-    after(task);
-  } catch {
-    // Fora de uma requisição (scripts, testes): roda na hora.
-    void task();
-  }
-}
-
 /** Testes: espera os envios agendados terminarem. */
 export async function waitForPush(): Promise<void> {
   await pendingPush();
-  await Promise.allSettled([...running]);
 }

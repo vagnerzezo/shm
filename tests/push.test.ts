@@ -5,7 +5,7 @@ import { orm } from "../app/_lib/db";
 import { sessions } from "../app/_lib/db-schema";
 import { deleteCustomerByAdmin } from "../app/_lib/domain/account";
 import { hrefOf, type Notification } from "../app/_lib/notifications";
-import { pushMessagesFor, pushSendOptions, setPushSender, waitForPush, type PushSender } from "../app/_lib/push/dispatch";
+import { isPushEndpoint, pushMessagesFor, pushSendOptions, setPushSender, waitForPush, type PushSender } from "../app/_lib/push/dispatch";
 import { ensureSubscription } from "../app/_lib/push/ensure-subscription";
 import { addDays, nowInStudio } from "../app/_lib/availability";
 import { readDb } from "../app/_lib/db";
@@ -255,5 +255,27 @@ describe("revisão final", () => {
     const { pm, log } = fakeManager(null);
     assert.equal((await ensureSubscription(pm, async () => false, new Uint8Array([1]))).endpoint, "https://push.example.test/novo");
     assert.deepEqual(log, ["subscribe"]);
+  });
+});
+
+describe("pontos menores", () => {
+  test("envio com tempo limite de 10 s", () => assert.equal(pushSendOptions().timeout, 10_000));
+
+  test("só endereços dos serviços de push conhecidos", () => {
+    for (const ok of [
+      "https://fcm.googleapis.com/fcm/send/abc",
+      "https://updates.push.services.mozilla.com/wpush/v2/abc",
+      "https://wns2-par02p.notify.windows.com/w/?token=abc",
+      "https://web.push.apple.com/QGz",
+    ]) assert.equal(isPushEndpoint(ok), true, ok);
+    for (const bad of [
+      "http://fcm.googleapis.com/fcm/send/abc",
+      "https://localhost/x",
+      "https://10.0.0.1/x",
+      "https://evil.example/fcm.googleapis.com",
+      "https://fcm.googleapis.com.evil.example/x",
+      "https://push.apple.com.evil.example/x",
+      "nada",
+    ]) assert.equal(isPushEndpoint(bad), false, bad);
   });
 });

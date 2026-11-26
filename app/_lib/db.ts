@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { eq, getTableColumns, getTableName, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
@@ -422,18 +423,28 @@ export async function updateDb<T>(change: (db: Db) => T): Promise<T> {
     created = db.notifications.filter((n) => !old.has(n.id));
     return result;
   });
-  // Avisos novos vão também para o celular, depois de gravados. Import
-  // dinâmico: push/dispatch usa notifications.ts, que usa este arquivo.
+  // Avisos novos vão também para o celular. O envio é agendado aqui mesmo,
+  // na hora (after: roda depois da resposta). Import dinâmico: push/dispatch
+  // usa notifications.ts, que usa este arquivo.
   if (created.length) {
     const notices = created;
-    const p = import("./push/dispatch").then((m) => m.dispatchPush(notices));
-    pushQueue = pushQueue.then(() => p).catch((e) => console.error("Falha ao agendar avisos ao celular:", e));
+    const run = () =>
+      import("./push/dispatch")
+        .then((m) => m.sendPush(notices))
+        .catch((e) => console.error("Falha ao enviar avisos ao celular:", e));
+    try {
+      after(run);
+    } catch {
+      // Fora de uma requisição (scripts, testes): roda na hora.
+      const p = run();
+      pushQueue = Promise.all([pushQueue, p]);
+    }
   }
   return result;
 }
 
 let pushQueue: Promise<unknown> = Promise.resolve();
-/** Testes: espera o despachante dos avisos ao celular ser chamado. */
+/** Testes: espera os avisos ao celular que rodaram fora de uma requisição. */
 export async function pendingPush(): Promise<void> {
   await pushQueue;
 }

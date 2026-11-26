@@ -44,15 +44,13 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Código: o campo `menus` de `Customer` (`app/_lib/roles.ts`) ficou sem uso; dá para remover junto com `menusOf`.
 
 **Próximos passos, em ordem:**
-0. **Enviar os ajustes de 2026-11-25** (ver "Estado" abaixo): `git push origin main` e conferir o deploy na Vercel.
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
 3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
 4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
 Estado no fim de 2026-11-25:
-- **No ar na Vercel:** tudo até `a065723` (inclui a seção 2).
-- **Só na `main` local, falta enviar:** os ajustes de 2026-11-25 (celular do cliente, login/início/detalhe do cliente, profissionais em Configurações, e-mails do sistema editáveis). Conferir com `git log --oneline origin/main..main` e enviar com `git push origin main` depois do ok do dono. Não tem migração.
+- **No ar na Vercel:** tudo até `040943d` (ajustes de 2026-11-25 enviados e deploy conferido).
 - `pnpm test` com 202 de 202 (inclui `tests/email-texts.test.ts`); a coleção da API não mudou desde 2026-11-23 (117 pedidos, 238 verificações).
 - Nenhuma migração nova depois da `0007`; o snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
 

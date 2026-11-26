@@ -1,6 +1,11 @@
 // Service worker dos avisos no celular (Web Push). Só mostra o aviso e abre a
 // tela certa ao tocar. Não guarda páginas nem intercepta requisições.
 
+// Assume as abas já abertas, para o toque no aviso conseguir levar a elas.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   let data;
@@ -29,9 +34,12 @@ self.addEventListener("notificationclick", (event) => {
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       const mine = windows.find((w) => new URL(w.url).origin === self.location.origin);
       if (mine) {
-        await mine.focus();
-        if ("navigate" in mine) return mine.navigate(url);
-        return;
+        try {
+          await mine.focus();
+          if ("navigate" in mine && (await mine.navigate(url))) return;
+        } catch {
+          // Janela que este worker não controla: abre uma nova abaixo.
+        }
       }
       return self.clients.openWindow(url);
     })(),

@@ -34,7 +34,9 @@ async function readState(publicKey: string | null): Promise<PushCardState> {
   };
   const first = pushCardState(env);
   if (first !== "desligado") return first;
-  const sub = await (await registration()).pushManager.getSubscription();
+  // Só confere: o service worker é instalado ao tocar em "Ativar".
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  const sub = reg ? await reg.pushManager.getSubscription() : null;
   // Ligado só se o servidor ainda tem esta inscrição para esta sessão (sair e entrar apaga).
   env.subscribed = Boolean(sub && (await pushSubscriptionStatus(sub.endpoint)));
   return pushCardState(env);
@@ -83,7 +85,8 @@ export function PushCard({ publicKey }: { publicKey: string | null }) {
     setBusy(true);
     setError(null);
     try {
-      const sub = await (await registration()).pushManager.getSubscription();
+      const reg = await navigator.serviceWorker.getRegistration("/");
+      const sub = reg ? await reg.pushManager.getSubscription() : null;
       if (sub) {
         await unsubscribePush(sub.endpoint);
         await sub.unsubscribe();
@@ -106,6 +109,7 @@ export function PushCard({ publicKey }: { publicKey: string | null }) {
       </p>
 
       <div className="mt-4 text-sm text-black/80" aria-live="polite">
+        {state === null && <p className="text-black/60">Verificando…</p>}
         {state === "indisponivel" && <p>Os avisos no celular ainda não estão disponíveis.</p>}
         {state === "sem-suporte" && <p>Este navegador não recebe avisos.</p>}
         {state === "instalar-ios" && (

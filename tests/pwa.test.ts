@@ -18,6 +18,8 @@ describe("manifesto do app", () => {
     assert.equal(m.background_color, "#121212");
   });
 
+  test("não trava o app em pé (tablets podem virar)", () => assert.equal(manifest().orientation, undefined));
+
   test("ícones 192, 512 e maskable existem no tamanho certo", async () => {
     const icons = manifest().icons ?? [];
     const wanted = [

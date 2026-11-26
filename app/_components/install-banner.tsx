@@ -35,7 +35,12 @@ export function InstallPromptCatcher() {
   return null;
 }
 
+// "Agora não" também fica guardado aqui: sem armazenamento no navegador, a
+// faixa continua escondida ao trocar de tela, até recarregar.
+let dismissedThisLoad = false;
+
 function readDismissed() {
+  if (dismissedThisLoad) return true;
   try {
     return localStorage.getItem(DISMISS_KEY) === "1";
   } catch {
@@ -44,10 +49,11 @@ function readDismissed() {
 }
 
 function saveDismissed() {
+  dismissedThisLoad = true;
   try {
     localStorage.setItem(DISMISS_KEY, "1");
   } catch {
-    // Sem armazenamento: a faixa só some até recarregar.
+    // Sem armazenamento: vale só até recarregar.
   }
 }
 
@@ -86,9 +92,14 @@ export function InstallBanner() {
   const install = async () => {
     const prompt = savedPrompt;
     if (!prompt) return;
-    await prompt.prompt();
-    await prompt.userChoice;
+    // O pedido de instalação só pode ser usado uma vez: um segundo toque não chama de novo.
     savedPrompt = null;
+    try {
+      await prompt.prompt();
+      await prompt.userChoice;
+    } catch {
+      // Navegador recusou mostrar: nada a fazer.
+    }
     setClosed(true);
   };
 

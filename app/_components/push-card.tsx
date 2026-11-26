@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { isIOS } from "@/app/_lib/install-banner";
 import { pushSubscriptionStatus, subscribePush, unsubscribePush } from "@/app/_lib/push/actions";
 import { pushCardState, type PushCardState } from "@/app/_lib/push/card-state";
+import { ensureSubscription } from "@/app/_lib/push/ensure-subscription";
 import { card, FormError, primaryButton, secondaryButton } from "./ui";
 
 // Cartão "Avisos no celular" (Meus dados do barbeiro e Perfil do admin).
@@ -64,10 +65,10 @@ export function PushCard({ publicKey }: { publicKey: string | null }) {
         setState(permission === "denied" ? "bloqueado" : "desligado");
         return;
       }
-      const reg = await registration();
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) }));
+      await registration();
+      // Inscrever pede um service worker ativo.
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await ensureSubscription(reg.pushManager, pushSubscriptionStatus, urlBase64ToUint8Array(publicKey));
       const result = await subscribePush(sub.toJSON());
       if ("error" in result) setError(result.error);
       else setState("ligado");

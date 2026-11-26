@@ -5,7 +5,8 @@ import { orm } from "../app/_lib/db";
 import { sessions } from "../app/_lib/db-schema";
 import { deleteCustomerByAdmin } from "../app/_lib/domain/account";
 import { hrefOf, type Notification } from "../app/_lib/notifications";
-import { pushMessagesFor, setPushSender, waitForPush, type PushSender } from "../app/_lib/push/dispatch";
+import { pushMessagesFor, pushSendOptions, setPushSender, waitForPush, type PushSender } from "../app/_lib/push/dispatch";
+import { ensureSubscription } from "../app/_lib/push/ensure-subscription";
 import { addDays, nowInStudio } from "../app/_lib/availability";
 import { readDb } from "../app/_lib/db";
 import { bookForCustomer } from "../app/_lib/domain/bookings";
@@ -216,5 +217,43 @@ describe("envio", () => {
     await book();
     await waitForPush();
     assert.equal(calls.length, 0);
+  });
+});
+
+describe("revisão final", () => {
+  test("aviso sai com urgência alta (Android não segura com o celular parado)", () => {
+    assert.equal(pushSendOptions().urgency, "high");
+  });
+
+  const fakeManager = (existing: string | null) => {
+    const log: string[] = [];
+    const make = (endpoint: string) => ({ endpoint, unsubscribe: async () => (log.push(`unsubscribe ${endpoint}`), true) });
+    return {
+      log,
+      pm: {
+        getSubscription: async () => (existing ? make(existing) : null),
+        subscribe: async () => (log.push("subscribe"), make("https://push.example.test/novo")),
+      },
+    };
+  };
+
+  test("inscrição que o servidor não conhece é trocada por uma nova", async () => {
+    const { pm, log } = fakeManager("https://push.example.test/velho");
+    const sub = await ensureSubscription(pm, async () => false, new Uint8Array([1]));
+    assert.equal(sub.endpoint, "https://push.example.test/novo");
+    assert.deepEqual(log, ["unsubscribe https://push.example.test/velho", "subscribe"]);
+  });
+
+  test("inscrição que o servidor conhece é mantida", async () => {
+    const { pm, log } = fakeManager("https://push.example.test/velho");
+    const sub = await ensureSubscription(pm, async () => true, new Uint8Array([1]));
+    assert.equal(sub.endpoint, "https://push.example.test/velho");
+    assert.deepEqual(log, []);
+  });
+
+  test("sem inscrição no navegador, inscreve", async () => {
+    const { pm, log } = fakeManager(null);
+    assert.equal((await ensureSubscription(pm, async () => false, new Uint8Array([1]))).endpoint, "https://push.example.test/novo");
+    assert.deepEqual(log, ["subscribe"]);
   });
 });

@@ -43,15 +43,20 @@ export function pushEnabled(): boolean {
   );
 }
 
-const realSender: PushSender = (sub, payload) =>
-  sendNotification(sub, payload, {
+/** Opções do envio. Urgência alta: o Android não segura o aviso com o celular parado (Doze). */
+export function pushSendOptions() {
+  return {
     TTL: 86_400,
+    urgency: "high" as const,
     vapidDetails: {
       subject: process.env.VAPID_SUBJECT!,
       publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
       privateKey: process.env.VAPID_PRIVATE_KEY!,
     },
-  });
+  };
+}
+
+const realSender: PushSender = (sub, payload) => sendNotification(sub, payload, pushSendOptions());
 
 let sender: PushSender = realSender;
 /** Testes trocam o envio real; `null` volta ao web-push. */

@@ -86,23 +86,28 @@ function Welcome({ href }: { href: (mode: "entrar" | "cadastro" | null) => strin
   );
 }
 
-function FormScreen({
-  mode,
-  href,
-  next,
-}: {
-  mode: "entrar" | "cadastro";
-  href: (mode: "entrar" | "cadastro" | null) => string;
-  next: string;
-}) {
+const texts = {
+  entrar: { title: "Entrar", subtitle: "Que bom ver você de novo." },
+  cadastro: { title: "Criar conta", subtitle: "Preencha seus dados para começar." },
+};
+
+type AuthMode = "entrar" | "cadastro";
+type AuthHref = (mode: AuthMode | null) => string;
+
+function FormScreen({ mode, href, next }: { mode: AuthMode; href: AuthHref; next: string }) {
+  return (
+    <MobileSheet backHref={href(null)} title={texts[mode].title} subtitle={texts[mode].subtitle}>
+      <AuthFormBody mode={mode} href={href} next={next} />
+    </MobileSheet>
+  );
+}
+
+/** Formulário, "Esqueci minha senha" e a troca Entrar/Criar conta: iguais no celular e no computador. */
+function AuthFormBody({ mode, href, next }: { mode: AuthMode; href: AuthHref; next: string }) {
   const signUp = mode === "cadastro";
   const other = signUp ? "entrar" : "cadastro";
   return (
-    <MobileSheet
-      backHref={href(null)}
-      title={signUp ? "Criar conta" : "Entrar"}
-      subtitle={signUp ? "Preencha seus dados para começar." : "Que bom ver você de novo."}
-    >
+    <>
       {/* `key` recria o formulário ao trocar Entrar/Criar conta, limpando erros e o "mostrar senha". */}
       <LoginForm key={mode} mode={mode} next={next} variant="mobile" />
 
@@ -119,7 +124,20 @@ function FormScreen({
           {signUp ? "Entrar" : "Criar conta"}
         </Link>
       </p>
-    </MobileSheet>
+    </>
+  );
+}
+
+/** Login no computador (dentro do AuthShell): o mesmo conteúdo da tela do celular. */
+export function DesktopAuthForm({ mode, href, next }: { mode: AuthMode; href: AuthHref; next: string }) {
+  return (
+    <div className={`${display.variable} flex flex-col gap-3.5 text-[#111]`}>
+      <div className="mb-1 flex flex-col gap-1.5">
+        <h1 className={`${displayClass} text-4xl leading-none`}>{texts[mode].title}</h1>
+        <p className="text-sm text-[#555]">{texts[mode].subtitle}</p>
+      </div>
+      <AuthFormBody mode={mode} href={href} next={next} />
+    </div>
   );
 }
 

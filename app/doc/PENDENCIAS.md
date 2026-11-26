@@ -42,7 +42,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Decidido com o dono: o "app de celular" é um **PWA** (o próprio site instalável), não app de loja. Parte A (instalar) feita; parte B (notificações no celular) fica para depois.
 - Manifesto (`app/manifest.ts`): nome "Studio Heitor Macks", embaixo do ícone **"SHM"**, abre em `/` em tela cheia, preto `#121212`. Ícones gerados por `node scripts/gerar-icones-app.mjs` (logo branco sobre preto) em `public/icons/` e `app/apple-icon.png`.
 - Faixa "Instale o app do estúdio" no alto das áreas logadas, só no celular: no Android, botão "Instalar"; no iPhone, o caminho Compartilhar → "Adicionar à Tela de Início". "Agora não" esconde naquele aparelho; some quando já está instalado. Não aparece no login nem no computador.
-- `pnpm test` com 213 de 213 (inclui `tests/pwa.test.ts`). Sem migração.
+- `pnpm test` com 213 de 213 (inclui `tests/pwa.test.ts`). Sem migração. (Depois da parte B: 244 de 244.)
 - Como instalar à mão: **Android/Chrome** → menu ⋮ → "Instalar app"; **iPhone/Safari** → Compartilhar → "Adicionar à Tela de Início" (no navegador do Instagram/Facebook não dá: abrir no Safari).
 
 **Avisos no celular (PWA parte B), 2026-11-26** (branch `feat/push`; desenho `app/doc/specs/2026-11-26-push-design.md`, plano `app/doc/plans/2026-11-26-push.md`):

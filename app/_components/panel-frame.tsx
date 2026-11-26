@@ -7,6 +7,7 @@ import { getBell } from "@/app/_lib/notifications";
 import { readDb } from "@/app/_lib/db";
 import { studioOf } from "@/app/_lib/studio";
 import { FlashToast } from "./flash-toast";
+import { InstallBanner } from "./install-banner";
 import type { Area } from "./nav";
 import { Sidebar } from "./sidebar";
 import { Toaster } from "./toaster";
@@ -54,6 +55,8 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
       />
 
       <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">
+        {/* Convite para instalar o app (só no celular, se ainda não instalou). */}
+        <InstallBanner />
         <PanelProvider value={{ bell, profileHref }}>
           {children}
         </PanelProvider>

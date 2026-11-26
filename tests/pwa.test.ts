@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import sharp from "sharp";
 import manifest from "../app/manifest";
+import { installBannerFor, type InstallEnv } from "../app/_lib/install-banner";
 
 // App instalável (PWA). Não usa o banco.
 
@@ -30,5 +31,36 @@ describe("manifesto do app", () => {
     }
     const apple = await sharp("app/apple-icon.png").metadata();
     assert.equal(`${apple.width}x${apple.height}`, "180x180");
+  });
+});
+
+const IPHONE =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
+const IPAD =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15";
+const ANDROID =
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36";
+const INSTAGRAM_IOS = IPHONE + " Instagram 350.0.0";
+const DESKTOP =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+const base: InstallEnv = { userAgent: IPHONE, maxTouchPoints: 5, standalone: false, dismissed: false, hasPrompt: false };
+
+describe("faixa de instalar", () => {
+  test("iPhone no Safari vê a instrução", () => assert.equal(installBannerFor(base), "ios"));
+  test("iPad (se diz Mac, mas tem toque) vê a instrução", () =>
+    assert.equal(installBannerFor({ ...base, userAgent: IPAD, maxTouchPoints: 5 }), "ios"));
+  test("Mac de verdade não vê", () =>
+    assert.equal(installBannerFor({ ...base, userAgent: IPAD, maxTouchPoints: 0 }), null));
+  test("Android com pedido de instalação vê o botão", () =>
+    assert.equal(installBannerFor({ ...base, userAgent: ANDROID, hasPrompt: true }), "android"));
+  test("Android sem pedido de instalação não vê", () =>
+    assert.equal(installBannerFor({ ...base, userAgent: ANDROID }), null));
+  test("computador não vê, mesmo com pedido", () =>
+    assert.equal(installBannerFor({ ...base, userAgent: DESKTOP, maxTouchPoints: 0, hasPrompt: true }), null));
+  test("já instalado não vê", () => assert.equal(installBannerFor({ ...base, standalone: true }), null));
+  test('depois de "Agora não" não vê', () => assert.equal(installBannerFor({ ...base, dismissed: true }), null));
+  test("navegador do Instagram/Facebook no iPhone não vê", () => {
+    assert.equal(installBannerFor({ ...base, userAgent: INSTAGRAM_IOS }), null);
+    assert.equal(installBannerFor({ ...base, userAgent: IPHONE + " [FBAN/FBIOS;FBAV/450.0]" }), null);
   });
 });

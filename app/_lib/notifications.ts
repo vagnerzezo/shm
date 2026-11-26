@@ -84,7 +84,7 @@ const MAX_ITEMS = 30;
 export type BellItem = { id: string; text: string; at: string; href: string; unseen: boolean };
 
 /** Para onde cada aviso leva. */
-function hrefOf(n: Notification): string {
+export function hrefOf(n: Notification): string {
   switch (n.kind) {
     case "reserva_marcada":
     case "reserva_remarcada":

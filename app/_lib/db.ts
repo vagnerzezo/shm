@@ -410,15 +410,32 @@ export async function readDb(): Promise<Db> {
  * Aplica `change` ao banco numa transação. A trava faz as gravações
  * acontecerem uma de cada vez, mesmo com vários servidores (serverless).
  */
-export function updateDb<T>(change: (db: Db) => T): Promise<T> {
-  return orm.transaction(async (tx) => {
+export async function updateDb<T>(change: (db: Db) => T): Promise<T> {
+  let created: Notification[] = [];
+  const result = await orm.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(7243001)`);
     const before = await load(tx);
     const db = structuredClone(before);
     const result = change(db);
     await save(tx, before, db);
+    const old = new Set(before.notifications.map((n) => n.id));
+    created = db.notifications.filter((n) => !old.has(n.id));
     return result;
   });
+  // Avisos novos vão também para o celular, depois de gravados. Import
+  // dinâmico: push/dispatch usa notifications.ts, que usa este arquivo.
+  if (created.length) {
+    const notices = created;
+    const p = import("./push/dispatch").then((m) => m.dispatchPush(notices));
+    pushQueue = pushQueue.then(() => p).catch((e) => console.error("Falha ao agendar avisos ao celular:", e));
+  }
+  return result;
+}
+
+let pushQueue: Promise<unknown> = Promise.resolve();
+/** Testes: espera o despachante dos avisos ao celular ser chamado. */
+export async function pendingPush(): Promise<void> {
+  await pushQueue;
 }
 
 /** Remove o cliente e tudo ligado a ele (LGPD). Chamar dentro de `updateDb`. */

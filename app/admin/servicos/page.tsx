@@ -4,16 +4,13 @@ import { ConfirmButton } from "@/app/_components/confirm-button";
 import { PlusIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card, dangerLink, EmptyState, linkButton, PageTitle, primaryButton, scrollArea } from "@/app/_components/ui";
-import { colorDot } from "@/app/_lib/agenda";
 import { requireAdmin } from "@/app/_lib/auth";
-import { nowInStudio } from "@/app/_lib/availability";
 import { getCatalog } from "@/app/_lib/catalog";
 import { deleteService, toggleService } from "@/app/_lib/catalog-actions";
 import { readDb } from "@/app/_lib/db";
 import { oneParam } from "@/app/_lib/format";
 import { categoriesOf, formatDuration, formatPrice, isActiveService } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
-import { ProfessionalsCard } from "./professionals-card";
 import { ServiceForm } from "./service-form";
 
 export const metadata: Metadata = {
@@ -21,14 +18,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ServicosPage(props: PageProps<"/admin/servicos">) {
-  const me = await requireAdmin("/admin/servicos");
+  await requireAdmin("/admin/servicos");
   const params = await props.searchParams;
   const editId = oneParam(params.editar);
   const creating = oneParam(params.novo) === "1";
 
   const { services, professionals } = await getCatalog();
-  const { reservations, users } = await readDb();
-  const today = nowInStudio().date;
+  const { reservations } = await readDb();
   const used = new Map<string, number>();
   for (const r of reservations) used.set(r.serviceId, (used.get(r.serviceId) ?? 0) + 1);
   const editing = services.find((s) => s.id === editId);
@@ -37,7 +33,7 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
   return (
     <>
       <PanelHeader>
-        <PageTitle title="Serviços" description="O que o estúdio oferece, com preço, duração e quem atende." />
+        <PageTitle title="Serviços" description="O que o estúdio oferece, com preço, duração e quem atende. Os profissionais ficam em Configurações." />
       </PanelHeader>
 
       <div className={cn("mt-7 flex flex-col gap-5", scrollArea)}>
@@ -82,7 +78,14 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
                       const count = used.get(s.id) ?? 0;
                       const active = isActiveService(s);
                       return (
-                        <li key={s.id} className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3", !active && "opacity-60")}>
+                        <li
+                          key={s.id}
+                          // Celular: nome e preço em cima, ações embaixo. Computador: tudo numa linha.
+                          className={cn(
+                            "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 px-4 py-3 sm:flex sm:items-center",
+                            !active && "opacity-60",
+                          )}
+                        >
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="font-semibold text-black">{s.name}</p>
@@ -94,7 +97,7 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
                             </p>
                           </div>
                           <p className="font-bold text-black">{formatPrice(s.priceCents)}</p>
-                          <div className="flex items-center gap-4">
+                          <div className="col-span-2 flex items-center gap-4">
                             <Link href={`/admin/servicos?editar=${s.id}`} className={linkButton}>
                               Editar
                             </Link>
@@ -128,22 +131,6 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
             Mudar o preço vale para novas reservas; as já feitas mantêm o valor de quando foram marcadas.
           </p>
         </section>
-
-        <ProfessionalsCard
-          professionals={professionals.map((p) => ({
-            ...p,
-            dot: colorDot(p.color),
-            services: services.filter((s) => s.professional === p.name).length,
-            // Atendimentos futuros atribuídos a ele (inclui serviços sem profissional fixo).
-            upcoming: reservations.filter((r) => r.professional === p.name && !r.cancelledAt && r.date >= today).length,
-            access: users
-              .filter((u) => u.role === "barbeiro" && u.professional === p.name)
-              .map((u) => ({ id: u.id, email: u.email })),
-            isMe: me.professional === p.name,
-            otherAdmins: users.filter((u) => u.role === "admin" && u.id !== me.id && u.professional === p.name).length,
-          }))}
-          linkedToMe={me.professional ?? null}
-        />
       </div>
     </>
   );

@@ -37,7 +37,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 
 **Próximos passos, em ordem:**
 0. **Enviar a seção 2** (ver "Estado" abaixo): `git push origin main` e conferir o deploy na Vercel.
-1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Serviços → Profissionais). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
+1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
 3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
 4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
@@ -100,7 +100,7 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 
 - ~~Outras telas fora do painel no celular~~ **Feito (2026-11-19):** Esqueci minha senha e Criar nova senha usam o `MobileSheet` (mesmo layout de Entrar/Criar conta). **Descadastrar também (2026-11-23).**
 - ~~**Barbeiro em "Meus dados"** precisa informar telefone~~ **Feito (2026-11-23):** para barbeiro o telefone é opcional (se informado, é conferido). De quebra, Meus dados e o perfil do admin recarregam ao salvar; antes o formulário voltava a mostrar os valores antigos.
-- ~~**O admin não redefine a senha do barbeiro**~~ **Feito (2026-11-23):** "Nova senha" em Serviços → Profissionais, ao lado do acesso; encerra as sessões dele.
+- ~~**O admin não redefine a senha do barbeiro**~~ **Feito (2026-11-23):** "Nova senha" em Configurações → Profissionais (antes em Serviços), ao lado do acesso; encerra as sessões dele.
 - ~~**Chat do site** corta mensagens acima de 2000 caracteres sem avisar~~ **Feito (2026-11-19):** o site usa a mesma regra da API e mostra o erro.
 - ~~**E-mails de marketing** com rodapé simples~~ **Feito (2026-11-23):** mesmo rodapé dos e-mails do sistema, com "Deixar de receber" na última linha. O corpo continua o texto do template, sem a moldura com logo.
 - **App de celular:** a API está pronta (`app/doc/api/openapi.yaml`), mas o app em si não começou.

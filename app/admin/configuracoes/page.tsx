@@ -10,12 +10,15 @@ import { getAvailabilityRules } from "@/app/_lib/schedule";
 import { ConfirmButton } from "@/app/_components/confirm-button";
 import { card as cardBase, dangerLink, linkButton, PageTitle, scrollArea } from "@/app/_components/ui";
 import { getCatalog } from "@/app/_lib/catalog";
+import { colorDot } from "@/app/_lib/agenda";
+import { readDb } from "@/app/_lib/db";
 import { shortDate as formatShortDate } from "@/app/_lib/format";
 import { deleteClosure } from "@/app/_lib/settings-actions";
 import { getTeam } from "@/app/_lib/domain/team";
 import { getStudio } from "@/app/_lib/studio";
 import { cn } from "@/lib/utils";
 import { ClosureForm } from "./closure-form";
+import { ProfessionalsCard } from "./professionals-card";
 import { ScheduleForm } from "./schedule-form";
 import { StudioForm } from "./studio-form";
 import { TeamCard } from "./team-card";
@@ -119,7 +122,8 @@ export default async function ConfiguracoesPage() {
   const team = await getTeam();
   const now = nowInStudio();
   const rules = await getAvailabilityRules();
-  const { professionals } = await getCatalog();
+  const { professionals, services } = await getCatalog();
+  const { reservations: allReservations, users } = await readDb();
   const studio = await getStudio();
   const reservations = (await getAgenda(now.date)).filter((r) => !isPast(r, now));
 
@@ -134,7 +138,10 @@ export default async function ConfiguracoesPage() {
   return (
     <>
       <PanelHeader>
-        <PageTitle title="Configurações" description="Dias fechados, funcionamento da agenda, equipe e dados do estúdio." />
+        <PageTitle
+          title="Configurações"
+          description="Dias fechados, funcionamento da agenda, profissionais, equipe e dados do estúdio."
+        />
       </PanelHeader>
 
       <div className={cn("mt-7 flex flex-col gap-5", scrollArea)}>
@@ -181,10 +188,27 @@ export default async function ConfiguracoesPage() {
           <ScheduleForm settings={rules.settings} />
         </section>
 
+        <ProfessionalsCard
+          professionals={professionals.map((p) => ({
+            ...p,
+            dot: colorDot(p.color),
+            services: services.filter((s) => s.professional === p.name).length,
+            // Atendimentos futuros atribuídos a ele (inclui serviços sem profissional fixo).
+            upcoming: allReservations.filter((r) => r.professional === p.name && !r.cancelledAt && r.date >= now.date)
+              .length,
+            access: users
+              .filter((u) => u.role === "barbeiro" && u.professional === p.name)
+              .map((u) => ({ id: u.id, email: u.email })),
+            isMe: me.professional === p.name,
+            otherAdmins: users.filter((u) => u.role === "admin" && u.id !== me.id && u.professional === p.name).length,
+          }))}
+          linkedToMe={me.professional ?? null}
+        />
+
         <section className={card}>
           <h2 className="text-lg font-bold text-black">Equipe</h2>
           <p className="mt-1 mb-4 text-sm text-black/70">
-            Quem é admin e quais menus cada barbeiro vê. O acesso de barbeiro é criado em Serviços → Profissionais.
+            Quem é admin e quais menus cada barbeiro vê. O acesso de barbeiro é criado em Profissionais, logo acima.
           </p>
           <TeamCard team={team} meId={me.id} />
         </section>

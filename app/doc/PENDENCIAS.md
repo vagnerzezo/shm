@@ -38,6 +38,13 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Código: saiu o campo `menus` de `Customer` e o `menusOf` (sem uso desde a área do barbeiro). A coluna `users.menus` continua no banco, sem uso; a resposta de login/cadastro da API não traz mais `menus`.
 - Horários de 15 em 15 min: não reproduziu (em produção o intervalo já é 45 min). Em 2026-11-26 o dono confirmou que não aparece mais: resolvido.
 
+**Feito em 2026-11-26** (branch `feat/pwa`; desenho `app/doc/specs/2026-11-26-pwa-design.md`, plano `app/doc/plans/2026-11-26-pwa.md`):
+- Decidido com o dono: o "app de celular" é um **PWA** (o próprio site instalável), não app de loja. Parte A (instalar) feita; parte B (notificações no celular) fica para depois.
+- Manifesto (`app/manifest.ts`): nome "Studio Heitor Macks", embaixo do ícone **"SHM"**, abre em `/` em tela cheia, preto `#121212`. Ícones gerados por `node scripts/gerar-icones-app.mjs` (logo branco sobre preto) em `public/icons/` e `app/apple-icon.png`.
+- Faixa "Instale o app do estúdio" no alto das áreas logadas, só no celular: no Android, botão "Instalar"; no iPhone, o caminho Compartilhar → "Adicionar à Tela de Início". "Agora não" esconde naquele aparelho; some quando já está instalado. Não aparece no login nem no computador.
+- `pnpm test` com 213 de 213 (inclui `tests/pwa.test.ts`). Sem migração.
+- Como instalar à mão: **Android/Chrome** → menu ⋮ → "Instalar app"; **iPhone/Safari** → Compartilhar → "Adicionar à Tela de Início" (no navegador do Instagram/Facebook não dá: abrir no Safari).
+
 **Pontos menores que sobraram** (os feitos estão nos resumos acima):
 - Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática). Deixado assim de propósito: corrigir pediria recarregar a moldura a cada troca de página (o dobro de consultas).
 - Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel). Só importa se a 1.2 voltar.
@@ -47,7 +54,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último.
+Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA (acima) entrou antes deles; falta enviar o branch `feat/pwa` (juntar na `main` e `git push origin main`) e instalar num celular de verdade para conferir.
 
 Estado no fim de 2026-11-25:
 - **No ar na Vercel:** tudo até `5c7ab2b` (enviado em 2026-11-26, inclui `3ebd612`: admin excluir cliente avisa os horários cancelados; sai o campo `menus`). Deploy conferido (Ready, `shm-eta.vercel.app` respondendo).
@@ -110,7 +117,7 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 - ~~**O admin não redefine a senha do barbeiro**~~ **Feito (2026-11-23):** "Nova senha" em Configurações → Profissionais (antes em Serviços), ao lado do acesso; encerra as sessões dele.
 - ~~**Chat do site** corta mensagens acima de 2000 caracteres sem avisar~~ **Feito (2026-11-19):** o site usa a mesma regra da API e mostra o erro.
 - ~~**E-mails de marketing** com rodapé simples~~ **Feito (2026-11-23):** mesmo rodapé dos e-mails do sistema, com "Deixar de receber" na última linha. O corpo continua o texto do template, sem a moldura com logo.
-- **App de celular:** a API está pronta (`app/doc/api/openapi.yaml`), mas o app em si não começou.
+- **App de celular:** virou PWA (2026-11-26, parte A: instalar). **Parte B, pendente:** notificações no celular (sino do admin/barbeiro, chat do cliente, lembrete de reserva): tabela de inscrições (migração), chaves VAPID na Vercel, tela de ligar/desligar; no iPhone só com o app instalado e iOS 16.4+. A API v1 continua pronta (`app/doc/api/openapi.yaml`) caso um app de loja volte a ser assunto.
 
 ## 5. Evolução da API e do banco (do mapeamento, seção 9)
 

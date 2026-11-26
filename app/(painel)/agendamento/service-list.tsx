@@ -75,16 +75,26 @@ export function ServiceList({ services, carry }: { services: Service[]; carry: s
                   <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#121212] text-sm font-bold text-white">
                     {initials(service.name)}
                   </span>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h2 className="font-semibold leading-tight text-black">
                       {service.name}
                     </h2>
                     <p className="mt-0.5 text-sm text-black/60">{service.category}</p>
                   </div>
+                  {/* Mobile: tempo em cima do preço, na linha do nome, para o card ficar mais baixo. */}
+                  <div className="flex shrink-0 flex-col items-end sm:hidden">
+                    <span className="flex items-center gap-1 text-xs text-black/70">
+                      <ClockIcon className="size-3.5" />
+                      {formatDuration(service.durationMinutes)}
+                    </span>
+                    <span className="text-base font-bold text-black">
+                      {formatPrice(service.priceCents)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
+                  <div className="hidden items-center justify-between sm:flex">
                     <span className="flex items-center gap-1.5 text-sm text-black/70">
                       <ClockIcon className="size-4" />
                       {formatDuration(service.durationMinutes)}

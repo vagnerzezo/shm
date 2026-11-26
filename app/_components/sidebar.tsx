@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "@/app/_lib/actions";
 import { cn } from "@/lib/utils";
-import { LogOutIcon, MenuIcon, XIcon } from "./icons";
+import { LogOutIcon, MenuIcon, UserIcon, XIcon } from "./icons";
 import { isActiveLink, myAgendaLink, navByArea, type Area } from "./nav";
 
 type NavLink = (typeof navByArea)[Area][number];
@@ -77,9 +77,17 @@ function Address({ lines, className }: { lines: string[]; className: string }) {
   );
 }
 
-function LogoutButton({ onClick, className }: { onClick?: () => void; className: string }) {
+function LogoutButton({
+  onClick,
+  className,
+  formClassName = "w-full",
+}: {
+  onClick?: () => void;
+  className: string;
+  formClassName?: string;
+}) {
   return (
-    <form action={signOut} className="w-full">
+    <form action={signOut} className={formClassName}>
       <button
         type="submit"
         onClick={onClick}
@@ -158,6 +166,7 @@ export function Sidebar({
   badges = {},
   myAgenda = false,
   accountOnly = false,
+  profileHref,
 }: {
   area: Area;
   address: string[];
@@ -167,6 +176,8 @@ export function Sidebar({
   myAgenda?: boolean;
   /** Barbeiro ainda sem profissional: só "Meus dados" (as outras telas voltam para lá). */
   accountOnly?: boolean;
+  /** Só no mobile: o ícone de "Meus dados" fica ao lado do menu. */
+  profileHref: string;
 }) {
   const base: NavLink[] = accountOnly ? navByArea[area].filter((l) => l.href === "/conta") : [...navByArea[area]];
   const links = myAgenda && area === "admin" ? [...base.slice(0, 2), myAgendaLink, ...base.slice(2)] : base;
@@ -194,7 +205,17 @@ export function Sidebar({
         />
       </Link>
 
-      <MobileMenu links={links} address={address} badges={badges} />
+      {/* Mobile: ícone de usuário e menu juntos, à direita. */}
+      <div className="flex items-center gap-2 lg:hidden">
+        <Link
+          href={profileHref}
+          aria-label="Meus dados"
+          className="grid size-11 place-items-center rounded-xl border border-black bg-white text-black transition hover:bg-black hover:text-white"
+        >
+          <UserIcon className="size-5" />
+        </Link>
+        <MobileMenu links={links} address={address} badges={badges} />
+      </div>
 
       <NavLinks
         links={links}
@@ -203,7 +224,7 @@ export function Sidebar({
         itemClassName={`justify-center ${size}`}
       />
 
-      <LogoutButton className={`hidden justify-center lg:flex ${size}`} />
+      <LogoutButton formClassName="hidden w-full lg:block" className={`justify-center ${size}`} />
 
       <Address lines={address} className="hidden text-center lg:block" />
     </aside>

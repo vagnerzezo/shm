@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeftIcon,
   CalendarIcon,
   ClockIcon,
-  PlusIcon,
   SwapIcon,
+  XIcon,
 } from "@/app/_components/icons";
 import {
   addDays,
@@ -138,16 +138,32 @@ export function TimePicker({ service, now, busy, rules, suggested, carry, resche
   const [picking, setPicking] = useState(false);
   const [date, setDate] = useState("");
   const [month, setMonth] = useState(now.date.slice(0, 7));
+  const dialog = useRef<HTMLDialogElement>(null);
 
   const isAvailable = (d: string) => getSlots(service, d, now, busy, rules).length > 0;
+  const times = date ? getSlots(service, date, now, busy, rules) : [];
 
   function openCalendar() {
     // Começa no primeiro dia com horário livre, para já mostrar opções.
     const first = suggested[0]?.date ?? "";
     setDate(first);
     setMonth((first || now.date).slice(0, 7));
-    setPicking(true);
+    // Mobile: calendário e horários numa janela, sem sair das datas sugeridas.
+    if (window.matchMedia("(max-width: 1023px)").matches) dialog.current?.showModal();
+    else setPicking(true);
   }
+
+  const calendar = (
+    <Calendar
+      month={month}
+      minMonth={now.date.slice(0, 7)}
+      maxMonth={addDays(now.date, rules.settings.maxDaysAhead).slice(0, 7)}
+      selected={date}
+      isAvailable={isAvailable}
+      onMonthChange={setMonth}
+      onSelect={setDate}
+    />
+  );
 
   if (!picking) {
     return (
@@ -157,16 +173,11 @@ export function TimePicker({ service, now, busy, rules, suggested, carry, resche
           carry={carry}
           reschedule={reschedule}
           action={
-            reschedule ? (
+            reschedule && (
               <Link href="/reservas" className={outlineButton}>
                 <ArrowLeftIcon className="size-4" />
                 Minhas reservas
               </Link>
-            ) : (
-              <button type="button" className={outlineButton}>
-                <PlusIcon className="size-4" />
-                Fila de espera
-              </button>
             )
           }
         />
@@ -199,11 +210,47 @@ export function TimePicker({ service, now, busy, rules, suggested, carry, resche
             </li>
           ))}
         </ul>
+
+        <dialog
+          ref={dialog}
+          aria-labelledby="escolher-dia"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) event.currentTarget.close();
+          }}
+          className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-2xl bg-white p-0 text-black shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+        >
+          <div className="flex items-center justify-between px-5 pt-5">
+            <h2 id="escolher-dia" className="text-lg font-semibold">
+              Escolha o dia
+            </h2>
+            <button
+              type="button"
+              onClick={() => dialog.current?.close()}
+              aria-label="Fechar"
+              className="grid size-11 place-items-center rounded-xl border border-black bg-white transition hover:bg-black hover:text-white"
+            >
+              <XIcon className="size-5" />
+            </button>
+          </div>
+          <div className="p-5 pt-3">
+            {calendar}
+            <h3 className="mt-5 font-semibold">
+              {date ? `${formatWeekday(date)}, ${formatLongDate(date)}` : "Horários disponíveis"}
+            </h3>
+            {times.length > 0 ? (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {times.map((time) => (
+                  <SlotLink key={time} large time={time} href={slotHref(carry, service.id, date, time, reschedule)} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-black/60">Selecione um dia disponível no calendário.</p>
+            )}
+          </div>
+        </dialog>
       </>
     );
   }
-
-  const times = date ? getSlots(service, date, now, busy, rules) : [];
 
   return (
     <>
@@ -220,15 +267,7 @@ export function TimePicker({ service, now, busy, rules, suggested, carry, resche
       />
 
       <div className="mt-5 grid items-start gap-6 lg:grid-cols-[minmax(0,390px)_1fr]">
-        <Calendar
-          month={month}
-          minMonth={now.date.slice(0, 7)}
-          maxMonth={addDays(now.date, rules.settings.maxDaysAhead).slice(0, 7)}
-          selected={date}
-          isAvailable={isAvailable}
-          onMonthChange={setMonth}
-          onSelect={setDate}
-        />
+        {calendar}
 
         <div>
           <DateField date={date} active />
@@ -242,13 +281,6 @@ export function TimePicker({ service, now, busy, rules, suggested, carry, resche
             </div>
           ) : (
             <p className="mt-3 text-sm text-black/60">Selecione um dia disponível no calendário.</p>
-          )}
-
-          {!reschedule && (
-            <p className="mt-6 text-sm text-black/70">
-              Não achou um horário? Entre na <strong className="text-black">fila de espera</strong> e
-              avisamos se abrir uma vaga.
-            </p>
           )}
         </div>
       </div>

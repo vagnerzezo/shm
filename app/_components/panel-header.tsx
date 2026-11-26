@@ -72,7 +72,8 @@ export function PanelHeader({
       </div>
       <div className="flex shrink-0 gap-3">
         <NotificationBell />
-        <Link href={profileHref} aria-label="Meus dados" className={iconButton}>
+        {/* No mobile o ícone fica na barra de cima, ao lado do menu. */}
+        <Link href={profileHref} aria-label="Meus dados" className={`${iconButton} max-lg:hidden`}>
           <UserIcon className="size-4" />
         </Link>
       </div>

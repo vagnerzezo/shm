@@ -46,8 +46,9 @@ export function SummaryForm({ subtotalCents, itemKeys, userName, loginUrl }: Pro
         </label>
       </fieldset>
 
+      {/* No celular a observação fica de fora, para a confirmação ser mais curta. */}
       {userName && (
-        <label className="mt-6 block">
+        <label className="mt-6 hidden lg:block">
           <span className="block text-sm font-semibold text-black">Observação</span>
           <span className="block text-sm text-black/70">(opcional)</span>
           <textarea

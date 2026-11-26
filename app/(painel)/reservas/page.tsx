@@ -21,48 +21,56 @@ export const metadata: Metadata = {
 const primaryButton =
   "inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#121212] px-5 text-sm font-semibold text-white transition hover:bg-black/80";
 
+function Actions({ reservation, className }: { reservation: Reservation; className: string }) {
+  const { id, service, date, time } = reservation;
+  return (
+    <div className={`shrink-0 flex-wrap gap-x-4 gap-y-1 sm:justify-end ${className}`}>
+      <Link
+        href={`/reservas/${id}/remarcar`}
+        className="flex shrink-0 items-center gap-1.5 pt-1 text-sm font-semibold text-black hover:text-black/60"
+      >
+        <SwapIcon className="size-4" />
+        Remarcar
+      </Link>
+      <CancelButton
+        id={id}
+        serviceName={service.name}
+        when={`${formatWeekday(date)}, ${formatLongDate(date)} às ${time}`}
+      />
+    </div>
+  );
+}
+
 function ReservationCard({ reservation, past }: { reservation: Reservation; past: boolean }) {
-  const { id, service, date, time, note, attendance } = reservation;
+  const { service, date, time, note, attendance } = reservation;
   const missed = past && attendance === "faltou";
   return (
     <li
-      className={`flex gap-6 rounded-xl border border-black/10 p-6 ${past ? "bg-white/50" : "bg-white/85"}`}
+      className={`flex gap-4 rounded-xl border border-black/10 p-4 sm:gap-6 sm:p-6 ${past ? "bg-white/50" : "bg-white/85"}`}
     >
-      <div className="flex w-20 shrink-0 flex-col items-center justify-center border-r border-black/15 pr-6 text-black sm:w-28">
+      <div className="flex w-16 shrink-0 flex-col items-center justify-center border-r border-black/15 pr-4 text-black sm:w-28 sm:pr-6">
         <span className="text-xs font-semibold tracking-widest">{formatShortMonth(date)}</span>
         <span className="text-4xl font-bold leading-tight">{Number(date.slice(8))}</span>
         <span className="text-sm font-semibold">{time}</span>
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className="text-xl font-semibold leading-snug text-black">{service.name}</h3>
+            <h3 className="text-lg font-semibold leading-snug text-black sm:text-xl">{service.name}</h3>
             {missed && (
               <span className="mt-1 inline-flex rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
                 Você não compareceu
               </span>
             )}
           </div>
-          {!past && (
-            <div className="flex shrink-0 flex-wrap justify-end gap-x-4 gap-y-1">
-              <Link
-                href={`/reservas/${id}/remarcar`}
-                className="flex shrink-0 items-center gap-1.5 pt-1 text-sm font-semibold text-black hover:text-black/60"
-              >
-                <SwapIcon className="size-4" />
-                Remarcar
-              </Link>
-              <CancelButton
-                id={id}
-                serviceName={service.name}
-                when={`${formatWeekday(date)}, ${formatLongDate(date)} às ${time}`}
-              />
-            </div>
-          )}
+          {/* Computador: ações ao lado do nome. */}
+          {!past && <Actions className="hidden sm:flex" reservation={reservation} />}
         </div>
         <p className="mt-1 text-sm text-black/70">
-          {formatWeekday(date)}, {formatLongDate(date)} · {time} às{" "}
+          {/* Celular: a data já está na coluna da esquerda; fica só o dia da semana. */}
+          {formatWeekday(date)}
+          <span className="max-sm:hidden">, {formatLongDate(date)}</span> · {time} às{" "}
           {endTime(time, service.durationMinutes)}
         </p>
         <p className="mt-1 text-sm text-black/70">
@@ -74,6 +82,10 @@ function ReservationCard({ reservation, past }: { reservation: Reservation; past
         <p className={`mt-2 text-lg font-bold ${missed ? "text-black/40 line-through" : "text-black"}`}>
           {formatPrice(service.priceCents)}
         </p>
+        {/* Celular: ações embaixo, para o nome do serviço usar a largura toda. */}
+        {!past && (
+          <Actions className="mt-3 flex border-t border-black/10 pt-3 sm:hidden" reservation={reservation} />
+        )}
       </div>
     </li>
   );

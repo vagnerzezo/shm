@@ -30,8 +30,8 @@ export const metadata: Metadata = {
 function ItemCard({ item, removeHref }: { item: BookingItem; removeHref: string }) {
   const { service, date, time } = item;
   return (
-    <li className="flex gap-6 rounded-xl border border-black/10 bg-white/85 p-6">
-      <div className="flex w-20 shrink-0 flex-col items-center justify-center border-r border-black/15 pr-6 text-black sm:w-28">
+    <li className="flex gap-4 rounded-xl border border-black/10 bg-white/85 p-4 sm:gap-6 sm:p-6">
+      <div className="flex w-16 shrink-0 flex-col items-center justify-center border-r border-black/15 pr-4 text-black sm:w-28 sm:pr-6">
         <span className="text-xs font-semibold tracking-widest">{formatShortMonth(date)}</span>
         <span className="text-4xl font-bold leading-tight">{Number(date.slice(8))}</span>
         <span className="text-sm font-semibold">{time}</span>
@@ -39,7 +39,7 @@ function ItemCard({ item, removeHref }: { item: BookingItem; removeHref: string 
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold leading-snug text-black">{service.name}</h2>
+          <h2 className="text-lg font-semibold leading-snug text-black sm:text-xl">{service.name}</h2>
           <Link
             href={removeHref}
             className="flex shrink-0 items-center gap-1.5 pt-1 text-sm font-semibold text-black hover:text-black/60"
@@ -49,7 +49,9 @@ function ItemCard({ item, removeHref }: { item: BookingItem; removeHref: string 
           </Link>
         </div>
         <p className="mt-1 text-sm text-black/70">
-          {formatWeekday(date)}, {formatLongDate(date)} · {time} às{" "}
+          {/* Celular: a data já está na coluna da esquerda; fica só o dia da semana. */}
+          {formatWeekday(date)}
+          <span className="max-sm:hidden">, {formatLongDate(date)}</span> · {time} às{" "}
           {endTime(time, service.durationMinutes)}
         </p>
         <p className="mt-1 text-sm text-black/70">

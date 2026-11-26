@@ -25,6 +25,7 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
   const staff = user && (user.role === "admin" || (user.role === "barbeiro" && user.professional));
   // Sino de notificações só para a equipe.
   const bell = staff ? await getBell(user, db) : null;
+  const profileHref = user?.role === "admin" ? "/admin/perfil" : "/conta";
   const badges: Record<string, number> =
     staff && (area === "admin" || area === "barbeiro")
       ? { "/admin/chat": await getUnreadCount(scopeOf(user), db) }
@@ -49,10 +50,11 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
         badges={badges}
         myAgenda={user?.role === "admin" && Boolean(user.professional)}
         accountOnly={area === "barbeiro" && user?.role === "barbeiro" && !user.professional}
+        profileHref={profileHref}
       />
 
       <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">
-        <PanelProvider value={{ bell, profileHref: user?.role === "admin" ? "/admin/perfil" : "/conta" }}>
+        <PanelProvider value={{ bell, profileHref }}>
           {children}
         </PanelProvider>
       </section>

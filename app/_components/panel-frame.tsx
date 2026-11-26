@@ -46,7 +46,6 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
 
       <Sidebar
         area={area}
-        address={studio.address}
         studioName={studio.name}
         badges={badges}
         myAgenda={user?.role === "admin" && Boolean(user.professional)}

@@ -64,19 +64,6 @@ function NavLinks({
   );
 }
 
-function Address({ lines, className }: { lines: string[]; className: string }) {
-  if (lines.length === 0) return null;
-  return (
-    <address className={`text-sm font-semibold not-italic leading-relaxed text-black ${className}`}>
-      {lines.map((line, i) => (
-        <span key={i} className="block">
-          {line}
-        </span>
-      ))}
-    </address>
-  );
-}
-
 function LogoutButton({
   onClick,
   className,
@@ -101,15 +88,7 @@ function LogoutButton({
 }
 
 // Só no mobile: o menu abre numa gaveta lateral que fecha ao arrastar para a direita.
-function MobileMenu({
-  links,
-  address,
-  badges,
-}: {
-  links: readonly NavLink[];
-  address: string[];
-  badges: Badges;
-}) {
+function MobileMenu({ links, badges }: { links: readonly NavLink[]; badges: Badges }) {
   const unread = Object.values(badges).reduce((a, b) => a + b, 0);
   const [open, setOpen] = useState(false);
 
@@ -149,8 +128,6 @@ function MobileMenu({
               />
 
               <LogoutButton onClick={() => setOpen(false)} className="h-12 px-4 text-sm" />
-
-              <Address lines={address} className="mt-auto" />
             </Drawer.Content>
           </Drawer.Popup>
         </Drawer.Viewport>
@@ -161,7 +138,6 @@ function MobileMenu({
 
 export function Sidebar({
   area,
-  address,
   studioName,
   badges = {},
   myAgenda = false,
@@ -169,7 +145,6 @@ export function Sidebar({
   profileHref,
 }: {
   area: Area;
-  address: string[];
   studioName: string;
   badges?: Badges;
   /** Admin ligado a um profissional: "Minha agenda" logo depois de "Agenda". */
@@ -181,7 +156,7 @@ export function Sidebar({
 }) {
   const base: NavLink[] = accountOnly ? navByArea[area].filter((l) => l.href === "/conta") : [...navByArea[area]];
   const links = myAgenda && area === "admin" ? [...base.slice(0, 2), myAgendaLink, ...base.slice(2)] : base;
-  // Com muitos itens (admin), botões mais baixos para o endereço continuar cabendo.
+  // Com muitos itens (admin), botões mais baixos para o menu caber sem rolar.
   const compact = links.length > 4;
   const size = compact ? "h-11 text-sm" : "h-14 text-base";
 
@@ -214,7 +189,7 @@ export function Sidebar({
         >
           <UserIcon className="size-5" />
         </Link>
-        <MobileMenu links={links} address={address} badges={badges} />
+        <MobileMenu links={links} badges={badges} />
       </div>
 
       <NavLinks
@@ -225,8 +200,6 @@ export function Sidebar({
       />
 
       <LogoutButton formClassName="hidden w-full lg:block" className={`justify-center ${size}`} />
-
-      <Address lines={address} className="hidden text-center lg:block" />
     </aside>
   );
 }

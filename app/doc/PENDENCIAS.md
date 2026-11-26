@@ -36,7 +36,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - E-mails do sistema com textos editáveis (Marketing → Templates → E-mails do sistema): assunto, título, texto, botão e observações, com marcadores; link, card da reserva e rodapé continuam automáticos; "Voltar ao texto original". Guardado em `settings` (chave `systemEmails`), sem migração.
 - Sino: decidido com o dono que **admin vê o que outro admin fez** (menos o que ele mesmo fez), que já era o comportamento; ficou um teste para isso. Admin excluir cliente agora avisa os horários futuros cancelados (como quando o próprio cliente exclui a conta).
 - Código: saiu o campo `menus` de `Customer` e o `menusOf` (sem uso desde a área do barbeiro). A coluna `users.menus` continua no banco, sem uso; a resposta de login/cadastro da API não traz mais `menus`.
-- Horários de 15 em 15 min: não reproduziu. Em produção o intervalo já é 45 min (10:00, 10:45, 11:30...). Falta o dono dizer onde viu.
+- Horários de 15 em 15 min: não reproduziu (em produção o intervalo já é 45 min). Em 2026-11-26 o dono confirmou que não aparece mais: resolvido.
 
 **Pontos menores que sobraram** (os feitos estão nos resumos acima):
 - Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática). Deixado assim de propósito: corrigir pediria recarregar a moldura a cada troca de página (o dobro de consultas).
@@ -46,6 +46,8 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+
+Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último.
 
 Estado no fim de 2026-11-25:
 - **No ar na Vercel:** tudo até `5c7ab2b` (enviado em 2026-11-26, inclui `3ebd612`: admin excluir cliente avisa os horários cancelados; sai o campo `menus`). Deploy conferido (Ready, `shm-eta.vercel.app` respondendo).
@@ -113,7 +115,7 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 ## 5. Evolução da API e do banco (do mapeamento, seção 9)
 
 - **Profissional como entidade com id** (hoje a chave é o nome; renomear mexe em várias tabelas).
-- Trocar o `readDb` (que lê o banco inteiro) por **consultas sob medida** na agenda e nos horários livres, antes de o volume crescer.
+- Trocar o `readDb` (que lê o banco inteiro) por **consultas sob medida** na agenda e nos horários livres, antes de o volume crescer. Medido em 2026-11-26: a produção tem 6 usuários e 4 reservas, cerca de 6 KB, e o `readDb` leva uns 26 ms (do computador local até São Paulo). Ainda não compensa; rever quando passar de alguns milhares de reservas.
 - **CORS**, **limite de requisições geral** e **chave de idempotência** em `POST /reservations`, se o app precisar.
 - Integrações futuras: WhatsApp como canal de mensagem e pagamento online (fora do escopo atual).
 
@@ -126,5 +128,5 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 ## 7. Limpeza local
 
 - Neon: a **produção é o projeto `shm`** (`long-lake-61916363`, São Paulo) e os testes ficam no **`shm-test`**. O antigo `shm-app` já não aparece na conta (conferido em 2026-11-19).
-- Branches locais antigos já incorporados na `main`: `feat/postgres`, `feat/regras-agenda`, `feat/inicio-cliente`, `docs/mapeamento-sistemas`.
+- ~~Branches locais antigos já incorporados na `main`~~ **Apagados em 2026-11-26.**
 - Rodar o `pnpm dev` **sem `sudo`**.

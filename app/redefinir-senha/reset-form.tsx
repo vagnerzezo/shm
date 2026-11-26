@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import { LockIcon } from "../_components/icons";
 import { PasswordInput } from "../_components/password-input";
 import { resetPassword } from "../_lib/account-actions";
 import { authFormStyles, type Variant } from "../login/auth-form-styles";
@@ -48,7 +47,6 @@ export function ResetForm({ token, email, variant = "desktop" }: { token: string
         </p>
       )}
       <button type="submit" disabled={pending} className={s.button}>
-        {!mobile && <LockIcon className="size-4" />}
         {pending ? "Salvando..." : "Salvar nova senha"}
       </button>
     </form>

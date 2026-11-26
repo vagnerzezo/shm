@@ -213,19 +213,26 @@ export function AccessCard({
         </p>
         <PasswordForm customerId={customerId} />
       </div>
-      <div className="border-t border-black/10 pt-5">
-        <h3 className="text-sm font-semibold text-black">Situação da conta</h3>
-        <p className="mb-3 text-xs text-black/60">
-          {disabledAt
-            ? `Desativada em ${new Date(disabledAt).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" })}.`
-            : "Ativa: o cliente entra e marca horários normalmente."}
-        </p>
-        <ActiveToggle customerId={customerId} disabled={Boolean(disabledAt)} upcoming={upcoming} />
-      </div>
-      <div className="border-t border-black/10 pt-5">
-        <h3 className="text-sm font-semibold text-black">Excluir dados</h3>
-        <p className="mb-3 text-xs text-black/60">Quando o cliente pede para apagar o cadastro. Remove tudo de vez.</p>
-        <DeleteData customerId={customerId} name={customerName} />
+      {/* Desativar e excluir lado a lado; cada um com o texto que explica a diferença. */}
+      <div className="grid gap-5 border-t border-black/10 pt-5 sm:grid-cols-2">
+        <div className="flex flex-col">
+          <h3 className="text-sm font-semibold text-black">Situação da conta</h3>
+          <p className="mb-3 text-xs text-black/60">
+            {disabledAt
+              ? `Desativada em ${new Date(disabledAt).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" })}.`
+              : "Ativa: o cliente entra e marca horários normalmente."}
+          </p>
+          <div className="mt-auto">
+            <ActiveToggle customerId={customerId} disabled={Boolean(disabledAt)} upcoming={upcoming} />
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <h3 className="text-sm font-semibold text-black">Excluir dados</h3>
+          <p className="mb-3 text-xs text-black/60">Quando o cliente pede para apagar o cadastro. Remove tudo de vez.</p>
+          <div className="mt-auto">
+            <DeleteData customerId={customerId} name={customerName} />
+          </div>
+        </div>
       </div>
     </div>
   );

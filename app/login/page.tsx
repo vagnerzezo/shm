@@ -27,7 +27,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
   // No celular, sem `modo` abre a boas-vindas; no computador, já o "Entrar".
   const mobileMode = modo === "cadastro" || modo === "entrar" ? modo : null;
   const tabClass = (active: boolean) =>
-    `flex h-11 flex-1 items-center justify-center rounded-lg text-sm font-semibold transition ${
+    `flex h-11 flex-1 items-center justify-center rounded-full text-sm font-semibold transition ${
       active ? "bg-[#121212] text-white" : "text-black hover:bg-black/5"
     }`;
 
@@ -39,7 +39,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
       <div className="hidden sm:contents">
         <AuthShell>
           <nav
-            className="flex gap-1 rounded-xl border border-black/15 bg-white/70 p-1"
+            className="flex gap-1 rounded-full border border-black/15 bg-white/70 p-1"
             aria-label="Entrar ou criar conta"
           >
             <Link

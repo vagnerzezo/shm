@@ -3,7 +3,6 @@
 import { useActionState, type InputHTMLAttributes } from "react";
 import { ConsentFields } from "../_components/consent-fields";
 import { PasswordInput } from "../_components/password-input";
-import { LockIcon } from "../_components/icons";
 import { signIn, signUp } from "../_lib/actions";
 import { authFormStyles, type Variant } from "./auth-form-styles";
 
@@ -125,7 +124,6 @@ export function LoginForm({
       )}
 
       <button type="submit" disabled={pending} className={styles[variant].button}>
-        {!mobile && <LockIcon className="size-4" />}
         {pending ? "Aguarde..." : signingUp ? "Criar conta" : "Entrar"}
       </button>
     </form>

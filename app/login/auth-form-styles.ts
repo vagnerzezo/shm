@@ -2,7 +2,7 @@
 
 export type Variant = "desktop" | "mobile";
 
-// Computador: campos e botão retos. Celular: o desenho de "Login mobile" (campos
+// Computador: campos retos; botão em pílula, como no celular. Celular: o desenho de "Login mobile" (campos
 // cinza-claro de 52px, botão em pílula, senha com mostrar/ocultar, +55 no telefone).
 export const authFormStyles = {
   desktop: {
@@ -11,8 +11,9 @@ export const authFormStyles = {
     gap: "mt-2",
     input:
       "h-12 w-full rounded-lg border border-black/20 bg-white px-4 text-sm text-black placeholder:text-black/50 focus:border-black focus:outline-none",
+    // Botão igual ao do celular (pílula com sombra, sem ícone).
     button:
-      "mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-[#121212] font-semibold text-white transition hover:bg-black/80 disabled:cursor-wait disabled:opacity-70",
+      "mt-2 flex h-14 w-full items-center justify-center rounded-full bg-[#111] text-base font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.22)] transition hover:bg-black/85 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-black disabled:cursor-wait disabled:opacity-70",
   },
   mobile: {
     label: "block text-[13px] font-semibold text-[#222]",

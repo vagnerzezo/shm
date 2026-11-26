@@ -63,4 +63,9 @@ describe("faixa de instalar", () => {
     assert.equal(installBannerFor({ ...base, userAgent: INSTAGRAM_IOS }), null);
     assert.equal(installBannerFor({ ...base, userAgent: IPHONE + " [FBAN/FBIOS;FBAV/450.0]" }), null);
   });
+  test("outros navegadores de dentro de apps no iPhone não veem", () => {
+    for (const app of [" GSA/350.0", " BytedanceWebview/d8a21c6", " musical_ly_35.0", " LinkedInApp/9.30", " Line/14.0", " Snapchat/12.0", " Twitter for iPhone"]) {
+      assert.equal(installBannerFor({ ...base, userAgent: IPHONE + app }), null, app);
+    }
+  });
 });

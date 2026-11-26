@@ -22,8 +22,9 @@ export function installBannerFor(env: InstallEnv): InstallBanner {
   // iPadOS se apresenta como Mac; o toque denuncia.
   const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && env.maxTouchPoints > 1);
   if (ios) {
-    // Navegador de dentro do Instagram/Facebook não deixa adicionar à tela de início.
-    if (/Instagram|FBAN|FBAV/.test(ua)) return null;
+    // Navegador de dentro de outro app (Instagram, Facebook, Google, TikTok,
+    // LinkedIn, Line, Snapchat, X) não deixa adicionar à tela de início.
+    if (/Instagram|FBAN|FBAV|GSA\/|BytedanceWebview|musical_ly|LinkedInApp|Line\/|Snapchat|Twitter/.test(ua)) return null;
     return "ios";
   }
   if (/Android/.test(ua) && env.hasPrompt) return "android";

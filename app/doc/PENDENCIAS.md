@@ -43,14 +43,17 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel). Só importa se a 1.2 voltar.
 
 **Próximos passos, em ordem:**
+0. **Enviar o que está só na `main` local** (ver "Estado" abaixo): `git push origin main` e conferir o deploy na Vercel.
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
 Estado no fim de 2026-11-25:
-- **No ar na Vercel:** tudo até `040943d` (ajustes de 2026-11-25 enviados e deploy conferido).
-- `pnpm test` com 201 de 201 (inclui `tests/email-texts.test.ts`); a coleção da API não mudou desde 2026-11-23 (117 pedidos, 238 verificações).
-- Nenhuma migração nova depois da `0007`; o snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
+- **No ar na Vercel:** tudo até `040943d` (ajustes do celular, login/início/detalhe do cliente, profissionais em Configurações, e-mails do sistema editáveis). Deploy conferido.
+- **Só na `main` local, falta enviar:** `ad6dcb4` (docs) e `3ebd612` (admin excluir cliente avisa os horários cancelados; sai o campo `menus`), mais o commit desta anotação. Conferir com `git log --oneline origin/main..main` e enviar com `git push origin main`. Não tem migração.
+- `pnpm test` com 201 de 201 (inclui `tests/email-texts.test.ts`); coleção da API (`pnpm test:api`) com 117 pedidos e 238 verificações, sem falhas (rodada depois de tirar `menus`).
+- Nenhuma migração nova depois da `0007`; o snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco (os textos editados dos e-mails entram em `settings`, chave `systemEmails`).
+- Fora do git: `Analise.md` (lista de ajustes do dono, toda feita em 2026-11-25, menos os horários de 15 min, que não reproduziram) e uma mudança solta em `app/not-found.tsx` (só um espaço no fim; não é nossa, não foi commitada).
 
 **Lembretes:**
 - Testes: `pnpm test` leva uns 13 minutos (banco de teste no Neon); não rodar junto com o servidor de teste (mesmo banco).

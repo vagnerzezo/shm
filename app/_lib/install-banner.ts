@@ -19,9 +19,7 @@ export const DISMISS_KEY = "shm:pwa-dispensado";
 export function installBannerFor(env: InstallEnv): InstallBanner {
   if (env.standalone || env.dismissed) return null;
   const ua = env.userAgent;
-  // iPadOS se apresenta como Mac; o toque denuncia.
-  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && env.maxTouchPoints > 1);
-  if (ios) {
+  if (isIOS(ua, env.maxTouchPoints)) {
     // Navegador de dentro de outro app (Instagram, Facebook, Google, TikTok,
     // LinkedIn, Line, Snapchat, X) não deixa adicionar à tela de início.
     if (/Instagram|FBAN|FBAV|GSA\/|BytedanceWebview|musical_ly|LinkedInApp|Line\/|Snapchat|Twitter/.test(ua)) return null;
@@ -29,4 +27,9 @@ export function installBannerFor(env: InstallEnv): InstallBanner {
   }
   if (/Android/.test(ua) && env.hasPrompt) return "android";
   return null;
+}
+
+/** iPhone, iPod ou iPad. O iPadOS se apresenta como Mac; o toque denuncia. */
+export function isIOS(userAgent: string, maxTouchPoints: number): boolean {
+  return /iPhone|iPad|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && maxTouchPoints > 1);
 }

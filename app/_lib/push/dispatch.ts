@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import webpush from "web-push";
+import { sendNotification } from "web-push";
 import { pendingPush, readDb, type Notification } from "../db";
 import { hrefOf, isForUser } from "../notifications";
 import { toCustomer, type Customer } from "../roles";
@@ -44,7 +44,7 @@ export function pushEnabled(): boolean {
 }
 
 const realSender: PushSender = (sub, payload) =>
-  webpush.sendNotification(sub, payload, {
+  sendNotification(sub, payload, {
     TTL: 86_400,
     vapidDetails: {
       subject: process.env.VAPID_SUBJECT!,

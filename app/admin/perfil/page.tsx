@@ -5,6 +5,8 @@ import { requireAdmin } from "@/app/_lib/auth";
 import { formatPhone } from "@/app/_lib/format";
 import { PasswordForm } from "@/app/_components/account-forms";
 import { AdminProfileForm } from "./profile-forms";
+import { PushCard } from "@/app/_components/push-card";
+import { pushEnabled } from "@/app/_lib/push/dispatch";
 
 export const metadata: Metadata = {
   title: "Perfil | Studio Heitor Macks",
@@ -22,6 +24,7 @@ export default async function AdminProfilePage() {
       <div className={`mt-7 ${scrollArea}`}>
         <div className="flex max-w-2xl flex-col gap-5 pb-1">
           <AdminProfileForm name={admin.name} phone={formatPhone(admin.phone)} email={admin.email} />
+          <PushCard publicKey={pushEnabled() ? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY! : null} />
           <PasswordForm />
         </div>
       </div>

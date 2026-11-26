@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import sharp from "sharp";
 import manifest from "../app/manifest";
-import { installBannerFor, type InstallEnv } from "../app/_lib/install-banner";
+import { installBannerFor, isIOS, type InstallEnv } from "../app/_lib/install-banner";
+import { pushCardState, type PushCardEnv } from "../app/_lib/push/card-state";
 
 // App instalável (PWA). Não usa o banco.
 
@@ -68,4 +69,26 @@ describe("faixa de instalar", () => {
       assert.equal(installBannerFor({ ...base, userAgent: IPHONE + app }), null, app);
     }
   });
+});
+
+describe("é iPhone/iPad?", () => {
+  test("iPhone e iPad (como Mac com toque) sim; Mac e Android não", () => {
+    assert.equal(isIOS(IPHONE, 5), true);
+    assert.equal(isIOS(IPAD, 5), true);
+    assert.equal(isIOS(IPAD, 0), false);
+    assert.equal(isIOS(ANDROID, 5), false);
+  });
+});
+
+describe("cartão de avisos no celular", () => {
+  const env: PushCardEnv = { enabled: true, supported: true, ios: false, standalone: false, permission: "default", subscribed: false };
+  test("sem chaves: indisponível", () => assert.equal(pushCardState({ ...env, enabled: false }), "indisponivel"));
+  test("iPhone fora do app: instalar primeiro, mesmo sem suporte", () =>
+    assert.equal(pushCardState({ ...env, ios: true, supported: false }), "instalar-ios"));
+  test("iPhone no app instalado segue o fluxo normal", () =>
+    assert.equal(pushCardState({ ...env, ios: true, standalone: true }), "desligado"));
+  test("navegador sem suporte", () => assert.equal(pushCardState({ ...env, supported: false }), "sem-suporte"));
+  test("permissão negada: bloqueado", () => assert.equal(pushCardState({ ...env, permission: "denied" }), "bloqueado"));
+  test("inscrito: ligado", () => assert.equal(pushCardState({ ...env, permission: "granted", subscribed: true }), "ligado"));
+  test("resto: desligado", () => assert.equal(pushCardState({ ...env, permission: "granted" }), "desligado"));
 });

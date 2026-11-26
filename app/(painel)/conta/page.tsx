@@ -4,6 +4,8 @@ import { PanelHeader } from "@/app/_components/panel-header";
 import { signOut } from "@/app/_lib/actions";
 import { requireUser } from "@/app/_lib/auth";
 import { formatPhone } from "@/app/_lib/format";
+import { PushCard } from "@/app/_components/push-card";
+import { pushEnabled } from "@/app/_lib/push/dispatch";
 import { CustomerForm } from "./customer-form";
 
 export const metadata: Metadata = {
@@ -29,6 +31,9 @@ export default async function ContaPage() {
           {...(customer.role === "barbeiro" && { returnHref: "/barbeiro", returnLabel: "Minha agenda", phoneOptional: true })}
         />
         <div className="mt-5 flex max-w-xl flex-col gap-5">
+          {customer.role === "barbeiro" && (
+            <PushCard publicKey={pushEnabled() ? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY! : null} />
+          )}
           <PasswordForm />
           {customer.role === "cliente" && <DeleteAccountForm />}
         </div>

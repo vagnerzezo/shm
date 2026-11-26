@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { PgTable } from "drizzle-orm/pg-core";
 import { Pool } from "pg";
 import { DEFAULT_SCHEDULE } from "./availability";
+import type { SystemEmailTexts } from "./email-templates/texts";
 import * as t from "./db-schema";
 
 // Tipos do banco e acesso ao Postgres. Tabelas em `db-schema.ts`.
@@ -248,6 +249,8 @@ export type Db = {
   services?: StoredService[];
   professionals?: StoredProfessional[];
   studio?: StudioInfo;
+  /** Textos dos e-mails do sistema que o admin mudou (o resto usa o original). */
+  systemEmails?: SystemEmailTexts;
   passwordResets?: PasswordReset[];
 };
 
@@ -295,7 +298,7 @@ const LISTS: { field: ListField; table: PgTable; key: string; nulls?: string[] }
   { field: "notifications", table: t.notifications, key: "id" },
 ];
 
-const SETTINGS = ["schedule", "marketing", "studio"] as const;
+const SETTINGS = ["schedule", "marketing", "studio", "systemEmails"] as const;
 
 const snake = (name: string) => name.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
@@ -362,6 +365,7 @@ async function load(runner: Pick<Tx, "execute"> = orm): Promise<Db> {
     schedule: settings.schedule ?? DEFAULT_SCHEDULE,
     marketing: settings.marketing ?? DEFAULT_MARKETING,
     studio: settings.studio,
+    systemEmails: settings.systemEmails,
   };
 }
 

@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "./auth";
 import { addDays, nowInStudio, STEP_OPTIONS, toMinutes } from "./availability";
 import { getCatalog } from "./catalog";
-import { updateDb, type SocialNetwork } from "./db";
+import { readDb, updateDb, type SocialNetwork } from "./db";
 import { setTeamMember } from "./domain/team";
 import { shortDate } from "./format";
 import { pushNotification } from "./notifications";
 import { emailProviderReady, sendEmail } from "./email";
 import { messageOf } from "./errors";
 import { buildSample, isEmailKind } from "./email-templates/preview";
+import { EMAIL_TEXT_SPEC, validateEmailTexts, type EmailTextField } from "./email-templates/texts";
 import { getStudio } from "./studio";
 
 export type SettingsState = { error: string | null; saved: boolean };
@@ -161,7 +162,7 @@ export async function sendSystemEmailTest(_prev: TestEmailState, formData: FormD
   if (!emailProviderReady()) {
     return { error: "Resend não configurado: defina RESEND_API_KEY e MARKETING_EMAIL_FROM.", sentTo: null };
   }
-  const email = await buildSample(kind, admin, await getStudio());
+  const email = await buildSample(kind, admin, await getStudio(), undefined, (await readDb()).systemEmails?.[kind]);
   try {
     await sendEmail({
       to,
@@ -175,6 +176,50 @@ export async function sendSystemEmailTest(_prev: TestEmailState, formData: FormD
     return { error: error instanceof Error ? error.message : "Falha ao enviar.", sentTo: null };
   }
   return { error: null, sentTo: to };
+}
+
+export type SystemEmailState = {
+  error: string | null;
+  field?: EmailTextField;
+  saved: boolean;
+  /** O que foi digitado, para não perder com erro (o React limpa o formulário depois de enviar). */
+  values?: Partial<Record<EmailTextField, string>>;
+};
+
+/** Marketing → Templates: salva os textos de um e-mail do sistema. Igual ao original = não guarda nada. */
+export async function saveSystemEmailTexts(_prev: SystemEmailState, formData: FormData): Promise<SystemEmailState> {
+  const admin = await getCurrentUser();
+  if (admin?.role !== "admin") redirect("/login?next=%2Fadmin%2Fmarketing%2Ftemplates");
+  const kind = text(formData, "modelo");
+  if (!isEmailKind(kind)) return { error: "Escolha um modelo.", saved: false };
+  const fields = Object.keys(EMAIL_TEXT_SPEC[kind].fields) as EmailTextField[];
+  // Sem `trim` aqui: a validação cuida dos espaços e das quebras de linha.
+  const input = Object.fromEntries(fields.map((f) => [f, String(formData.get(f) ?? "")]));
+  const result = validateEmailTexts(kind, input);
+  if ("error" in result) return { error: result.error, field: result.field, saved: false, values: input };
+  await updateDb((db) => {
+    const all = { ...db.systemEmails };
+    if (Object.keys(result.texts).length) all[kind] = result.texts;
+    else delete all[kind];
+    db.systemEmails = Object.keys(all).length ? all : undefined;
+  });
+  refresh();
+  return { error: null, saved: true };
+}
+
+/** Volta um e-mail do sistema ao texto original. */
+export async function resetSystemEmailTexts(formData: FormData) {
+  const admin = await getCurrentUser();
+  if (admin?.role !== "admin") redirect("/login?next=%2Fadmin%2Fmarketing%2Ftemplates");
+  const kind = text(formData, "modelo");
+  if (!isEmailKind(kind)) return;
+  await updateDb((db) => {
+    if (!db.systemEmails?.[kind]) return;
+    const rest = { ...db.systemEmails };
+    delete rest[kind];
+    db.systemEmails = Object.keys(rest).length ? rest : undefined;
+  });
+  refresh();
 }
 
 export type TeamState = { error: string | null; saved?: boolean };

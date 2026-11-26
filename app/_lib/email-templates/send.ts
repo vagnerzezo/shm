@@ -62,7 +62,12 @@ export async function sendWelcomeEmail(userId: string) {
   const db = await readDb();
   const user = db.users.find((u) => u.id === userId);
   if (!user) return;
-  const email = welcomeEmail({ name: user.name, email: user.email, accessUrl: `${appUrl()}/reservas` }, studioOf(db));
+  const email = welcomeEmail(
+    { name: user.name, email: user.email, accessUrl: `${appUrl()}/reservas` },
+    studioOf(db),
+    undefined,
+    db.systemEmails?.["boas-vindas"],
+  );
   await deliver(user.email, email, `boas-vindas:${user.id}`, "boas-vindas");
 }
 
@@ -83,6 +88,8 @@ export async function sendBookingConfirmedEmail(userId: string, reservationIds: 
   const email = bookingConfirmedEmail(
     { name: user.name, bookings, reservationsUrl: `${appUrl()}/reservas` },
     studioOf(db),
+    undefined,
+    db.systemEmails?.agendamento,
   );
   await deliver(user.email, email, `agendamento:${[...reservationIds].sort().join(",")}`, "agendamento");
 }
@@ -106,6 +113,8 @@ export async function sendBookingCancelledEmail(
       bookUrl: `${appUrl()}/agendamento`,
     },
     studioOf(db),
+    undefined,
+    db.systemEmails?.cancelamento,
   );
   await deliver(user.email, email, `cancelamento:${reservation.id}`, "cancelamento");
 }
@@ -116,6 +125,7 @@ export async function sendPasswordResetEmail(
   validMinutes: number,
   idempotencyKey: string,
 ) {
-  const studio = studioOf(await readDb());
-  await deliver(user.email, passwordResetEmail({ name: user.name, resetUrl, validMinutes }, studio), idempotencyKey, "senha");
+  const db = await readDb();
+  const email = passwordResetEmail({ name: user.name, resetUrl, validMinutes }, studioOf(db), undefined, db.systemEmails?.senha);
+  await deliver(user.email, email, idempotencyKey, "senha");
 }

@@ -3,9 +3,11 @@ import { endTime } from "../booking";
 import type { StudioInfo } from "../db";
 import { formatDuration, formatPrice } from "../services";
 import { renderEmail, type EmailCard, type ImageMode, type RenderedEmail } from "./layout";
+import { emailTexts, fillVars, linesOf, paragraphsOf, type EmailTexts } from "./texts";
 
 // Os quatro e-mails do sistema. Cada função recebe só dados reais (nome,
-// serviço, data, links) e devolve assunto, HTML, texto puro e imagens.
+// serviço, data, links) e devolve assunto, HTML, texto puro e imagens. O texto
+// vem de `texts.ts`: o original ou o que o admin editou (`custom`).
 
 export type BuiltEmail = RenderedEmail & { subject: string };
 
@@ -36,25 +38,40 @@ function bookingCard(b: BookingInfo, cancelled = false): EmailCard {
   };
 }
 
+/** Textos do admin (ou originais) com os marcadores trocados. */
+function textsWith(base: EmailTexts, vars: Record<string, string>) {
+  const fill = (t: string) => fillVars(t, vars);
+  return {
+    subject: fill(base.assunto),
+    title: fill(base.titulo),
+    paragraphs: paragraphsOf(fill(base.texto)),
+    studioParagraphs: paragraphsOf(fill(base.textoEstudio)),
+    button: fill(base.botao),
+    notes: linesOf(fill(base.observacoes)),
+  };
+}
+
+const bookingVars = (b: BookingInfo) => ({ servico: b.serviceName, data: formatLongDate(b.date), hora: b.time });
+
 export function welcomeEmail(
   data: { name: string; email: string; accessUrl: string },
   studio: StudioInfo,
   mode?: ImageMode,
+  custom?: Partial<EmailTexts>,
 ): BuiltEmail {
   const first = firstName(data.name);
+  const t = textsWith(emailTexts("boas-vindas", custom), { nome: first, estudio: studio.name, email: data.email });
   return {
-    subject: `Boas-vindas ao ${studio.name}`,
+    subject: t.subject,
     ...renderEmail(
       {
         preheader: `Sua conta foi criada, ${first}. Já dá para marcar seu horário.`,
         icon: "user-check",
-        title: `Boas-vindas, ${first}!`,
-        paragraphs: [
-          `Obrigado por se cadastrar no ${studio.name}. Sua conta foi criada com sucesso e já está pronta para usar.`,
-          "Pelo site você marca e remarca seus horários, acompanha suas reservas e conversa com o estúdio.",
-        ],
+        title: t.title,
+        paragraphs: t.paragraphs,
         cards: [{ rows: [{ label: "Seu login", value: data.email }] }],
-        cta: { label: "Acessar minha conta", url: data.accessUrl },
+        cta: t.button ? { label: t.button, url: data.accessUrl } : undefined,
+        notes: t.notes,
       },
       studio,
       mode,
@@ -66,27 +83,26 @@ export function bookingConfirmedEmail(
   data: { name: string; bookings: BookingInfo[]; reservationsUrl: string },
   studio: StudioInfo,
   mode?: ImageMode,
+  custom?: Partial<EmailTexts>,
 ): BuiltEmail {
   const first = firstName(data.name);
   const many = data.bookings.length > 1;
   const [b] = data.bookings;
+  const t = textsWith(emailTexts("agendamento", custom), { nome: first, estudio: studio.name, ...bookingVars(b) });
   return {
-    subject: many
-      ? `${data.bookings.length} horários confirmados no ${studio.name}`
-      : `Horário confirmado: ${b.serviceName}, ${formatLongDate(b.date)} às ${b.time}`,
+    // Vários serviços de uma vez: assunto, título e texto no plural, automáticos.
+    subject: many ? `${data.bookings.length} horários confirmados no ${studio.name}` : t.subject,
     ...renderEmail(
       {
         preheader: many
           ? `${data.bookings.length} horários marcados. Confira os detalhes.`
           : `${b.serviceName} em ${formatLongDate(b.date)} às ${b.time}.`,
         icon: "calendar-check",
-        title: many ? "Agendamentos confirmados" : "Agendamento confirmado",
-        paragraphs: [
-          `Olá, ${first}! ${many ? "Seus horários estão marcados" : "Seu horário está marcado"}. Confira os detalhes:`,
-        ],
+        title: many ? "Agendamentos confirmados" : t.title,
+        paragraphs: many ? [`Olá, ${first}! Seus horários estão marcados. Confira os detalhes:`] : t.paragraphs,
         cards: data.bookings.map((x) => bookingCard(x)),
-        cta: { label: "Ver meus agendamentos", url: data.reservationsUrl },
-        notes: ["Precisa mudar? Você pode remarcar ou cancelar pelo site, em Minhas reservas."],
+        cta: t.button ? { label: t.button, url: data.reservationsUrl } : undefined,
+        notes: t.notes,
       },
       studio,
       mode,
@@ -98,27 +114,25 @@ export function bookingCancelledEmail(
   data: { name: string; booking: BookingInfo; byStudio: boolean; reason?: string; bookUrl: string },
   studio: StudioInfo,
   mode?: ImageMode,
+  custom?: Partial<EmailTexts>,
 ): BuiltEmail {
   const first = firstName(data.name);
   const { booking: b } = data;
+  const t = textsWith(emailTexts("cancelamento", custom), { nome: first, estudio: studio.name, ...bookingVars(b) });
   return {
-    subject: `Agendamento cancelado: ${b.serviceName}, ${formatLongDate(b.date)}`,
+    subject: t.subject,
     ...renderEmail(
       {
         preheader: `${b.serviceName} em ${formatLongDate(b.date)} às ${b.time} foi cancelado.`,
         icon: "calendar-x",
-        title: "Agendamento cancelado",
+        title: t.title,
         paragraphs: [
-          data.byStudio
-            ? `Olá, ${first}. Precisamos cancelar o seu horário abaixo. Pedimos desculpas pelo transtorno.`
-            : `Olá, ${first}. Confirmamos o cancelamento do seu horário abaixo.`,
+          ...(data.byStudio ? t.studioParagraphs : t.paragraphs),
           ...(data.reason ? [`Motivo: ${data.reason}`] : []),
         ],
         cards: [bookingCard(b, true)],
-        notes: [
-          "Quer marcar outro dia? É só escolher um novo horário no site. Vai ser um prazer receber você.",
-        ],
-        cta: { label: "Agendar novamente", url: data.bookUrl },
+        notes: t.notes,
+        cta: t.button ? { label: t.button, url: data.bookUrl } : undefined,
       },
       studio,
       mode,
@@ -130,25 +144,22 @@ export function passwordResetEmail(
   data: { name: string; resetUrl: string; validMinutes: number },
   studio: StudioInfo,
   mode?: ImageMode,
+  custom?: Partial<EmailTexts>,
 ): BuiltEmail {
   const first = firstName(data.name);
   const validity = data.validMinutes >= 60 ? `${data.validMinutes / 60} hora${data.validMinutes > 60 ? "s" : ""}` : `${data.validMinutes} minutos`;
+  const t = textsWith(emailTexts("senha", custom), { nome: first, estudio: studio.name, validade: validity });
   return {
-    subject: `Redefinir sua senha — ${studio.name}`,
+    subject: t.subject,
     ...renderEmail(
       {
         preheader: `Use o link para criar uma nova senha. Ele vale por ${validity}.`,
         icon: "lock",
-        title: "Redefinição de senha",
-        paragraphs: [
-          `Olá, ${first}. Recebemos um pedido para redefinir a senha da sua conta.`,
-          "Clique no botão abaixo e escolha uma nova senha. Ao salvar, você entra automaticamente e sai dos outros aparelhos.",
-        ],
-        cta: { label: "Redefinir minha senha", url: data.resetUrl },
-        notes: [
-          `Por segurança, o link vale por ${validity} e só pode ser usado uma vez.`,
-          "Não foi você? Pode ignorar este e-mail: sua senha continua a mesma.",
-        ],
+        title: t.title,
+        paragraphs: t.paragraphs,
+        // O link de redefinir é obrigatório: sem texto no botão, usa o original.
+        cta: { label: t.button || "Redefinir minha senha", url: data.resetUrl },
+        notes: t.notes,
       },
       studio,
       mode,

@@ -1,11 +1,11 @@
 # Pendências — Studio Heitor Macks (SHM)
 
-**Atualizado em:** 2026-11-20 (noite).
+**Atualizado em:** 2026-11-25.
 **Estado atual:** site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm` com as migrações até a `0007`. Último commit: `6a27aa9` (Início, chat do barbeiro e sino), já em produção.
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
 
-## Onde paramos (2026-11-23)
+## Onde paramos (2026-11-25)
 
 **Feito em 2026-11-19:**
 - 1.1 Admin real em produção (conta pessoal do dono); contas `@shm.test` apagadas da produção.
@@ -28,7 +28,15 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Seção 2 inteira: limite de login também em paralelo; login com o mesmo tempo com ou sem conta; `Authorization` não-Bearer não derruba o cookie; API recusa cookie vindo de outro site; foto do login conferida.
 - Pontos menores: login/cadastro não perdem o que foi digitado; sino não marca como visto aviso que não apareceu, leva os avisos ao renomear profissional, mostra a remarcação do cliente uma vez, junta falhas de marketing num aviso e passa o foco para a lista; cancelamento do barbeiro registrado como barbeiro; barbeiro sem profissional vê só Meus dados; 404 do painel leva direto ao início de cada um.
 
-**Pontos menores que sobraram** (os feitos estão no resumo de 2026-11-23 acima):
+**Feito em 2026-11-25** (lista de ajustes do dono, em `Analise.md`):
+- Seção 2 enviada e no ar.
+- Celular do cliente: menu e ícone de usuário juntos à direita; card de serviço mais baixo (tempo em cima do preço); sem "+ Fila de espera" (não fazia nada); escolher o dia abre calendário e horários numa janela; confirmação sem Observação; cards de Minhas reservas e da confirmação não quebram mais.
+- Login no computador com botões em pílula como no celular; Início do admin sem "Confirme quem veio" (continua no sino) e com Próximos dias na largura toda; Desativar e Excluir lado a lado no detalhe do cliente.
+- Profissionais saíram de Serviços e foram para Configurações; linha de serviço no celular arrumada.
+- E-mails do sistema com textos editáveis (Marketing → Templates → E-mails do sistema): assunto, título, texto, botão e observações, com marcadores; link, card da reserva e rodapé continuam automáticos; "Voltar ao texto original". Guardado em `settings` (chave `systemEmails`), sem migração.
+- Horários de 15 em 15 min: não reproduziu. Em produção o intervalo já é 45 min (10:00, 10:45, 11:30...). Falta o dono dizer onde viu.
+
+**Pontos menores que sobraram** (os feitos estão nos resumos acima):
 - Sino: **admin recebe avisos de outro admin**. Falta decidir com o dono: com mais de um admin, cada um vê o que o outro fez ou não?
 - Sino: excluir cliente ou barbeiro pelo admin não gera aviso dos horários cancelados junto.
 - Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática).
@@ -36,16 +44,16 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Código: o campo `menus` de `Customer` (`app/_lib/roles.ts`) ficou sem uso; dá para remover junto com `menusOf`.
 
 **Próximos passos, em ordem:**
-0. **Enviar a seção 2** (ver "Estado" abaixo): `git push origin main` e conferir o deploy na Vercel.
+0. **Enviar os ajustes de 2026-11-25** (ver "Estado" abaixo): `git push origin main` e conferir o deploy na Vercel.
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Decidir** se um admin deve ver no sino o que outro admin fez (ver acima).
 3. **Pontos menores que sobraram** (acima). A seção 2 ficou toda resolvida em 2026-11-23.
 4. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-Estado no fim de 2026-11-23:
-- **No ar na Vercel:** tudo até `e012774` (seção 4 e os pontos menores do sino e do barbeiro).
-- **Só na `main` local, falta enviar:** a seção 2 (limite de login em paralelo, tempo do login, `Authorization` não-Bearer, API recusando cookie de outro site). Conferir com `git log --oneline origin/main..main` e enviar com `git push origin main` depois do ok do dono. Não tem migração.
-- `pnpm test` com 191 de 191; coleção da API (`pnpm test:api`) com 117 pedidos e 238 verificações, sem falhas.
+Estado no fim de 2026-11-25:
+- **No ar na Vercel:** tudo até `a065723` (inclui a seção 2).
+- **Só na `main` local, falta enviar:** os ajustes de 2026-11-25 (celular do cliente, login/início/detalhe do cliente, profissionais em Configurações, e-mails do sistema editáveis). Conferir com `git log --oneline origin/main..main` e enviar com `git push origin main` depois do ok do dono. Não tem migração.
+- `pnpm test` com 202 de 202 (inclui `tests/email-texts.test.ts`); a coleção da API não mudou desde 2026-11-23 (117 pedidos, 238 verificações).
 - Nenhuma migração nova depois da `0007`; o snapshot do Neon `base-2026-11-23-sino-chat` já tem tudo do banco.
 
 **Lembretes:**

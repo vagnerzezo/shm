@@ -1,16 +1,21 @@
 import Link from "next/link";
+import { ConfirmButton } from "@/app/_components/confirm-button";
 import { ArrowLeftIcon } from "@/app/_components/icons";
 import type { Customer } from "@/app/_lib/auth";
 import { emailProviderReady } from "@/app/_lib/email";
 import { EMAIL_KINDS, buildSample, type EmailKind } from "@/app/_lib/email-templates/preview";
+import { readDb } from "@/app/_lib/db";
+import { emailTexts } from "@/app/_lib/email-templates/texts";
+import { resetSystemEmailTexts } from "@/app/_lib/settings-actions";
 import { getStudio } from "@/app/_lib/studio";
 import { cn } from "@/lib/utils";
 import { Badge, card, linkButton } from "../ui";
 import { SystemEmailTestForm } from "./system-email-test-form";
+import { SystemEmailTextsForm } from "./system-email-texts-form";
 
 // E-mails automáticos do sistema (boas-vindas, agendamento, cancelamento,
-// senha). Não são editáveis como os de marketing: o texto vem do código e os
-// dados do estúdio (logo, contato, redes) de Configurações.
+// senha). O admin edita só os textos (`texts.ts`); o link, o card da reserva e
+// os dados do estúdio (logo, contato, redes, de Configurações) são automáticos.
 
 const WHEN: Record<EmailKind, string> = {
   "boas-vindas": "Quando o cliente cria a conta pelo site.",
@@ -25,8 +30,9 @@ const previewHref = (kind: EmailKind, mobile = false) =>
 
 export async function SystemEmailList({ viewer }: { viewer: Customer }) {
   const studio = await getStudio();
+  const { systemEmails } = await readDb();
   // "url": só o assunto interessa aqui; não precisa embutir imagens.
-  const samples = await Promise.all(KINDS.map((k) => buildSample(k, viewer, studio, "url")));
+  const samples = await Promise.all(KINDS.map((k) => buildSample(k, viewer, studio, "url", systemEmails?.[k])));
 
   return (
     <section className="mt-8">
@@ -45,13 +51,14 @@ export async function SystemEmailList({ viewer }: { viewer: Customer }) {
           <li key={k} className={cn(card, "flex flex-col gap-3 p-4")}>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="mr-auto font-semibold text-black">{EMAIL_KINDS[k]}</h3>
+              {systemEmails?.[k] && <Badge>Personalizado</Badge>}
               <Badge tone="outline">Automático</Badge>
             </div>
             <p className="text-sm font-semibold text-black/80">Assunto: {samples[i].subject}</p>
             <p className="text-sm text-black/70">{WHEN[k]}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-black/10 pt-3">
               <Link href={previewHref(k)} className={linkButton}>
-                Ver prévia
+                Editar textos e ver prévia
               </Link>
               <Link href={`${previewHref(k)}#enviar-teste`} className={linkButton}>
                 Enviar teste
@@ -72,7 +79,8 @@ const tab = (active: boolean) =>
 
 export async function SystemEmailPreview({ kind, mobile, viewer }: { kind: EmailKind; mobile: boolean; viewer: Customer }) {
   // Imagens dentro do HTML: a prévia funciona mesmo com o site em localhost.
-  const email = await buildSample(kind, viewer, await getStudio(), "data");
+  const custom = (await readDb()).systemEmails?.[kind];
+  const email = await buildSample(kind, viewer, await getStudio(), "data", custom);
 
   return (
     <div className="flex flex-col gap-4 pb-1">
@@ -100,6 +108,27 @@ export async function SystemEmailPreview({ kind, mobile, viewer }: { kind: Email
           </Link>
         </nav>
       </div>
+
+      <SystemEmailTextsForm
+        kind={kind}
+        texts={emailTexts(kind, custom)}
+        reset={
+          custom && (
+            <ConfirmButton
+              action={resetSystemEmailTexts}
+              fields={{ modelo: kind }}
+              title="Voltar ao texto original?"
+              description="Os textos que você mudou neste e-mail são apagados e ele volta a usar o texto original."
+              confirmLabel="Voltar ao original"
+              successMessage="Texto original restaurado."
+              tone="neutral"
+              className={linkButton}
+            >
+              Voltar ao texto original
+            </ConfirmButton>
+          )
+        }
+      />
 
       <div className={cn(card, "p-4")}>
         <p className="text-xs font-semibold tracking-widest text-black/60">ASSUNTO</p>

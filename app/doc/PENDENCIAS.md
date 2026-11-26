@@ -45,6 +45,13 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - `pnpm test` com 213 de 213 (inclui `tests/pwa.test.ts`). Sem migração.
 - Como instalar à mão: **Android/Chrome** → menu ⋮ → "Instalar app"; **iPhone/Safari** → Compartilhar → "Adicionar à Tela de Início" (no navegador do Instagram/Facebook não dá: abrir no Safari).
 
+**Avisos no celular (PWA parte B), 2026-11-26** (branch `feat/push`; desenho `app/doc/specs/2026-11-26-push-design.md`, plano `app/doc/plans/2026-11-26-push.md`):
+- Barbeiro (e admin que ligar) recebe no aparelho, na hora, reserva **marcada, remarcada e cancelada** da agenda dele, com a regra do sino. Cartão "Avisos no celular" em **Meus dados** (barbeiro) e **Perfil** (admin); cliente não vê. No iPhone só com o app instalado (iOS 16.4+).
+- Tabela `push_subscriptions` (migração `0008`), presa à sessão: sair, trocar senha, ser desativado ou excluído apaga. Envio com `web-push` depois da resposta (`after()`), urgência alta; 404/410 apaga a inscrição. Service worker `public/sw.js` (sem cache).
+- Chaves: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto do dono) no `.env`; as de teste no `.env.test`. **Faltam na Vercel.**
+- Conferido no navegador por partes (o Chrome automatizado recusa a inscrição real): cartão, gravação, envio cifrado pelo servidor, aviso mostrado pelo service worker, sair/entrar, permissão negada, iPhone fora do app. **Falta:** aviso de verdade num celular.
+- Pontos menores deixados (da revisão final): `after()` chamado depois do import dinâmico (partida a frio pode cortar o envio); `p.catch` imediato na fila; `timeout` no envio; lista de hosts de push permitidos; `clients.claim()` no `sw.js` para o toque navegar na própria aba; registrar o worker só ao ativar; `send()` lê o banco inteiro; "Verificando…" no cartão.
+
 **Pontos menores que sobraram** (os feitos estão nos resumos acima):
 - Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática). Deixado assim de propósito: corrigir pediria recarregar a moldura a cada troca de página (o dobro de consultas).
 - Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel). Só importa se a 1.2 voltar.
@@ -117,7 +124,7 @@ Detalhes na seção "Andamento" de `app/doc/plans/2026-11-11-api-v1.md`.
 - ~~**O admin não redefine a senha do barbeiro**~~ **Feito (2026-11-23):** "Nova senha" em Configurações → Profissionais (antes em Serviços), ao lado do acesso; encerra as sessões dele.
 - ~~**Chat do site** corta mensagens acima de 2000 caracteres sem avisar~~ **Feito (2026-11-19):** o site usa a mesma regra da API e mostra o erro.
 - ~~**E-mails de marketing** com rodapé simples~~ **Feito (2026-11-23):** mesmo rodapé dos e-mails do sistema, com "Deixar de receber" na última linha. O corpo continua o texto do template, sem a moldura com logo.
-- **App de celular:** virou PWA (2026-11-26, parte A: instalar). **Parte B, pendente:** notificações no celular (sino do admin/barbeiro, chat do cliente, lembrete de reserva): tabela de inscrições (migração), chaves VAPID na Vercel, tela de ligar/desligar; no iPhone só com o app instalado e iOS 16.4+. A API v1 continua pronta (`app/doc/api/openapi.yaml`) caso um app de loja volte a ser assunto.
+- **App de celular:** virou PWA (2026-11-26, parte A: instalar). **Parte B feita em 2026-11-26** para a equipe (marcação/remarcação/cancelamento). **Para depois:** avisos para o cliente (chat, lembrete de reserva; lembrete depende do cron, 1 vez por dia no Hobby). A API v1 continua pronta (`app/doc/api/openapi.yaml`) caso um app de loja volte a ser assunto.
 
 ## 5. Evolução da API e do banco (do mapeamento, seção 9)
 

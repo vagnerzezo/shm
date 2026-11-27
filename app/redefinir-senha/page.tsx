@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthShell } from "../_components/auth-shell";
+import { AuthShell, authTitle } from "../_components/auth-shell";
 import { findValidReset } from "../_lib/password-reset";
 import { MobileSheet } from "../login/mobile-auth";
 import { ResetForm } from "./reset-form";
@@ -48,7 +48,7 @@ export default async function RedefinirSenhaPage(props: PageProps<"/redefinir-se
       </div>
       <div className="hidden sm:contents">
         <AuthShell backHref="/login" backLabel="Voltar para o login">
-          <h1 className="text-2xl font-bold tracking-tight text-black">Criar nova senha</h1>
+          <h1 className={authTitle}>Criar nova senha</h1>
           {reset ? (
             <>
               <p className="mt-1 text-sm text-black/70">{account}</p>

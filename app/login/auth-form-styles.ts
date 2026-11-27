@@ -2,18 +2,17 @@
 
 export type Variant = "desktop" | "mobile";
 
-// Computador: campos retos; botão em pílula, como no celular. Celular: o desenho de "Login mobile" (campos
+// Computador: o desenho "Entrar" do canvas desktop (campos de 52px, botão preto de 56px). Celular: o desenho de "Login mobile" (campos
 // cinza-claro de 52px, botão em pílula, senha com mostrar/ocultar, +55 no telefone).
 export const authFormStyles = {
   desktop: {
-    label: "block text-sm font-semibold text-black",
+    label: "block text-sm font-semibold text-[#121212]",
     /** Espaço entre o rótulo e o campo (no contêiner, não no campo). */
     gap: "mt-2",
     input:
-      "h-12 w-full rounded-lg border border-black/20 bg-white px-4 text-sm text-black placeholder:text-black/50 focus:border-black focus:outline-none",
-    // Botão igual ao do celular (pílula com sombra, sem ícone).
+      "h-[52px] w-full rounded-[14px] border border-[#e7e5e4] bg-[#fafaf9] px-4 text-base text-[#121212] placeholder:text-[#78716c] focus:border-[#121212] focus:bg-white focus:outline-none",
     button:
-      "mt-2 flex h-14 w-full items-center justify-center rounded-full bg-[#111] text-base font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.22)] transition hover:bg-black/85 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-black disabled:cursor-wait disabled:opacity-70",
+      "mt-[10px] flex h-14 w-full items-center justify-center rounded-[14px] bg-[#121212] text-base font-bold text-white transition hover:bg-black/85 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-black disabled:cursor-wait disabled:opacity-70",
   },
   mobile: {
     label: "block text-[13px] font-semibold text-[#222]",

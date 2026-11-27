@@ -128,15 +128,37 @@ function AuthFormBody({ mode, href, next }: { mode: AuthMode; href: AuthHref; ne
   );
 }
 
-/** Login no computador (dentro do AuthShell): o mesmo conteúdo da tela do celular. */
+/** Login no computador (dentro do AuthShell), conforme o desenho "Entrar" do canvas desktop. */
 export function DesktopAuthForm({ mode, href, next }: { mode: AuthMode; href: AuthHref; next: string }) {
+  const signUp = mode === "cadastro";
   return (
-    <div className={`${display.variable} flex flex-col gap-3.5 text-[#111]`}>
-      <div className="mb-1 flex flex-col gap-1.5">
-        <h1 className={`${displayClass} text-4xl leading-none`}>{texts[mode].title}</h1>
-        <p className="text-sm text-[#555]">{texts[mode].subtitle}</p>
+    <div className={`${display.variable} flex flex-col`}>
+      <h1 className={`${displayClass} text-[64px] leading-[0.95]`}>{texts[mode].title}</h1>
+      <p className="mt-2 mb-8 text-base text-[#5c5c5a]">{texts[mode].subtitle}</p>
+
+      {/* `key` recria o formulário ao trocar Entrar/Criar conta, limpando erros e o "mostrar senha". */}
+      <LoginForm
+        key={mode}
+        mode={mode}
+        next={next}
+        forgot={
+          <Link href="/esqueci-senha" className="text-[13px] font-semibold text-[#5c5c5a] hover:text-[#121212] hover:underline">
+            Esqueci minha senha
+          </Link>
+        }
+      />
+
+      <div className="mt-7 flex items-center gap-3 text-[13px] text-[#6b6b69]">
+        <span aria-hidden="true" className="h-px flex-1 bg-[#e7e5e4]" />
+        {signUp ? "Já tem uma conta?" : "Ainda não tem conta?"}
+        <span aria-hidden="true" className="h-px flex-1 bg-[#e7e5e4]" />
       </div>
-      <AuthFormBody mode={mode} href={href} next={next} />
+      <Link
+        href={href(signUp ? "entrar" : "cadastro")}
+        className={`mt-4 flex h-[52px] items-center justify-center rounded-[14px] border border-[#d6d3d1] text-[15px] font-semibold transition hover:border-[#121212] ${focusRing}`}
+      >
+        {signUp ? "Entrar" : "Criar conta"}
+      </Link>
     </div>
   );
 }

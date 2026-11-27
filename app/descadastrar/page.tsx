@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AuthShell } from "../_components/auth-shell";
+import { AuthShell, authTitle } from "../_components/auth-shell";
 import { CheckIcon } from "../_components/icons";
 import { unsubscribe } from "../_lib/account-actions";
 import { findByUnsubscribeToken } from "../_lib/unsubscribe";
@@ -90,7 +90,7 @@ export default async function DescadastrarPage(props: PageProps<"/descadastrar">
       </div>
       <div className="hidden sm:contents">
         <AuthShell>
-          <h1 className="text-2xl font-bold tracking-tight text-black">{title}</h1>
+          <h1 className={authTitle}>{title}</h1>
           <Content info={info} token={token} done={done} variant="desktop" />
         </AuthShell>
       </div>

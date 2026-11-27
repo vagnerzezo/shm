@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AuthShell } from "../_components/auth-shell";
+import { AuthShell, authTitle } from "../_components/auth-shell";
 import { MobileSheet } from "../login/mobile-auth";
 import { ForgotForm } from "./forgot-form";
 
@@ -18,8 +18,8 @@ export default function EsqueciSenhaPage() {
       </div>
       <div className="hidden sm:contents">
         <AuthShell backHref="/login" backLabel="Voltar para o login">
-          <h1 className="text-2xl font-bold tracking-tight text-black">Esqueci minha senha</h1>
-          <p className="mt-1 text-sm text-black/70">{subtitle}</p>
+          <h1 className={authTitle}>Esqueci minha senha</h1>
+          <p className="mt-2 text-base text-[#5c5c5a]">{subtitle}</p>
           <ForgotForm />
         </AuthShell>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, type InputHTMLAttributes } from "react";
+import { useActionState, useId, type InputHTMLAttributes, type ReactNode } from "react";
 import { ConsentFields } from "../_components/consent-fields";
 import { PasswordInput } from "../_components/password-input";
 import { signIn, signUp } from "../_lib/actions";
@@ -12,6 +12,7 @@ function Field({
   label,
   variant,
   prefix,
+  aside,
   type,
   className,
   ...props
@@ -20,14 +21,24 @@ function Field({
   variant: Variant;
   /** Texto fixo antes do valor (ex.: "+55"). */
   prefix?: string;
+  /** Ao lado do rótulo, fora dele (ex.: "Esqueci minha senha"). */
+  aside?: ReactNode;
+  type?: string;
 } & InputHTMLAttributes<HTMLInputElement>) {
   const s = styles[variant];
+  // Único na página: o login monta a versão do celular e a do computador juntas.
+  const id = useId();
   if (type === "password") {
     return (
-      <label className="block">
-        <span className={s.label}>{label}</span>
-        <PasswordInput required wrapperClassName={s.gap} className={`${s.input} ${className ?? ""}`} {...props} />
-      </label>
+      <div>
+        <div className="flex items-baseline justify-between gap-3">
+          <label htmlFor={id} className={s.label}>
+            {label}
+          </label>
+          {aside}
+        </div>
+        <PasswordInput id={id} required wrapperClassName={s.gap} className={`${s.input} ${className ?? ""}`} {...props} />
+      </div>
     );
   }
   return (
@@ -53,10 +64,13 @@ export function LoginForm({
   mode,
   next,
   variant = "desktop",
+  forgot,
 }: {
   mode: "entrar" | "cadastro";
   next: string;
   variant?: Variant;
+  /** Link "Esqueci minha senha" ao lado do rótulo da senha (computador). */
+  forgot?: ReactNode;
 }) {
   const signingUp = mode === "cadastro";
   const mobile = variant === "mobile";
@@ -65,7 +79,7 @@ export function LoginForm({
   const typed = state.values ?? {};
 
   return (
-    <form action={action} className={mobile ? "flex flex-col gap-3.5" : "mt-6 flex flex-col gap-4"}>
+    <form action={action} className={mobile ? "flex flex-col gap-3.5" : "flex flex-col gap-[18px]"}>
       <input type="hidden" name="next" value={next} />
 
       {signingUp && (
@@ -110,6 +124,7 @@ export function LoginForm({
         minLength={signingUp ? 8 : undefined}
         autoComplete={signingUp ? "new-password" : "current-password"}
         placeholder={signingUp ? "Mínimo de 8 caracteres" : undefined}
+        aside={signingUp ? undefined : forgot}
       />
       {signingUp && (
         <ConsentFields

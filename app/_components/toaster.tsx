@@ -35,7 +35,7 @@ export function Toaster() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:items-end"
+      className="pointer-events-none fixed inset-x-4 bottom-[calc(1rem+var(--toast-offset,0px))] z-[60] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-6 sm:bottom-[calc(1.5rem+var(--toast-offset,0px))] sm:items-end"
     >
       {items.map((item) => (
         <div

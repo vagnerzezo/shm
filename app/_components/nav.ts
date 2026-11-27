@@ -2,7 +2,6 @@ import {
   CalendarCheckIcon,
   CalendarIcon,
   ChatIcon,
-  HistoryIcon,
   HomeIcon,
   ListIcon,
   MegaphoneIcon,
@@ -16,7 +15,7 @@ import {
 // Telas novas do admin entram em `admin` e aparecem nos dois lugares.
 export const navByArea = {
   cliente: [
-    { href: "/", label: "Início", Icon: HistoryIcon },
+    { href: "/", label: "Início", Icon: HomeIcon },
     { href: "/agendamento", label: "Agendar", Icon: CalendarIcon },
     { href: "/reservas", label: "Reservas", Icon: CalendarCheckIcon },
     { href: "/mensagens", label: "Mensagens", Icon: ChatIcon },

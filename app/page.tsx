@@ -4,7 +4,7 @@ import { FlashToast } from "./_components/flash-toast";
 import { Toaster } from "./_components/toaster";
 import { ClientHome } from "./_components/client-home";
 import { AuthShell } from "./_components/auth-shell";
-import { PanelFrame } from "./_components/panel-frame";
+import { ClientFrame } from "./_components/client/client-frame";
 import { getCurrentUser, keepBarberOut } from "./_lib/auth";
 import { DesktopAuthForm, MobileAuth } from "./login/mobile-auth";
 
@@ -16,9 +16,9 @@ export default async function Home() {
   // Cliente logado: Início dentro do painel, com o mesmo menu das outras telas.
   if (user) {
     return (
-      <PanelFrame area="cliente">
+      <ClientFrame>
         <ClientHome customer={user} />
-      </PanelFrame>
+      </ClientFrame>
     );
   }
 

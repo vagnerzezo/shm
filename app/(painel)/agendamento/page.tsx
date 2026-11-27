@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { nowInStudio } from "@/app/_lib/availability";
-import { parseItems } from "@/app/_lib/booking";
+import { parseItems, withItems } from "@/app/_lib/booking";
 import { getCurrentUser, keepBarberOut } from "@/app/_lib/auth";
 import { getBookingBusy } from "@/app/_lib/reservations";
 import { getAvailabilityRules } from "@/app/_lib/schedule";
@@ -25,7 +25,8 @@ export default async function AgendamentoPage(props: PageProps<"/agendamento">) 
 
   return (
     <>
-      <BookingHeader step={0} />
+      {/* Voltando para adicionar outro serviço: a seta leva de volta ao carrinho, sem perder o que escolheu. */}
+      <BookingHeader step={0} back={carry.length > 0 ? withItems("/agendamento/confirmacao", carry) : undefined} />
       <ServiceList services={services} professionals={catalog.professionals} carry={carry} />
     </>
   );

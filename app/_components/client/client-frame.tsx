@@ -27,7 +27,10 @@ export async function ClientFrame({ children }: { children: ReactNode }) {
         "flex min-h-dvh w-full flex-col bg-[#f5f5f4] text-[#121212] [--toast-offset:calc(65px+env(safe-area-inset-bottom))] lg:h-dvh lg:flex-row lg:[--toast-offset:0px]",
       )}
     >
-      <ClientSidebar unread={unread} name={user?.name ?? ""} studioName={studio.name} />
+      {/* A sidebar lê a busca do endereço (link "Entrar" do visitante). */}
+      <Suspense>
+        <ClientSidebar unread={unread} name={user?.name ?? ""} studioName={studio.name} />
+      </Suspense>
 
       <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
         <ClientTopBar studioName={studio.name} />

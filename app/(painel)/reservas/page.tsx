@@ -63,7 +63,8 @@ function ReservationCard({ reservation, past }: { reservation: Reservation; past
             </span>
           </span>
           <span className="block text-[13px] text-[#5c5c5a] lg:hidden">
-            {past ? formatLongDate(date) : "Pagamento no dia"}
+            {/* A ficha da esquerda não tem o mês no celular: a data completa fica aqui. */}
+            {past ? formatLongDate(date) : `${formatLongDate(date)} · pagamento no dia`}
           </span>
           {note && <span className="mt-1 block text-[13px] text-[#5c5c5a] italic">“{note}”</span>}
         </span>

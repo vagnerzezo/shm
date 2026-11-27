@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import type { Channel, SendRule } from "@/app/_lib/db";
 import { saveRule } from "@/app/_lib/marketing-actions";
 import { cn } from "@/lib/utils";
-import { card, fieldClass, labelClass, primaryButton, secondaryButton } from "./ui";
+import { card, fieldClass, labelClass, primaryButton, secondaryButton, switchClass } from "./ui";
 
 export function RuleForm({
   channel,
@@ -66,8 +66,8 @@ export function RuleForm({
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-sm text-black">
-        <input type="checkbox" name="ativo" defaultChecked={rule?.active ?? true} className="size-4 accent-[#121212]" />
+      <label className="flex items-center gap-3 text-sm font-semibold">
+        <input type="checkbox" role="switch" name="ativo" defaultChecked={rule?.active ?? true} className={switchClass} />
         Regra ativa
       </label>
 

@@ -8,7 +8,7 @@ import { saveTemplate } from "@/app/_lib/marketing-actions";
 import { contentToHtml, htmlToText, renderHtmlTemplate, sanitizeHtml } from "@/app/_lib/email-html";
 import { channelLabel, LIMITS, renderTemplate, sampleValues, variables } from "@/app/_lib/marketing-template";
 import { cn } from "@/lib/utils";
-import { card, fieldClass, labelClass, primaryButton, secondaryButton } from "../ui";
+import { card, fieldClass, labelClass, primaryButton, secondaryButton, switchClass } from "../ui";
 import { RichTextEditor, type RichTextEditorHandle } from "./rich-text-editor";
 
 export function TemplateForm({ template, channel: initialChannel }: { template?: Template; channel: Channel }) {
@@ -157,23 +157,25 @@ export function TemplateForm({ template, channel: initialChannel }: { template?:
         </div>
 
         <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <label className="flex items-center gap-2 text-sm text-black">
+          <label className="flex items-center gap-3 text-sm font-semibold">
             <input
               type="checkbox"
+              role="switch"
               name="ativo"
               checked={active}
               onChange={(e) => setActive(e.target.checked)}
-              className="size-4 accent-[#121212]"
+              className={switchClass}
             />
             Ativo
           </label>
-          <label className={cn("flex items-center gap-2 text-sm", active ? "text-black" : "text-black/40")}>
+          <label className={cn("flex items-center gap-3 text-sm font-semibold", !active && "text-[#a8a29e]")}>
             <input
               type="checkbox"
+              role="switch"
               name="padrao"
               defaultChecked={template?.isDefault}
               disabled={!active}
-              className="size-4 accent-[#121212]"
+              className={switchClass}
             />
             Template padrão de {channelLabel[channel].toLowerCase()}
           </label>

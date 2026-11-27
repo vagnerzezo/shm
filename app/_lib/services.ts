@@ -33,6 +33,22 @@ export const PROFESSIONAL_COLORS: { id: ProfessionalColor; label: string }[] = [
   { id: "cyan", label: "Ciano" },
 ];
 
+/** Classe da bolinha de cada cor de profissional (Configurações, área do cliente). */
+export const PROFESSIONAL_DOT: Record<ProfessionalColor, string> = {
+  blue: "bg-blue-500",
+  violet: "bg-violet-500",
+  emerald: "bg-emerald-500",
+  amber: "bg-amber-500",
+  rose: "bg-rose-500",
+  cyan: "bg-cyan-500",
+};
+
+/** Cor do profissional fixo do serviço; `null` sem profissional ou se ele não está mais cadastrado. */
+export function professionalColorOf(service: Service, professionals: Professional[]): ProfessionalColor | null {
+  if (!service.professional) return null;
+  return professionals.find((p) => p.name === service.professional)?.color ?? null;
+}
+
 /** Categorias na ordem em que aparecem no catálogo. */
 export function categoriesOf(services: Service[]) {
   return [...new Set(services.map((s) => s.category))];

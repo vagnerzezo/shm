@@ -5,10 +5,9 @@ import { readDb } from "@/app/_lib/db";
 import { studioOf } from "@/app/_lib/studio";
 import { cn } from "@/lib/utils";
 import { FlashToast } from "../flash-toast";
-import { InstallBanner } from "../install-banner";
 import { Toaster } from "../toaster";
 import { ClientSidebar } from "./client-sidebar";
-import { ClientTopBar } from "./client-top-bar";
+import { ClientInstallBanner, ClientTopBar } from "./client-top-bar";
 import { ClientTabBar } from "./tab-bar";
 import { displayFont } from "./ui";
 
@@ -36,7 +35,7 @@ export async function ClientFrame({ children }: { children: ReactNode }) {
         <ClientTopBar studioName={studio.name} />
         <main className="mx-auto flex w-full max-w-[1192px] flex-1 flex-col px-4 pt-5 pb-6 lg:px-12 lg:py-10">
           {/* Convite para instalar o app (só no celular, se ainda não instalou). */}
-          <InstallBanner />
+          <ClientInstallBanner />
           {children}
         </main>
         <ClientTabBar unread={unread} />

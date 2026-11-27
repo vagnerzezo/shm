@@ -14,7 +14,7 @@ import {
   type CatalogFormState,
 } from "@/app/_lib/catalog-actions";
 import type { ProfessionalColor } from "@/app/_lib/db";
-import { PROFESSIONAL_COLORS } from "@/app/_lib/services";
+import { PROFESSIONAL_COLORS, PROFESSIONAL_DOT } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
 
 type Row = {
@@ -31,14 +31,7 @@ type Row = {
   otherAdmins: number;
 };
 
-const swatch: Record<ProfessionalColor, string> = {
-  blue: "bg-blue-500",
-  violet: "bg-violet-500",
-  emerald: "bg-emerald-500",
-  amber: "bg-amber-500",
-  rose: "bg-rose-500",
-  cyan: "bg-cyan-500",
-};
+const swatch = PROFESSIONAL_DOT;
 
 function ProfessionalForm({ professional, onDone }: { professional?: Row; onDone: () => void }) {
   // Fecha dentro da própria ação: ao renomear, a linha com o nome antigo some da

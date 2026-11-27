@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { hidesTabs, hidesTopBar } from "../app/_components/client/tabs";
+import { DEFAULT_SERVICES, professionalColorOf, type Professional } from "../app/_lib/services";
 
 // Moldura do cliente no celular. Não usa o banco.
 
@@ -32,5 +33,22 @@ describe("barra de cima do cliente", () => {
     assert.equal(hidesTopBar("/"), false);
     assert.equal(hidesTopBar("/reservas"), false);
     assert.equal(hidesTopBar("/conta"), false);
+  });
+});
+
+describe("cor do profissional no serviço", () => {
+  const pros: Professional[] = [
+    { name: "Heitor", color: "blue" },
+    { name: "Jimmy", color: "violet" },
+  ];
+  const svc = DEFAULT_SERVICES[0];
+
+  test("usa a cor cadastrada do profissional do serviço", () => {
+    assert.equal(professionalColorOf({ ...svc, professional: "Jimmy" }, pros), "violet");
+  });
+
+  test("sem profissional fixo ou profissional que saiu: sem cor", () => {
+    assert.equal(professionalColorOf({ ...svc, professional: undefined }, pros), null);
+    assert.equal(professionalColorOf({ ...svc, professional: "Saiu" }, pros), null);
   });
 });

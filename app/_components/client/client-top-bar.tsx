@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserIcon } from "../icons";
+import { InstallBanner } from "../install-banner";
 import { hidesTopBar } from "./tabs";
 
 /** Celular: barra baixa com o logo e o atalho de Meus dados. */
@@ -26,4 +27,11 @@ export function ClientTopBar({ studioName }: { studioName: string }) {
       </Link>
     </header>
   );
+}
+
+/** Convite para instalar o app: só nas telas com a barra de cima (não no meio do agendamento nem na conversa). */
+export function ClientInstallBanner() {
+  const pathname = usePathname();
+  if (hidesTopBar(pathname)) return null;
+  return <InstallBanner />;
 }

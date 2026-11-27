@@ -30,14 +30,16 @@ export default async function MensagensPage() {
   return (
     <>
       <AutoRefresh />
-      <ClientTitle
-        className="mb-[22px] max-lg:hidden"
-        title="Mensagens"
-        description="Avisos sobre seus horários e conversa direta com o estúdio."
-      />
+      {/* Computador: título + conversa na altura da janela; a conversa rola por dentro. */}
+      <div className="lg:flex lg:h-[calc(100dvh-5rem)] lg:min-h-[560px] lg:flex-col">
+        <ClientTitle
+          className="mb-[22px] max-lg:hidden"
+          title="Mensagens"
+          description="Avisos sobre seus horários e conversa direta com o estúdio."
+        />
 
       {/* Celular: conversa em tela cheia entre o topo e a tab bar. */}
-      <div className="-mx-4 -mt-5 -mb-6 flex h-[calc(100dvh-65px-env(safe-area-inset-bottom))] lg:m-0 lg:grid lg:h-auto lg:min-h-[480px] lg:flex-1 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5">
+      <div className="-mx-4 -mt-5 -mb-6 flex h-[calc(100dvh-65px-env(safe-area-inset-bottom))] lg:m-0 lg:grid lg:h-auto lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[minmax(0,1fr)] lg:gap-5">
         <ChatPanel
           variant="client"
           me="cliente"
@@ -90,6 +92,7 @@ export default async function MensagensPage() {
             Ver reservas
           </Link>
         </aside>
+      </div>
       </div>
     </>
   );

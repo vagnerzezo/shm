@@ -1,7 +1,7 @@
 # Pendências — Studio Heitor Macks (SHM)
 
 **Atualizado em:** 2026-11-27.
-**Estado atual:** site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm` com as migrações até a `0007`. Último commit: `6a27aa9` (Início, chat do barbeiro e sino), já em produção.
+**Estado atual:** site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm` com as migrações até a `0008`. Em 2026-11-27 o **redesign completo** (área do cliente + painel de admin e barbeiro, celular e computador) foi para a `main` e para a produção. Desenvolvimento no branch `dev` do Neon (ver "Banco do desenvolvimento" abaixo).
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
 
@@ -48,7 +48,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 **Avisos no celular (PWA parte B), 2026-11-26** (branch `feat/push`; desenho `app/doc/specs/2026-11-26-push-design.md`, plano `app/doc/plans/2026-11-26-push.md`):
 - Barbeiro (e admin que ligar) recebe no aparelho, na hora, reserva **marcada, remarcada e cancelada** da agenda dele, com a regra do sino. Cartão "Avisos no celular" em **Meus dados** (barbeiro) e **Perfil** (admin); cliente não vê. No iPhone só com o app instalado (iOS 16.4+).
 - Tabela `push_subscriptions` (migração `0008`), presa à sessão: sair, trocar senha, ser desativado ou excluído apaga. Envio com `web-push` depois da resposta (`after()`), urgência alta; 404/410 apaga a inscrição. Service worker `public/sw.js` (sem cache).
-- Chaves: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto do dono) no `.env`; as de teste no `.env.test`. **Faltam na Vercel.**
+- Chaves: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (mailto do dono) no `.env`; as de teste no `.env.test`. Na Vercel (produção) desde 26/11.
 - Conferido no navegador por partes (o Chrome automatizado recusa a inscrição real): cartão, gravação, envio cifrado pelo servidor, aviso mostrado pelo service worker, sair/entrar, permissão negada, iPhone fora do app. **Falta:** aviso de verdade num celular.
 - Pontos menores da revisão **feitos em 2026-11-26** (branch `fix/pontos-menores`): envio agendado com `after()` direto no `updateDb`; tempo limite de 10 s; só endereços de serviços de push conhecidos (Google, Mozilla, Microsoft, Apple); `clients.claim()` e abrir janela nova se não der para navegar; service worker instalado só ao "Ativar"; envio lê só as colunas de usuários; "Verificando…" no cartão. Faixa de instalar: toque duplo não gera erro; "Agora não" vale até recarregar mesmo sem armazenamento. App instalado não trava mais em pé.
 - Ficaram de lado de propósito: ícones um pouco borrados (precisa de um logo maior ou em vetor do dono); marcou-e-cancelou em seguida pode deixar o aviso errado no celular (raro; precisaria de fila com ordem).
@@ -76,9 +76,9 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-**Redesign — onde paramos (2026-11-27).** Combinado com o dono: **as três partes ficam prontas no local antes de publicar** (nada foi para a `main` nem para a Vercel). Tudo no branch `feat/redesign-cliente`.
-- **Área do cliente: pronta.** As 3 correções da revisão final feitas; `pnpm test` com 255 de 255 depois delas.
-- **Painel (admin e barbeiro, celular e computador juntos): pronto no local.** Desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md` (12 tarefas, todas com commit), decisões tarefa a tarefa em `.superpowers/sdd/2026-11-27-redesign-painel/progress.md` (fora do git). Desenhos nos canvases "SHM — Redesign mobile" e "SHM — Redesign desktop".
+**Redesign — publicado em 2026-11-27.** O dono pediu para subir antes das conferências no aparelho (o combinado era publicar só depois). Branch `feat/redesign-cliente` juntado na `main` (avanço direto, sem conflito) e enviado; a Vercel publica sozinha. Sem migração nova.
+- **Área do cliente.** As 3 correções da revisão final feitas; `pnpm test` com 255 de 255 depois delas.
+- **Painel (admin e barbeiro, celular e computador juntos).** Desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md` (12 tarefas, todas com commit), decisões tarefa a tarefa em `.superpowers/sdd/2026-11-27-redesign-painel/progress.md` (fora do git). Desenhos nos canvases "SHM — Redesign mobile" e "SHM — Redesign desktop".
   - Tarefas 1 a 6: peças comuns, moldura (sidebar, tab bar com "Mais", sino), Início, Agenda, Clientes, Histórico.
   - **Chat:** um cartão na altura da janela (lista com busca e abas à esquerda, conversa à direita); aba "Todos os clientes" no endereço (`?ver=todos`). No celular a conversa ocupa a tela e esconde a barra de cima e a faixa "Instale o app" (`data-tela-cheia` no `PanelFrame`).
   - **Marketing:** abas sublinhadas no computador e pílulas no celular; Visão geral com "Execução automática", números dos **últimos 30 dias** (antes era o total), cartão por canal com **interruptor que liga/desliga na hora**; "Regra ativa", "Ativo" e "Template padrão" viraram interruptor (`switchClass` em `app/_components/ui.tsx`).
@@ -91,9 +91,13 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - **Contas de teste apagadas da produção (27/11):** `admin@shm.test`, `cliente@shm.test` e `heitor@shm.test`, com o que estava ligado a elas (3 reservas de teste, 3 mensagens, 10 sessões, 3 avisos do sino). Ficaram 5 usuários e 1 admin. Cópia do que saiu em `.data/backup-producao-2026-11-27-contas-teste.json`. Elas continuam no branch `dev`.
 - **Ambiente:** a porta 3000 está ocupada por outro app; o dev deste projeto roda na 3001 (`pnpm dev --port 3001`). A `.next` antiga tinha arquivos do `root` e foi recriada.
 - **Revisão final do branch feita (27/11):** 5 achados; corrigidos a data das próximas reservas no celular (faltava o mês), o script de contas de teste (agora recusa sem `.env.local`), a seta do passo 1 de volta ao carrinho e o `Suspense` da sidebar do cliente. `pnpm test` com 263 de 263.
-- **Falta, antes de publicar:** conferir num iPhone de verdade (teclado no chat, área segura, folhas de baixo, interruptores), uma reserva de ponta a ponta no branch `dev` (cliente com e-mail `delivered@resend.dev`), e então juntar na `main` e publicar.
+- **Falta conferir, já com o site no ar** (se algo aparecer, corrigir num branch novo a partir da `main`):
+  1. **No site publicado, logo depois do deploy:** abrir login, Início do admin, Agenda, Chat e a área do cliente no celular e no computador.
+  2. **iPhone de verdade:** teclado no chat (cliente e painel), área segura embaixo, folhas de baixo (reserva, "Mais"), interruptores de Marketing/Configurações.
+  3. **Reserva de ponta a ponta no branch `dev`** (cliente com e-mail `delivered@resend.dev`): marcar, remarcar, cancelar; conferir agenda, sino e chat do admin.
+  4. Pontos menores deixados para depois: os da lista "Pontos menores da revisão" da área do cliente, acima.
 
-Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA (acima) entrou antes deles; falta enviar o branch `feat/pwa` (juntar na `main` e `git push origin main`) e instalar num celular de verdade para conferir.
+Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA e os avisos no celular (acima) já estão na `main` e no ar; falta instalar num celular de verdade e receber um aviso de verdade para conferir.
 
 Estado no fim de 2026-11-25:
 - **No ar na Vercel:** tudo até `5c7ab2b` (enviado em 2026-11-26, inclui `3ebd612`: admin excluir cliente avisa os horários cancelados; sai o campo `menus`). Deploy conferido (Ready, `shm-eta.vercel.app` respondendo).

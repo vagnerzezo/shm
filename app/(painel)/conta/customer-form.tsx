@@ -93,13 +93,13 @@ export function CustomerForm({
         <button
           type="submit"
           disabled={pending}
-          className="flex h-12 flex-1 items-center justify-center rounded-lg bg-[#121212] px-5 text-sm font-semibold text-white transition hover:bg-black/80 disabled:cursor-wait disabled:opacity-70"
+          className="flex h-12 items-center sm:flex-1 justify-center rounded-lg bg-[#121212] px-5 text-sm font-semibold text-white transition hover:bg-black/80 disabled:cursor-wait disabled:opacity-70"
         >
           {pending ? "Salvando..." : "Salvar alterações"}
         </button>
         <Link
           href={returnHref}
-          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg border border-black bg-white px-5 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+          className="flex h-12 items-center sm:flex-1 justify-center gap-2 rounded-lg border border-black bg-white px-5 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
         >
           <CalendarCheckIcon className="size-4" />
           {returnLabel}

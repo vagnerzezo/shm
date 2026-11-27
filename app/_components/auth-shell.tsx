@@ -72,12 +72,5 @@ export async function AuthShell({
   );
 }
 
-/** Campo das telas de conta no computador (mesmo do login). */
-export const authInput =
-  "mt-2 h-[52px] w-full rounded-[14px] border border-[#e7e5e4] bg-[#fafaf9] px-4 text-base text-[#121212] placeholder:text-[#78716c] focus:border-[#121212] focus:bg-white focus:outline-none";
-
-export const authButton =
-  "mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-[14px] bg-[#121212] text-base font-bold text-white transition hover:bg-black/85 disabled:cursor-wait disabled:opacity-70";
-
 /** Título das telas de conta no computador (Esqueci a senha, Nova senha, Descadastrar). */
 export const authTitle = `${displayClass} text-5xl leading-[0.95] text-[#121212]`;

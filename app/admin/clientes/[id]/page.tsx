@@ -5,6 +5,7 @@ import { ArrowLeftIcon, CalendarIcon, ChatIcon, ListIcon, MegaphoneIcon } from "
 import { PanelHeader } from "@/app/_components/panel-header";
 import { Badge, card as cardBase, scrollArea, Stat } from "@/app/_components/ui";
 import { shortDate } from "@/app/_lib/format";
+import { displayClass } from "@/app/_components/client/ui";
 import { agendaHref } from "@/app/_lib/agenda";
 import { canOpen } from "@/app/_lib/access";
 import { requireMenu } from "@/app/_lib/auth";
@@ -101,14 +102,14 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-3xl font-bold tracking-tight text-black">{customer.name}</h1>
+              <h1 className={cn(displayClass, "min-w-0 text-[34px] break-words lg:text-[44px]")}>{customer.name}</h1>
               {customer.disabledAt && (
                 <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
                   Desativado
                 </span>
               )}
             </div>
-            <p className="text-sm text-black/70">Cliente desde {shortDate(customer.createdAt)}</p>
+            <p className="mt-1 text-sm text-[#5c5c5a]">Cliente desde {shortDate(customer.createdAt)}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {canOpen(user, "chat") && (
@@ -160,14 +161,14 @@ export default async function ClientePage(props: PageProps<"/admin/clientes/[id]
           <Stat label="TOTAL GASTO" value={formatPrice(customer.spentCents)} />
           <Stat
             label="ÚLTIMA VISITA"
-            value={customer.lastVisit ? shortDate(customer.lastVisit.date) : "—"}
+            value={customer.lastVisit ? shortDate(customer.lastVisit.date, { year: false }) : "—"}
             hint={customer.lastVisit?.serviceName}
           />
           <Stat
             label="PRÓXIMO HORÁRIO"
             value={
               customer.nextBooking
-                ? `${shortDate(customer.nextBooking.date)} · ${customer.nextBooking.time}`
+                ? `${shortDate(customer.nextBooking.date, { year: false })} · ${customer.nextBooking.time}`
                 : "—"
             }
             hint={customer.nextBooking?.serviceName}

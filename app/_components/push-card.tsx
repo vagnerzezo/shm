@@ -100,7 +100,7 @@ export function PushCard({ publicKey }: { publicKey: string | null }) {
   };
 
   return (
-    <section className={`${card} max-w-xl p-5`} aria-labelledby="push-card-title">
+    <section className={`${card} p-5`} aria-labelledby="push-card-title">
       <h2 id="push-card-title" className="text-base font-semibold text-black">
         Avisos no celular
       </h2>

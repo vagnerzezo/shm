@@ -1,6 +1,6 @@
 # Pendências — Studio Heitor Macks (SHM)
 
-**Atualizado em:** 2026-11-25.
+**Atualizado em:** 2026-11-27.
 **Estado atual:** site em produção em https://shm-eta.vercel.app (deploy automático a cada push na `main`), banco no projeto Neon `shm` com as migrações até a `0007`. Último commit: `6a27aa9` (Início, chat do barbeiro e sino), já em produção.
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
@@ -78,11 +78,18 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 
 **Redesign — onde paramos (2026-11-27).** Combinado com o dono: **as três partes ficam prontas no local antes de publicar** (nada foi para a `main` nem para a Vercel). Tudo no branch `feat/redesign-cliente`.
 - **Área do cliente: pronta.** As 3 correções da revisão final feitas; `pnpm test` com 255 de 255 depois delas.
-- **Painel (admin e barbeiro, celular e computador juntos): em andamento.** Desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md` (12 tarefas), andamento e decisões em `.superpowers/sdd/2026-11-27-redesign-painel/progress.md` (fora do git). Desenhos nos canvases "SHM — Redesign mobile" e "SHM — Redesign desktop".
-  - **Feito (tarefas 1 a 6, cada uma com commit):** peças comuns (`ui.tsx`) no visual novo; moldura nova (`PanelFrame` reescrito, menu em `app/_components/staff/`: barra de cima com sino, tab bar com "Mais" em folha de baixo para o admin, 5 itens para o barbeiro, sidebar de 248 px em Operação/Gestão); Início do admin; Agenda (faixa da semana no celular, reserva em folha de baixo com Conversar/Ligar/Ver cliente, "Nova reserva" flutuante); Clientes (chips de filtro, tabela no computador, lista no celular); Histórico (5 números, filtros numa barra, tabela/lista).
-  - **Próximo: tarefa 7, Chat.** Depois: 8 Marketing, 9 Serviços, 10 Configurações por seção (`?secao=`), 11 login no computador, 12 varredura das telas sem desenho (ficha do cliente, novo cliente, nova reserva, perfil, templates de marketing), `pnpm test` e atualizar este arquivo.
-  - Conferido no navegador sem gravar no banco (não cancelei, remarquei nem salvei nada).
-- **No fim das três partes:** `pnpm test`, conferir num iPhone de verdade (teclado no chat, área segura, folhas de baixo), uma reserva de ponta a ponta, revisão final do branch e então juntar na `main` e publicar.
+- **Painel (admin e barbeiro, celular e computador juntos): pronto no local.** Desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md` (12 tarefas, todas com commit), decisões tarefa a tarefa em `.superpowers/sdd/2026-11-27-redesign-painel/progress.md` (fora do git). Desenhos nos canvases "SHM — Redesign mobile" e "SHM — Redesign desktop".
+  - Tarefas 1 a 6: peças comuns, moldura (sidebar, tab bar com "Mais", sino), Início, Agenda, Clientes, Histórico.
+  - **Chat:** um cartão na altura da janela (lista com busca e abas à esquerda, conversa à direita); aba "Todos os clientes" no endereço (`?ver=todos`). No celular a conversa ocupa a tela e esconde a barra de cima e a faixa "Instale o app" (`data-tela-cheia` no `PanelFrame`).
+  - **Marketing:** abas sublinhadas no computador e pílulas no celular; Visão geral com "Execução automática", números dos **últimos 30 dias** (antes era o total), cartão por canal com **interruptor que liga/desliga na hora**; "Regra ativa", "Ativo" e "Template padrão" viraram interruptor (`switchClass` em `app/_components/ui.tsx`).
+  - **Serviços:** um cartão com grupos por categoria; Desativar/Ativar e Excluir foram para o menu ⋮; "Novo serviço" flutuante no celular.
+  - **Configurações:** uma seção por vez em `?secao=` (agenda, profissionais, equipe, estudio, emails; `settingsSection` em `staff/nav.ts`, com teste). Profissionais em cartões com acessos ao app e "Sou eu" como interruptor (grava ao tocar).
+  - **Login no computador:** coluna de 560 px + foto em preto e branco; vale também para Esqueci a senha, Nova senha e Descadastrar. Celular sem mudança.
+  - **Varredura das telas sem desenho:** ficha do cliente com título em Barlow e datas sem o ano; cartão "Avisos no celular" na largura dos outros; Meus dados do barbeiro com o título novo. Corrigido também um defeito que já existia: no celular, "Salvar alterações" (e "Minha agenda" do barbeiro) em Meus dados ficavam achatados (`flex-1` numa coluna).
+  - Conferido no navegador em 1440 e 390 px, como admin e barbeiro, sem gravar nada (só sessões de login). `pnpm test` com 263 de 263; `tsc` e lint sem erro.
+- **Atenção, banco:** o `.env` aponta para o banco de **produção**, e o `pnpm dev` usa o `.env`. Os testes no navegador desta fase rodaram contra a produção (só leitura e sessões de login). As contas `admin@shm.test` (admin), `cliente@shm.test` e `heitor@shm.test` existem na produção (tinham sido apagadas em 19/11; o `scripts/criar-contas-teste.ts` as recria no banco do `.env`). **Decidir com o dono:** apagar as três da produção e usar um branch do Neon no `.env.local` para o desenvolvimento.
+- **Ambiente:** a porta 3000 está ocupada por outro app; o dev deste projeto roda na 3001 (`pnpm dev --port 3001`). A `.next` antiga tinha arquivos do `root` e foi recriada.
+- **Falta, antes de publicar:** conferir num iPhone de verdade (teclado no chat, área segura, folhas de baixo, interruptores), uma reserva de ponta a ponta, revisão final do branch e então juntar na `main` e publicar.
 
 Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA (acima) entrou antes deles; falta enviar o branch `feat/pwa` (juntar na `main` e `git push origin main`) e instalar num celular de verdade para conferir.
 

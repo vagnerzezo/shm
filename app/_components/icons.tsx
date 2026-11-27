@@ -20,16 +20,6 @@ function Icon({ children, className = "size-5", ...props }: IconProps) {
   );
 }
 
-export function HistoryIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-      <path d="M3 3v5h5" />
-      <path d="M12 7v5l3 3" />
-    </Icon>
-  );
-}
-
 export function ClockIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -44,16 +34,6 @@ export function CalendarIcon(props: IconProps) {
     <Icon {...props}>
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <path d="M16 2v4M8 2v4M3 10h18" />
-    </Icon>
-  );
-}
-
-export function CalendarGridIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-      <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" />
     </Icon>
   );
 }
@@ -102,17 +82,6 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
-export function SwapIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M16 3l4 4-4 4" />
-      <path d="M20 7H4" />
-      <path d="M8 21l-4-4 4-4" />
-      <path d="M4 17h16" />
-    </Icon>
-  );
-}
-
 export function ChevronLeftIcon(props: IconProps) {
   return (
     <Icon {...props}>
@@ -153,28 +122,11 @@ export function XIcon(props: IconProps) {
   );
 }
 
-export function LockIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </Icon>
-  );
-}
-
 export function LogOutIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <path d="M10 5H5v14h5" />
       <path d="m14 8 4 4-4 4M18 12H9" />
-    </Icon>
-  );
-}
-
-export function MenuIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M4 6h16M4 12h16M4 18h16" />
     </Icon>
   );
 }

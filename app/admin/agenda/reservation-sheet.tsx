@@ -2,7 +2,7 @@
 
 import { Drawer } from "@base-ui/react/drawer";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { XIcon } from "@/app/_components/icons";
 
 /**
@@ -10,20 +10,27 @@ import { XIcon } from "@/app/_components/icons";
  * (X, fundo ou arrastar) volta para o dia. No computador não abre: os detalhes
  * ficam no painel ao lado.
  */
+const MOBILE = "(max-width: 1023px)";
+const subscribe = (onChange: () => void) => {
+  const mq = window.matchMedia(MOBILE);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+
 export function ReservationSheet({ closeHref, title, children }: { closeHref: string; title: string; children: ReactNode }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setOpen(window.matchMedia("(max-width: 1023px)").matches);
-  }, []);
+  // Só no celular; no servidor e no computador fica fechada.
+  const mobile = useSyncExternalStore(subscribe, () => window.matchMedia(MOBILE).matches, () => false);
+  const [closed, setClosed] = useState(false);
+  const open = mobile && !closed;
 
   return (
     <Drawer.Root
       open={open}
       onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) router.replace(closeHref, { scroll: false });
+        if (next) return;
+        setClosed(true);
+        router.replace(closeHref, { scroll: false });
       }}
       swipeDirection="down"
     >

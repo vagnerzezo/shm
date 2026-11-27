@@ -129,7 +129,7 @@ export default async function AgendaPage(props: PageProps<"/admin/agenda">) {
 
       {/* Celular: reserva aberta numa folha de baixo. */}
       {selected && (
-        <ReservationSheet closeHref={agendaHref("dia", selected.date)} title={`Reserva de ${selected.customer.name}`}>
+        <ReservationSheet key={selected.id} closeHref={agendaHref("dia", selected.date)} title={`Reserva de ${selected.customer.name}`}>
           <Details reservation={selected} now={now} times={times} chat professionals={professionals} inSheet />
         </ReservationSheet>
       )}

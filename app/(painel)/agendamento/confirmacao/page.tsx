@@ -6,7 +6,6 @@ import { clientField, displayClass } from "@/app/_components/client/ui";
 import { PlusIcon, XIcon } from "@/app/_components/icons";
 import {
   formatLongDate,
-  formatShortMonth,
   formatWeekday,
   nowInStudio,
 } from "@/app/_lib/availability";

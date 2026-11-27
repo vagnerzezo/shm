@@ -9,7 +9,6 @@ import { Toaster } from "../toaster";
 import { ClientSidebar } from "./client-sidebar";
 import { ClientInstallBanner, ClientTopBar } from "./client-top-bar";
 import { ClientTabBar } from "./tab-bar";
-import { displayFont } from "./ui";
 
 /**
  * Moldura da área do cliente: barra de cima e tab bar no celular, sidebar de
@@ -24,7 +23,6 @@ export async function ClientFrame({ children }: { children: ReactNode }) {
   return (
     <div
       className={cn(
-        displayFont.variable,
         // Toasts sobem acima da tab bar no celular.
         "flex min-h-dvh w-full flex-col bg-[#f5f5f4] text-[#121212] [--toast-offset:calc(65px+env(safe-area-inset-bottom))] lg:h-dvh lg:flex-row lg:[--toast-offset:0px]",
       )}

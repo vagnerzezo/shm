@@ -1,28 +1,29 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { displayClass } from "./client/ui";
 
 // Estilos e peças comuns a todas as telas do painel. Antes cada tela tinha a
 // própria cópia; mude aqui para mudar em todas.
 
-export const card = "rounded-xl border border-black/10 bg-white/85";
+export const card = "rounded-[18px] border border-[#e7e5e4] bg-white";
 export const fieldClass =
-  "h-11 w-full rounded-lg border border-black/20 bg-white px-3 text-sm text-black placeholder:text-black/50 focus:border-black focus:outline-none disabled:bg-black/5 disabled:text-black/50";
-export const labelClass = "block text-xs font-semibold tracking-wide text-black/70";
+  "h-11 w-full rounded-xl border border-[#e7e5e4] bg-white px-3 text-base text-[#121212] placeholder:text-[#6b6b69] focus:border-[#121212] focus:outline-none disabled:bg-[#f5f5f4] disabled:text-[#6b6b69] lg:text-sm";
+export const labelClass = "block text-[13px] font-semibold text-[#3f3f3d]";
 export const primaryButton =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#121212] px-5 text-sm font-semibold text-white transition hover:bg-black/80 disabled:cursor-wait disabled:opacity-70";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#121212] px-5 text-sm font-semibold text-white transition hover:bg-black/85 disabled:cursor-wait disabled:opacity-70";
 export const secondaryButton =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-black/20 bg-white px-4 text-sm font-semibold text-black transition hover:bg-black/5 disabled:opacity-60";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#e7e5e4] bg-white px-4 text-sm font-semibold text-[#121212] transition hover:border-[#121212] disabled:opacity-60";
 export const dangerButton =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 disabled:cursor-wait disabled:opacity-70";
-export const linkButton = "text-sm font-semibold text-black/70 underline-offset-4 hover:text-black hover:underline";
-export const dangerLink = "text-sm font-semibold text-red-700 underline-offset-4 hover:underline";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#b91c1c] px-4 text-sm font-semibold text-white transition hover:bg-[#991b1b] disabled:cursor-wait disabled:opacity-70";
+export const linkButton = "text-sm font-semibold text-[#5c5c5a] underline-offset-4 hover:text-[#121212] hover:underline";
+export const dangerLink = "text-sm font-semibold text-[#b91c1c] underline-offset-4 hover:underline";
 export const scrollArea = "min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]";
 
 export function PageTitle({ title, description }: { title: string; description?: string }) {
   return (
     <>
-      <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">{title}</h1>
-      {description && <p className="mt-1 text-sm text-black/70">{description}</p>}
+      <h1 className={cn(displayClass, "text-[38px] break-words text-[#121212] lg:text-5xl")}>{title}</h1>
+      {description && <p className="mt-1.5 text-sm text-[#5c5c5a]">{description}</p>}
     </>
   );
 }
@@ -35,11 +36,11 @@ export function Badge({ children, tone = "muted" }: { children: ReactNode; tone?
       className={cn(
         "inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
         tone === "dark" && "bg-[#121212] text-white",
-        tone === "muted" && "bg-black/10 text-black/70",
+        tone === "muted" && "bg-[#f0efee] text-[#44403c]",
         tone === "red" && "bg-red-50 text-red-700",
         tone === "amber" && "bg-amber-50 text-amber-800",
         tone === "green" && "bg-emerald-50 text-emerald-800",
-        tone === "outline" && "border border-black/20 text-black/70",
+        tone === "outline" && "border border-[#e7e5e4] text-[#5c5c5a]",
       )}
     >
       {children}
@@ -50,14 +51,14 @@ export function Badge({ children, tone = "muted" }: { children: ReactNode; tone?
 export function Stat({ label, value, hint, href }: { label: string; value: string; hint?: string; href?: string }) {
   const body = (
     <>
-      <p className="text-xs font-semibold tracking-widest text-black/60">{label}</p>
-      <p className="mt-1 truncate text-2xl font-bold text-black">{value}</p>
-      {hint && <p className="truncate text-xs text-black/60">{hint}</p>}
+      <p className="text-[13px] font-semibold text-[#5c5c5a]">{label}</p>
+      <p className="mt-0.5 truncate text-2xl font-bold tracking-tight text-[#121212] lg:text-[28px]">{value}</p>
+      {hint && <p className="truncate text-[13px] text-[#5c5c5a]">{hint}</p>}
     </>
   );
-  const className = cn(card, "block px-4 py-3");
+  const className = cn(card, "block px-4 py-3.5 lg:px-[22px] lg:py-4");
   return href ? (
-    <a href={href} className={cn(className, "transition hover:border-black/30")}>
+    <a href={href} className={cn(className, "transition hover:border-[#121212]")}>
       {body}
     </a>
   ) : (
@@ -67,7 +68,7 @@ export function Stat({ label, value, hint, href }: { label: string; value: strin
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-xl border border-dashed border-black/25 py-14 text-center text-sm text-black/70">
+    <p className="rounded-[18px] border border-dashed border-[#d6d3d1] px-6 py-14 text-center text-sm text-[#5c5c5a]">
       {children}
     </p>
   );
@@ -76,7 +77,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
 export function FormError({ message, className }: { message: string | null | undefined; className?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className={cn("rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-800", className)}>
+    <p role="alert" className={cn("rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-800", className)}>
       {message}
     </p>
   );

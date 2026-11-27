@@ -13,7 +13,7 @@ export function FilterPanel({ children, activeCount = 0 }: { children: ReactNode
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex h-11 w-full items-center justify-between rounded-xl border border-black/10 bg-white/85 px-4 text-sm font-semibold text-black lg:hidden"
+        className="flex h-12 w-full items-center justify-between rounded-[14px] border border-[#e7e5e4] bg-white px-4 text-[15px] font-semibold text-[#121212] lg:hidden"
       >
         <span className="flex items-center gap-2">
           <SearchIcon className="size-4" />
@@ -22,7 +22,7 @@ export function FilterPanel({ children, activeCount = 0 }: { children: ReactNode
             <span className="rounded-full bg-[#121212] px-2 py-0.5 text-xs text-white">{activeCount}</span>
           )}
         </span>
-        <span aria-hidden className="text-black/50">
+        <span aria-hidden className="text-[#6b6b69]">
           {open ? "Fechar" : "Abrir"}
         </span>
       </button>

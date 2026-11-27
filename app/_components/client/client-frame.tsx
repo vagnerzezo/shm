@@ -26,7 +26,7 @@ export async function ClientFrame({ children }: { children: ReactNode }) {
       className={cn(
         displayFont.variable,
         // Toasts sobem acima da tab bar no celular.
-        "flex min-h-dvh w-full flex-col bg-[#f5f5f4] text-[#121212] [--toast-offset:calc(84px+env(safe-area-inset-bottom))] lg:h-dvh lg:flex-row lg:[--toast-offset:0px]",
+        "flex min-h-dvh w-full flex-col bg-[#f5f5f4] text-[#121212] [--toast-offset:calc(65px+env(safe-area-inset-bottom))] lg:h-dvh lg:flex-row lg:[--toast-offset:0px]",
       )}
     >
       <ClientSidebar unread={unread} name={user?.name ?? ""} studioName={studio.name} />

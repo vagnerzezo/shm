@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useOptimistic, type ReactNode } from "react";
 import { SendIcon } from "@/app/_components/icons";
+import { cn } from "@/lib/utils";
 import type { SendState } from "@/app/_lib/actions";
 import { dayKey, formatClock, formatDay } from "@/app/_lib/chat-format";
 import type { ShownMessage } from "@/app/_lib/chat";
@@ -37,6 +38,7 @@ export function ChatPanel({
   label,
   placeholder,
   emptyText,
+  variant = "panel",
 }: {
   me: Role;
   customerId: string;
@@ -47,7 +49,10 @@ export function ChatPanel({
   label: string;
   placeholder: string;
   emptyText: string;
+  /** `client`: visual da área do cliente (tela cheia no celular). O admin usa `panel`. */
+  variant?: "panel" | "client";
 }) {
+  const client = variant === "client";
   // A mensagem aparece na hora; some e volta "de verdade" quando o servidor responde.
   const [shown, addShown] = useOptimistic(messages, (current, message: ShownMessage) => [
     ...current,
@@ -75,9 +80,23 @@ export function ChatPanel({
   return (
     <section
       aria-label={label}
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-black/10 bg-white/85"
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+        client
+          ? "bg-[#f5f5f4] lg:rounded-[20px] lg:border lg:border-[#e7e5e4] lg:bg-[#fafaf9]"
+          : "rounded-xl border border-black/10 bg-white/85",
+      )}
     >
-      <header className="flex items-center gap-3 border-b border-black/10 px-4 py-3">{header}</header>
+      <header
+        className={cn(
+          "flex items-center gap-3",
+          client
+            ? "min-h-16 shrink-0 border-b border-black/8 bg-white pt-[env(safe-area-inset-top)] pr-2 pl-4 lg:border-[#f0efee] lg:px-5 lg:py-4"
+            : "border-b border-black/10 px-4 py-3",
+        )}
+      >
+        {header}
+      </header>
 
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
         <MessageScroller className="flex-1">
@@ -120,13 +139,16 @@ export function ChatPanel({
         </MessageScroller>
       </MessageScrollerProvider>
 
-      <form action={submit} className="border-t border-black/10 p-3">
+      <form
+        action={submit}
+        className={cn("border-t", client ? "border-black/8 bg-white px-3 py-2.5 lg:border-[#f0efee] lg:px-4 lg:py-3.5" : "border-black/10 p-3")}
+      >
         {state.error && (
           <p role="alert" className="mb-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-800">
             {state.error}
           </p>
         )}
-        <InputGroup className="rounded-xl border-black/20 bg-white">
+        <InputGroup className={client ? "rounded-[22px] border-[#e7e5e4] bg-[#f5f5f4] lg:rounded-[14px]" : "rounded-xl border-black/20 bg-white"}>
           <InputGroupTextarea
             name="texto"
             required
@@ -134,7 +156,7 @@ export function ChatPanel({
             rows={1}
             placeholder={placeholder}
             aria-label="Mensagem"
-            className="max-h-40 min-h-11 text-sm"
+            className={cn("max-h-40 min-h-11", client ? "py-2.5 pl-4 text-base lg:text-[15px]" : "text-sm")}
             onKeyDown={(e) => {
               // Enter envia; Shift+Enter quebra a linha.
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -143,15 +165,19 @@ export function ChatPanel({
               }
             }}
           />
-          <InputGroupAddon align="block-end" className="justify-end">
+          <InputGroupAddon align={client ? "inline-end" : "block-end"} className={client ? "self-end pb-1 pr-1" : "justify-end"}>
             <InputGroupButton
               type="submit"
               variant="default"
-              size="icon-sm"
+              size={client ? "sm" : "icon-sm"}
               disabled={pending}
               aria-label="Enviar"
-              className="rounded-full bg-[#121212] text-white hover:bg-black/80"
+              className={cn(
+                "bg-[#121212] text-white hover:bg-black/80",
+                client ? "size-9 rounded-full lg:h-9 lg:w-auto lg:rounded-[10px] lg:px-4" : "rounded-full",
+              )}
             >
+              {client && <span className="max-lg:hidden">Enviar</span>}
               <SendIcon className="size-4" />
             </InputGroupButton>
           </InputGroupAddon>

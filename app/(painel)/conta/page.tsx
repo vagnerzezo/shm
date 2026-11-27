@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DeleteAccountForm, PasswordForm } from "@/app/_components/account-forms";
+import { ClientTitle } from "@/app/_components/client/ui";
 import { PanelHeader } from "@/app/_components/panel-header";
 import { signOut } from "@/app/_lib/actions";
 import { requireUser } from "@/app/_lib/auth";
@@ -14,15 +15,21 @@ export const metadata: Metadata = {
 
 export default async function ContaPage() {
   const customer = await requireUser("/conta");
+  // O barbeiro continua na moldura antiga do painel; o cliente, na nova.
+  const barber = customer.role === "barbeiro";
 
   return (
     <>
-      <PanelHeader>
-        <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">Meus dados</h1>
-        <p className="mt-1 text-sm text-black/70">Usados para identificar suas reservas.</p>
-      </PanelHeader>
+      {barber ? (
+        <PanelHeader>
+          <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">Meus dados</h1>
+          <p className="mt-1 text-sm text-black/70">Usados para identificar suas reservas.</p>
+        </PanelHeader>
+      ) : (
+        <ClientTitle title="Meus dados" description="Usados para identificar suas reservas." />
+      )}
 
-      <div className="mt-7 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+      <div className={barber ? "mt-7 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]" : "mt-5 lg:mt-7"}>
         <CustomerForm
           name={customer.name}
           phone={formatPhone(customer.phone)}

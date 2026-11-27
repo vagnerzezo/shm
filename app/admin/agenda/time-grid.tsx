@@ -32,13 +32,13 @@ export function TimeGrid({
     <div className="min-h-0 min-w-0 flex-1 overflow-auto [scrollbar-width:thin]">
       <div className={cn(!single && "min-w-[720px]")}>
         {!single && (
-          <div style={columns} className="sticky top-0 z-20 grid border-b border-black/10 bg-white">
+          <div style={columns} className="sticky top-0 z-20 grid border-b border-[#f0efee] bg-white">
             <div />
             {days.map((d) => (
               <Link
                 key={d}
                 href={agendaHref("dia", d)}
-                className="flex items-center justify-center gap-1.5 border-l border-black/10 py-2 text-xs text-black/60 transition hover:bg-black/5"
+                className="flex items-center justify-center gap-1.5 border-l border-[#f0efee] py-2 text-xs text-[#6b6b69] transition hover:bg-black/5"
               >
                 {formatWeekdayShort(d)}
                 <span
@@ -58,7 +58,7 @@ export function TimeGrid({
           <div aria-hidden="true">
             {gridHours.map((m) => (
               <div key={m} style={{ height: HOUR_HEIGHT }} className="relative">
-                <span className="absolute -top-2 right-2 text-xs text-black/50">
+                <span className="absolute -top-2 right-2 text-xs text-[#6b6b69]">
                   {m === gridHours[0] ? "" : toTime(m)}
                 </span>
               </div>
@@ -72,7 +72,7 @@ export function TimeGrid({
             return (
               <div
                 key={d}
-                className={cn("relative border-l border-black/10", isClosed(d, rules) && "bg-black/[0.04]")}
+                className={cn("relative border-l border-[#f0efee]", isClosed(d, rules) ? "bg-[#f5f5f4]" : d === today && !single && "bg-[#fafaf9]")}
                 style={{ height: gridHours.length * HOUR_HEIGHT }}
               >
                 {gridHours.map((m) => (
@@ -80,12 +80,12 @@ export function TimeGrid({
                     key={m}
                     aria-hidden="true"
                     style={{ top: ((m - gridHours[0]) / 60) * HOUR_HEIGHT }}
-                    className="absolute inset-x-0 border-t border-black/10"
+                    className="absolute inset-x-0 border-t border-[#f0efee]"
                   />
                 ))}
 
                 {isClosed(d, rules) ? (
-                  <p className="absolute inset-x-1 top-4 text-center text-xs font-semibold tracking-widest text-black/45 uppercase">
+                  <p className="absolute inset-x-1 top-4 text-center text-xs font-semibold tracking-widest text-[#6b6b69] uppercase">
                     Fechado
                     {studioClosure && (
                       <span className="block normal-case tracking-normal">{studioClosure.reason}</span>
@@ -122,7 +122,7 @@ export function TimeGrid({
                       width: `calc(${100 / lanes}% - 8px)`,
                     }}
                     className={cn(
-                      "absolute z-10 overflow-hidden rounded-md border px-2 py-1 text-xs transition",
+                      "absolute z-10 overflow-hidden rounded-[10px] border px-2.5 py-1 text-xs transition",
                       toneOf(r, professionals).event,
                       r.id === selectedId && "ring-2 ring-black/70",
                     )}

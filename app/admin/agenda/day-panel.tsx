@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ChatIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, CalendarIcon, UserIcon } from "@/app/_components/icons";
-import { agendaHref, formatWeekdayShort, legendOf, monthWeeks, toneOf } from "@/app/_lib/agenda";
+import { CalendarIcon, ChatIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, PhoneIcon, UserIcon } from "@/app/_components/icons";
+import { agendaHref, colorDot, formatWeekdayShort, legendOf, monthWeeks, toneOf } from "@/app/_lib/agenda";
+import { initials } from "@/app/_lib/chat-format";
 import { addMonths, formatLongDate, formatMonth, formatWeekday } from "@/app/_lib/availability";
 import { endTime } from "@/app/_lib/booking";
 import { formatPhone } from "@/app/_lib/format";
@@ -80,51 +81,69 @@ function MiniCalendar({
 
 type Now = { date: string; minutes: number };
 
-function Details({
+/** Detalhes da reserva aberta: no painel ao lado (computador) e na folha de baixo (celular). */
+export function Details({
   reservation: r,
   now,
   times,
   chat,
+  professionals,
+  inSheet = false,
 }: {
   reservation: AgendaReservation;
   now: Now;
   times: string[];
   /** Mostra "Conversar" (quem abre o Chat). */
   chat: boolean;
+  professionals: Professional[];
+  /** Na folha do celular o fechar é o X da folha. */
+  inSheet?: boolean;
 }) {
-  const row = "flex items-center gap-2 text-sm text-black/70";
   const status = statusOf(r, now);
+  const row = "flex items-center gap-3 px-3.5 py-3 text-[15px]";
+  const pro = r.service.professional;
+  const color = professionals.find((p) => p.name === pro)?.color;
+  const tile =
+    "flex h-16 flex-col items-center justify-center gap-1 rounded-[14px] bg-[#f5f5f4] text-xs font-semibold transition hover:bg-[#e7e5e4]";
   return (
-    <div className="p-4">
-      <div className="flex items-start justify-between gap-2">
+    <div className={cn("flex flex-col gap-4", inSheet ? "px-5 pb-2" : "p-4")}>
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-semibold text-black">{r.service.name}</h2>
-          <div className="mt-1 flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {status === "agendado" && <Badge tone="dark">Agendado</Badge>}
             {status === "realizado" && <Badge tone={r.attendance === "compareceu" ? "green" : "muted"}>Realizado</Badge>}
             {status === "faltou" && <Badge tone="red">Faltou</Badge>}
             {r.createdBy === "admin" && <Badge tone="outline">Marcado pelo estúdio</Badge>}
           </div>
+          <h2 className="mt-2.5 text-xl font-bold tracking-tight break-words lg:text-lg">{r.service.name}</h2>
+          <p className={cn("mt-1 text-lg font-bold", status === "faltou" && "text-[#a8a29e] line-through")}>
+            {formatPrice(r.service.priceCents)}
+          </p>
         </div>
-        <Link
-          href={agendaHref("dia", r.date)}
-          className="shrink-0 text-xs font-semibold text-black/60 underline underline-offset-4 hover:text-black"
-        >
-          Fechar
-        </Link>
+        {!inSheet && (
+          <Link
+            href={agendaHref("dia", r.date)}
+            className="shrink-0 text-xs font-semibold text-[#5c5c5a] underline underline-offset-4 hover:text-[#121212]"
+          >
+            Fechar
+          </Link>
+        )}
       </div>
-      <div className="mt-3 flex flex-col gap-2">
+
+      <div className="divide-y divide-[#f0efee] rounded-2xl border border-[#e7e5e4]">
         <p className={row}>
-          <CalendarIcon className="size-4 shrink-0" />
+          <CalendarIcon className="size-5 shrink-0 text-[#5c5c5a]" />
           {formatWeekday(r.date)}, {formatLongDate(r.date)}
         </p>
         <p className={row}>
-          <ClockIcon className="size-4 shrink-0" />
+          <ClockIcon className="size-5 shrink-0 text-[#5c5c5a]" />
           {r.time} – {endTime(r.time, r.service.durationMinutes)} · {formatDuration(r.service.durationMinutes)}
         </p>
         <p className={row}>
-          <UserIcon className="size-4 shrink-0" />
-          {r.service.professional ?? "Qualquer profissional"}
+          <span className="grid w-5 place-items-center">
+            <span className={cn("size-2.5 rounded-full", color ? colorDot(color) : "bg-[#78716c]")} />
+          </span>
+          {pro ?? "Qualquer profissional"}
         </p>
       </div>
 
@@ -139,36 +158,45 @@ function Details({
         label={`${r.service.name} em ${formatLongDate(r.date)} às ${r.time}`}
       />
 
-      <div className="mt-4 rounded-lg border border-black/10 bg-white p-3">
-        <p className="text-xs font-semibold tracking-widest text-black/50">CLIENTE</p>
-        <p className="mt-1 font-semibold text-black">{r.customer.name}</p>
-        <p className="text-sm text-black/70">{formatPhone(r.customer.phone)}</p>
-        <p className="truncate text-sm text-black/70">{r.customer.email}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+      <div>
+        <p className="mb-2 text-xs font-semibold tracking-[0.6px] text-[#5c5c5a] uppercase">Cliente</p>
+        <div className="flex items-center gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#f0efee] text-sm font-bold">
+            {initials(r.customer.name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-semibold">{r.customer.name}</p>
+            <p className="truncate text-[13px] text-[#5c5c5a]">
+              {[formatPhone(r.customer.phone), r.customer.email].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+        </div>
+        <div className={cn("mt-3 grid gap-2", chat ? "grid-cols-3" : "grid-cols-2")}>
           {chat && (
-            <Link
-              href={`/admin/chat?cliente=${r.customer.id}`}
-              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#121212] px-3 text-sm font-semibold text-white transition hover:bg-black/80"
-            >
-              <ChatIcon className="size-4" />
+            <Link href={`/admin/chat?cliente=${r.customer.id}`} className={tile}>
+              <ChatIcon className="size-5" />
               Conversar
             </Link>
           )}
-          <Link
-            href={`/admin/clientes/${r.customer.id}`}
-            className="inline-flex h-9 items-center rounded-lg border border-black/20 bg-white px-3 text-sm font-semibold text-black transition hover:bg-black/5"
-          >
+          {r.customer.phone ? (
+            <a href={`tel:+55${r.customer.phone.replace(/\D/g, "")}`} className={tile}>
+              <PhoneIcon className="size-5" />
+              Ligar
+            </a>
+          ) : (
+            <span className={cn(tile, "cursor-not-allowed text-[#a8a29e] hover:bg-[#f5f5f4]")}>
+              <PhoneIcon className="size-5" />
+              Sem telefone
+            </span>
+          )}
+          <Link href={`/admin/clientes/${r.customer.id}`} className={tile}>
+            <UserIcon className="size-5" />
             Ver cliente
           </Link>
         </div>
       </div>
 
-      {r.note && <p className="mt-3 text-sm italic text-black/70">“{r.note}”</p>}
-      <p className={cn("mt-3 text-lg font-bold text-black", status === "faltou" && "text-black/40 line-through")}>
-        {formatPrice(r.service.priceCents)}
-      </p>
-
-
+      {r.note && <p className="text-sm text-[#5c5c5a] italic">“{r.note}”</p>}
     </div>
   );
 }
@@ -246,16 +274,15 @@ export function DayPanel({
   return (
     <aside
       className={cn(
-        // No mobile o painel aparece antes da grade só quando há uma reserva aberta.
-        "shrink-0 flex-col divide-y divide-black/10 overflow-y-auto border-black/10 [scrollbar-width:thin] lg:flex lg:w-80 lg:border-l",
-        selected ? "order-first flex border-b lg:order-none lg:border-b-0" : "hidden",
+        // No celular a reserva aberta vai para a folha de baixo (`ReservationSheet`).
+        "hidden shrink-0 flex-col divide-y divide-[#f0efee] overflow-y-auto border-[#f0efee] [scrollbar-width:thin] lg:flex lg:w-80 lg:border-l",
       )}
     >
       <div className={calendar ? "hidden lg:block" : "hidden"}>
         <MiniCalendar date={date} today={today} busyDays={new Set(reservations.map((r) => r.date))} />
       </div>
       {selected ? (
-        <Details reservation={selected} now={now} times={times} chat={admin || chatAllowed} />
+        <Details reservation={selected} now={now} times={times} chat={admin || chatAllowed} professionals={professionals} />
       ) : (
         <DayList
           date={date}

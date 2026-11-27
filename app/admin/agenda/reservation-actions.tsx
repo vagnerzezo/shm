@@ -15,7 +15,7 @@ const checkbox = "mt-0.5 size-4 shrink-0 accent-[#121212]";
 
 function NotifyField({ defaultChecked = true, email = false }: { defaultChecked?: boolean; email?: boolean }) {
   return (
-    <label className="flex items-start gap-2 text-sm text-black">
+    <label className="flex items-start gap-2 text-sm">
       <input type="checkbox" name="avisar" defaultChecked={defaultChecked} className={checkbox} />
       {email ? "Avisar o cliente pelo chat e por e-mail" : "Avisar o cliente pelo chat"}
     </label>
@@ -39,9 +39,9 @@ function RescheduleForm({
 }) {
   const [state, action, pending] = useActionState(rescheduleReservation, { error: null });
   return (
-    <form action={action} className="mt-3 flex flex-col gap-3 rounded-lg border border-black/10 bg-white p-3">
+    <form action={action} className="flex flex-col gap-3 rounded-2xl border border-[#e7e5e4] bg-white p-3.5">
       <input type="hidden" name="id" value={id} />
-      <p className="text-sm font-semibold text-black">Remarcar</p>
+      <p className="text-sm font-bold">Remarcar</p>
       <div className="grid grid-cols-2 gap-2">
         <label>
           <span className={labelClass}>Data</span>
@@ -88,7 +88,7 @@ function AttendanceControl({ id, attendance }: { id: string; attendance?: Attend
   return (
     <div>
       <p className={labelClass}>O cliente veio?</p>
-      <div className="mt-1.5 flex gap-1 rounded-lg border border-black/15 bg-white p-1" role="group" aria-label="Comparecimento">
+      <div className="mt-1.5 flex gap-1 rounded-xl bg-[#f0efee] p-[3px]" role="group" aria-label="Comparecimento">
         {options.map((o) => {
           const active = current === o.value;
           return (
@@ -99,12 +99,12 @@ function AttendanceControl({ id, attendance }: { id: string; attendance?: Attend
               <button
                 aria-pressed={active}
                 className={cn(
-                  "h-8 w-full rounded-md text-sm font-semibold transition",
+                  "h-10 w-full rounded-[9px] text-sm font-semibold transition",
                   active
                     ? o.value === "faltou"
-                      ? "bg-red-700 text-white"
+                      ? "bg-[#b91c1c] text-white"
                       : "bg-[#121212] text-white"
-                    : "text-black/70 hover:bg-black/5 hover:text-black",
+                    : "text-[#5c5c5a] hover:text-[#121212]",
                 )}
               >
                 {o.label}
@@ -113,7 +113,7 @@ function AttendanceControl({ id, attendance }: { id: string; attendance?: Attend
           );
         })}
       </div>
-      <p className="mt-1.5 text-xs text-black/50">
+      <p className="mt-1.5 text-xs text-[#6b6b69]">
         {current === "faltou"
           ? "Falta não entra no faturamento nem conta como visita."
           : current === "compareceu"
@@ -148,16 +148,13 @@ export function ReservationActions({
   const [rescheduling, setRescheduling] = useState(false);
 
   return (
-    <div className="mt-4 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {past ? (
         <AttendanceControl id={id} attendance={attendance} />
       ) : rescheduling ? (
         <RescheduleForm id={id} date={date} time={time} times={times} today={today} onCancel={() => setRescheduling(false)} />
       ) : (
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setRescheduling(true)} className={cn(secondaryButton, "h-10 flex-1")}>
-            Remarcar
-          </button>
+        <div className="grid grid-cols-2 gap-2.5">
           <ConfirmButton
             action={cancelReservationByAdmin}
             fields={{ id }}
@@ -173,10 +170,13 @@ export function ReservationActions({
                 </label>
               </div>
             }
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            className="inline-flex h-12 items-center justify-center rounded-[14px] border border-red-200 bg-white px-4 text-[15px] font-semibold text-[#b91c1c] transition hover:bg-red-50"
           >
-            Cancelar
+            Cancelar reserva
           </ConfirmButton>
+          <button type="button" onClick={() => setRescheduling(true)} className={cn(primaryButton, "h-12 rounded-[14px] text-[15px]")}>
+            Remarcar
+          </button>
         </div>
       )}
     </div>

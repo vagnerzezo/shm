@@ -158,13 +158,13 @@ export function placeDay(reservations: AgendaReservation[], grid: Grid): PlacedR
 
 // Cor por profissional, no estilo dos eventos da Untitled UI.
 const palette: Record<ProfessionalColor | "neutral", { event: string; dot: string }> = {
-  blue: { event: "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100", dot: "bg-blue-500" },
-  violet: { event: "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100", dot: "bg-violet-500" },
-  emerald: { event: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100", dot: "bg-emerald-500" },
-  amber: { event: "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100", dot: "bg-amber-500" },
-  rose: { event: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100", dot: "bg-rose-500" },
-  cyan: { event: "border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100", dot: "bg-cyan-500" },
-  neutral: { event: "border-black/15 bg-neutral-50 text-neutral-700 hover:bg-neutral-100", dot: "bg-neutral-500" },
+  blue: { event: "border-transparent bg-[#eaf1fe] text-blue-900 hover:bg-blue-100", dot: "bg-blue-500" },
+  violet: { event: "border-transparent bg-violet-50 text-violet-900 hover:bg-violet-100", dot: "bg-violet-500" },
+  emerald: { event: "border-transparent bg-emerald-50 text-emerald-900 hover:bg-emerald-100", dot: "bg-emerald-500" },
+  amber: { event: "border-transparent bg-amber-50 text-amber-900 hover:bg-amber-100", dot: "bg-amber-500" },
+  rose: { event: "border-transparent bg-rose-50 text-rose-900 hover:bg-rose-100", dot: "bg-rose-500" },
+  cyan: { event: "border-transparent bg-cyan-50 text-cyan-900 hover:bg-cyan-100", dot: "bg-cyan-500" },
+  neutral: { event: "border-transparent bg-[#f0efee] text-[#3f3f3d] hover:bg-[#e7e5e4]", dot: "bg-[#78716c]" },
 };
 
 /** Falta fica riscada e apagada, qualquer que seja o profissional. */

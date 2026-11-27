@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { FormError, card, fieldClass, labelClass, primaryButton, secondaryButton } from "@/app/_components/ui";
+import { FormError, card, fieldClass, labelClass, primaryButton, secondaryButton, switchClass } from "@/app/_components/ui";
 import { saveService } from "@/app/_lib/catalog-actions";
 import type { Service } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
@@ -21,9 +21,9 @@ export function ServiceForm({
   const [state, action, pending] = useActionState(saveService, { error: null });
 
   return (
-    <form action={action} className={cn(card, "flex flex-col gap-4 p-5")}>
+    <form action={action} className={cn(card, "flex flex-col gap-4 p-4 lg:rounded-[20px] lg:p-[22px]")}>
       {service && <input type="hidden" name="id" value={service.id} />}
-      <h2 className="text-lg font-bold text-black">{service ? "Editar serviço" : "Novo serviço"}</h2>
+      <h2 className="text-lg font-bold">{service ? "Editar serviço" : "Novo serviço"}</h2>
 
       <label>
         <span className={labelClass}>Nome</span>
@@ -92,12 +92,13 @@ export function ServiceForm({
         </label>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-black">
+      <label className="flex items-center gap-3 text-sm font-semibold">
         <input
           type="checkbox"
+          role="switch"
           name="ativo"
           defaultChecked={service ? service.active !== false : true}
-          className="size-4 accent-[#121212]"
+          className={switchClass}
         />
         Ativo (aparece para o cliente marcar)
       </label>

@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ConfirmButton } from "@/app/_components/confirm-button";
 import { PlusIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
-import { Badge, card, dangerLink, EmptyState, linkButton, PageTitle, primaryButton, scrollArea } from "@/app/_components/ui";
+import { Badge, card, EmptyState, PageTitle, primaryButton, secondaryButton } from "@/app/_components/ui";
 import { requireAdmin } from "@/app/_lib/auth";
 import { getCatalog } from "@/app/_lib/catalog";
-import { deleteService, toggleService } from "@/app/_lib/catalog-actions";
 import { readDb } from "@/app/_lib/db";
 import { oneParam } from "@/app/_lib/format";
-import { categoriesOf, formatDuration, formatPrice, isActiveService } from "@/app/_lib/services";
+import {
+  categoriesOf,
+  formatDuration,
+  formatPrice,
+  isActiveService,
+  PROFESSIONAL_DOT,
+  professionalColorOf,
+} from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
 import { ServiceForm } from "./service-form";
+import { ServiceRowMenu } from "./service-row-menu";
 
 export const metadata: Metadata = {
   title: "Serviços | Studio Heitor Macks",
@@ -29,14 +35,28 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
   for (const r of reservations) used.set(r.serviceId, (used.get(r.serviceId) ?? 0) + 1);
   const editing = services.find((s) => s.id === editId);
   const categories = categoriesOf(services);
+  const activeCount = services.filter(isActiveService).length;
 
   return (
     <>
-      <PanelHeader>
-        <PageTitle title="Serviços" description="O que o estúdio oferece, com preço, duração e quem atende. Os profissionais ficam em Configurações." />
+      <PanelHeader
+        actions={
+          !creating &&
+          !editing && (
+            <Link href="/admin/servicos?novo=1" className={cn(primaryButton, "max-lg:hidden")}>
+              <PlusIcon className="size-4" />
+              Novo serviço
+            </Link>
+          )
+        }
+      >
+        <PageTitle
+          title="Serviços"
+          description={`${activeCount} ${activeCount === 1 ? "ativo" : "ativos"} de ${services.length} · preço, duração e quem atende. Inativos não aparecem para o cliente marcar.`}
+        />
       </PanelHeader>
 
-      <div className={cn("mt-7 flex flex-col gap-5", scrollArea)}>
+      <div className="mt-5 flex flex-col gap-4">
         {(creating || editing) && (
           <ServiceForm
             key={editing?.id ?? "novo"}
@@ -46,92 +66,98 @@ export default async function ServicosPage(props: PageProps<"/admin/servicos">) 
           />
         )}
 
-        <section className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="mr-auto">
-              <h2 className="text-lg font-bold text-black">Catálogo</h2>
-              <p className="text-sm text-black/70">
-                {services.filter(isActiveService).length} ativos de {services.length}. Serviços inativos não aparecem
-                para o cliente marcar.
-              </p>
-            </div>
-            {!creating && !editing && (
-              <Link href="/admin/servicos?novo=1" className={primaryButton}>
-                <PlusIcon className="size-4" />
-                Novo serviço
-              </Link>
-            )}
-          </div>
-
-          {services.length === 0 ? (
-            <EmptyState>Nenhum serviço cadastrado.</EmptyState>
-          ) : (
-            categories.map((category) => (
-              <div key={category} className={cn(card, "overflow-hidden")}>
-                <h3 className="border-b border-black/10 px-4 py-2.5 text-xs font-semibold tracking-widest text-black/60 uppercase">
+        {services.length === 0 ? (
+          <EmptyState>Nenhum serviço cadastrado.</EmptyState>
+        ) : (
+          <section aria-label="Catálogo" className={cn(card, "overflow-hidden lg:rounded-[20px]")}>
+            {categories.map((category) => (
+              <div key={category}>
+                <h2 className="border-b border-[#f0efee] bg-[#fafaf9] px-4 py-3 text-xs font-bold tracking-[0.8px] text-[#5c5c5a] uppercase lg:px-[22px]">
                   {category}
-                </h3>
-                <ul className="divide-y divide-black/10">
+                </h2>
+                <ul>
                   {services
                     .filter((s) => s.category === category)
                     .map((s) => {
                       const count = used.get(s.id) ?? 0;
                       const active = isActiveService(s);
+                      const color = professionalColorOf(s, professionals);
                       return (
                         <li
                           key={s.id}
-                          // Celular: nome e preço em cima, ações embaixo. Computador: tudo numa linha.
+                          // Celular: nome e preço em cima; profissional e ações embaixo. Computador: uma linha.
                           className={cn(
-                            "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 px-4 py-3 sm:flex sm:items-center",
-                            !active && "opacity-60",
+                            "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-[#f0efee] py-3 pr-3 pl-4 last:border-b-0",
+                            "lg:min-h-[58px] lg:grid-cols-[minmax(0,1fr)_160px_110px_92px_36px] lg:py-2 lg:pl-[22px]",
+                            editing?.id === s.id && "bg-[#fafaf9]",
                           )}
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold text-black">{s.name}</p>
+                          <div className={cn("min-w-0", !active && "opacity-60")}>
+                            <p className="flex flex-wrap items-center gap-2 text-[15px] font-semibold">
+                              <span className="min-w-0 break-words">{s.name}</span>
                               {!active && <Badge>Inativo</Badge>}
-                            </div>
-                            <p className="text-sm text-black/60">
-                              {formatDuration(s.durationMinutes)} · {s.professional ?? "Qualquer profissional"} ·{" "}
-                              {count} {count === 1 ? "reserva" : "reservas"}
+                            </p>
+                            <p className="text-[13px] text-[#5c5c5a]">
+                              {formatDuration(s.durationMinutes)} ·{" "}
+                              {count === 0 ? "sem reservas" : `${count} ${count === 1 ? "reserva" : "reservas"}`}
                             </p>
                           </div>
-                          <p className="font-bold text-black">{formatPrice(s.priceCents)}</p>
-                          <div className="col-span-2 flex items-center gap-4">
-                            <Link href={`/admin/servicos?editar=${s.id}`} className={linkButton}>
+                          <p
+                            className={cn(
+                              "flex min-w-0 items-center gap-1.5 text-[13px] text-[#3f3f3d] max-lg:order-3",
+                              !active && "opacity-60",
+                            )}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={cn("size-2 shrink-0 rounded-full", color ? PROFESSIONAL_DOT[color] : "bg-[#78716c]")}
+                            />
+                            <span className="truncate">{s.professional ?? "Qualquer profissional"}</span>
+                          </p>
+                          <p
+                            className={cn(
+                              "text-right text-[15px] font-bold max-lg:order-2 max-lg:self-start",
+                              !active && "opacity-60",
+                            )}
+                          >
+                            {formatPrice(s.priceCents)}
+                          </p>
+                          {/* Celular: Editar e ⋮ juntos à direita, na linha do profissional. */}
+                          <div className="flex items-center justify-end gap-1 max-lg:order-4 lg:contents">
+                            <Link
+                              href={`/admin/servicos?editar=${s.id}`}
+                              aria-label={`Editar ${s.name}`}
+                              className={cn(secondaryButton, "h-9 rounded-[10px] px-3.5 text-[13px] lg:px-0")}
+                            >
                               Editar
                             </Link>
-                            <form action={toggleService}>
-                              <input type="hidden" name="id" value={s.id} />
-                              <button className={linkButton}>{active ? "Desativar" : "Ativar"}</button>
-                            </form>
-                            {count === 0 && (
-                              <ConfirmButton
-                                action={deleteService}
-                                fields={{ id: s.id }}
-                                title={`Excluir “${s.name}”?`}
-                                description="O serviço sai do catálogo de vez. Nenhuma reserva usa este serviço."
-                                confirmLabel="Excluir serviço"
-                                successMessage="Serviço excluído."
-                                className={dangerLink}
-                              >
-                                Excluir
-                              </ConfirmButton>
-                            )}
+                            <ServiceRowMenu id={s.id} name={s.name} active={active} canDelete={count === 0} />
                           </div>
                         </li>
                       );
                     })}
                 </ul>
               </div>
-            ))
-          )}
-          <p className="text-xs text-black/50">
-            Serviços com reservas não podem ser excluídos, só desativados: o histórico e o faturamento dependem deles.
-            Mudar o preço vale para novas reservas; as já feitas mantêm o valor de quando foram marcadas.
-          </p>
-        </section>
+            ))}
+          </section>
+        )}
+        {/* Celular: espaço para o botão flutuante não cobrir o aviso. */}
+        <p className="text-[13px] text-[#5c5c5a] max-lg:pb-20">
+          Serviços com reservas só podem ser desativados (o histórico e o faturamento dependem deles). Mudar o preço vale
+          só para reservas novas.
+        </p>
       </div>
+
+      {/* Celular: ação principal flutuante acima da tab bar. */}
+      {!creating && !editing && (
+        <Link
+          href="/admin/servicos?novo=1"
+          className="fixed right-4 bottom-[calc(65px+env(safe-area-inset-bottom)+16px)] z-30 flex h-14 items-center gap-2 rounded-[18px] bg-[#121212] pr-[22px] pl-[18px] text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] lg:hidden"
+        >
+          <PlusIcon className="size-5" />
+          Novo serviço
+        </Link>
+      )}
     </>
   );
 }

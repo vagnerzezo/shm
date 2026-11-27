@@ -19,6 +19,18 @@ export const linkButton = "text-sm font-semibold text-[#5c5c5a] underline-offset
 export const dangerLink = "text-sm font-semibold text-[#b91c1c] underline-offset-4 hover:underline";
 export const scrollArea = "min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]";
 
+export const switchTrack =
+  "relative inline-block h-8 w-[52px] shrink-0 cursor-pointer rounded-full bg-[#d6d3d1] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#121212]";
+export const switchKnob =
+  "absolute top-[3px] left-[3px] size-[26px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-transform";
+
+/** Caixa de marcar com cara de interruptor (use com `role="switch"`). */
+export const switchClass = cn(
+  switchTrack,
+  "appearance-none before:absolute before:top-[3px] before:left-[3px] before:size-[26px] before:rounded-full before:bg-white before:shadow-[0_1px_3px_rgba(0,0,0,0.25)] before:transition-transform before:content-['']",
+  "checked:bg-[#121212] checked:before:translate-x-5 disabled:cursor-not-allowed disabled:opacity-40",
+);
+
 export function PageTitle({ title, description }: { title: string; description?: string }) {
   return (
     <>

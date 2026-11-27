@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { staffMenu } from "../app/_components/staff/nav";
+import { settingsSection, staffMenu } from "../app/_components/staff/nav";
 
 // Menu do painel (admin e barbeiro). Não usa o banco.
 
@@ -49,5 +49,20 @@ describe("menu do barbeiro", () => {
     const m = staffMenu("barbeiro", { myAgenda: false, accountOnly: true });
     assert.deepEqual(hrefs(m.tabs), ["/conta"]);
     assert.deepEqual(hrefs(m.groups[0].links), ["/conta"]);
+  });
+});
+
+describe("seção das Configurações", () => {
+  test("sem ?secao= abre Agenda", () => {
+    assert.equal(settingsSection(undefined), "agenda");
+  });
+
+  test("seção conhecida abre ela mesma", () => {
+    assert.equal(settingsSection("profissionais"), "profissionais");
+    assert.equal(settingsSection("equipe"), "equipe");
+  });
+
+  test("valor desconhecido volta para Agenda", () => {
+    assert.equal(settingsSection("xyz"), "agenda");
   });
 });

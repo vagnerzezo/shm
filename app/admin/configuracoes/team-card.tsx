@@ -16,13 +16,13 @@ function MemberRow({ member }: { member: TeamMember }) {
   }, [state]);
 
   return (
-    <li className="border-t border-black/10 py-4 first:border-t-0 first:pt-0">
+    <li className="border-t border-[#f0efee] py-4 first:border-t-0 first:pt-0">
       <form action={action} className="flex flex-col gap-3">
         <input type="hidden" name="id" value={member.id} />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-semibold text-black">{member.name}</p>
-            <p className="text-sm break-all text-black/60">
+            <p className="font-semibold">{member.name}</p>
+            <p className="text-sm break-all text-[#5c5c5a]">
               {member.email} · {member.professional ? `profissional ${member.professional}` : "sem profissional"}
             </p>
           </div>
@@ -42,7 +42,7 @@ function MemberRow({ member }: { member: TeamMember }) {
           </label>
         </div>
 
-        <p className="text-sm text-black/60">
+        <p className="text-sm text-[#5c5c5a]">
           {role === "barbeiro"
             ? "Barbeiro vê a própria agenda, os clientes que já atendeu e o próprio histórico."
             : "Admin vê todos os menus e os dados de todo mundo."}
@@ -65,11 +65,11 @@ export function TeamCard({ team, meId }: { team: TeamMember[]; meId: string }) {
     <ul>
       {team.map((m) =>
         m.id === meId ? (
-          <li key={m.id} className="border-t border-black/10 py-4 first:border-t-0 first:pt-0">
-            <p className="font-semibold text-black">
-              {m.name} <span className="text-sm font-normal text-black/60">(você)</span>
+          <li key={m.id} className="border-t border-[#f0efee] py-4 first:border-t-0 first:pt-0">
+            <p className="font-semibold">
+              {m.name} <span className="text-sm font-normal text-[#5c5c5a]">(você)</span>
             </p>
-            <p className="text-sm break-all text-black/60">{m.email} · admin. O seu acesso só outro admin muda.</p>
+            <p className="text-sm break-all text-[#5c5c5a]">{m.email} · admin. O seu acesso só outro admin muda.</p>
           </li>
         ) : (
           <MemberRow key={m.id} member={m} />

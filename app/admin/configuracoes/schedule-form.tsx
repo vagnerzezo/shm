@@ -40,7 +40,7 @@ export function ScheduleForm({ settings }: { settings: ScheduleSettings }) {
                 defaultChecked={settings.openWeekdays.includes(d.id)}
                 className="peer sr-only"
               />
-              <span className="flex h-10 w-14 items-center justify-center rounded-lg border border-black/20 bg-white text-sm font-semibold text-black transition peer-checked:border-[#121212] peer-checked:bg-[#121212] peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-black hover:border-black">
+              <span className="flex h-10 min-w-14 items-center justify-center rounded-[10px] border border-[#e7e5e4] bg-white px-3.5 text-sm font-semibold text-[#3f3f3d] transition peer-checked:border-[#121212] peer-checked:bg-[#121212] peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-black hover:border-[#121212]">
                 {d.label}
               </span>
             </label>
@@ -54,11 +54,11 @@ export function ScheduleForm({ settings }: { settings: ScheduleSettings }) {
           <input type="time" name="abre" required defaultValue={settings.openTime} className={fieldClass} />
         </label>
         <label>
-          <span className={labelClass}>Último horário de início</span>
+          <span className={labelClass}>Último início</span>
           <input type="time" name="ultimo" required defaultValue={settings.lastStartTime} className={fieldClass} />
         </label>
         <label>
-          <span className={labelClass}>Intervalo entre horários</span>
+          <span className={labelClass}>Intervalo</span>
           <select name="intervalo" defaultValue={settings.stepMinutes} className={fieldClass}>
             {STEP_OPTIONS.map((m) => (
               <option key={m} value={m}>
@@ -93,12 +93,8 @@ export function ScheduleForm({ settings }: { settings: ScheduleSettings }) {
         </label>
       </div>
 
-      <p className="text-xs text-black/60">
-        Mudanças valem para novos agendamentos. Reservas já feitas continuam como estão.
-      </p>
-
       <FormError message={state.error} />
-      <div>
+      <div className="flex lg:justify-end">
         <button type="submit" disabled={pending} className={primaryButton}>
           {pending ? "Salvando..." : "Salvar funcionamento"}
         </button>

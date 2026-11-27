@@ -61,3 +61,19 @@ export function staffMenu(
 export function isStaffActive(href: string, pathname: string) {
   return href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/** Seções de Configurações, na ordem da navegação (`?secao=`). */
+export const settingsSections = [
+  { id: "agenda", label: "Agenda" },
+  { id: "profissionais", label: "Profissionais" },
+  { id: "equipe", label: "Equipe e permissões" },
+  { id: "estudio", label: "Dados do estúdio" },
+  { id: "emails", label: "E-mails do sistema" },
+] as const;
+
+export type SectionId = (typeof settingsSections)[number]["id"];
+
+/** Seção aberta a partir de `?secao=`; sem valor ou desconhecido, Agenda. */
+export function settingsSection(param: string | undefined): SectionId {
+  return settingsSections.find((s) => s.id === param)?.id ?? "agenda";
+}

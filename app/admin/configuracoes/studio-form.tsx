@@ -82,7 +82,7 @@ export function StudioForm({ studio }: { studio: StudioInfo }) {
           ))}
         </div>
       </fieldset>
-      <p className="text-xs text-black/60">
+      <p className="text-xs text-[#5c5c5a]">
         O nome, o endereço, o contato e as redes vão no rodapé dos e-mails. O nome também é a variável {"{{estudio}}"}.
       </p>
       <FormError message={state.error} />

@@ -9,7 +9,8 @@ import { hidesTabs } from "./tabs";
 /** Celular: menu fixo embaixo, na zona do polegar. Some nas telas com barra de ação própria. */
 export function ClientTabBar({ unread }: { unread: number }) {
   const pathname = usePathname();
-  if (hidesTabs(pathname)) return null;
+  // Sem tab bar, o fim da página ainda precisa sair de baixo da barra do iPhone.
+  if (hidesTabs(pathname)) return <div aria-hidden="true" className="h-[env(safe-area-inset-bottom)] shrink-0 lg:hidden" />;
 
   return (
     <>

@@ -41,7 +41,7 @@ export default async function BarbeiroPage(props: PageProps<"/barbeiro">) {
 
   return (
     <>
-      <PanelHeader profileHref={me.role === "admin" ? "/admin/perfil" : "/conta"}>
+      <PanelHeader>
         <PageTitle title="Minha agenda" description={`Horários de ${me.professional}.`} />
       </PanelHeader>
 

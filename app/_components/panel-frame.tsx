@@ -1,72 +1,74 @@
-import Image from "next/image";
 import { Suspense, type ReactNode } from "react";
 import { scopeOf } from "@/app/_lib/access";
 import { getCurrentUser } from "@/app/_lib/auth";
-import { getCustomerUnreadCount, getUnreadCount } from "@/app/_lib/chat";
+import { getUnreadCount } from "@/app/_lib/chat";
 import { getBell } from "@/app/_lib/notifications";
 import { readDb } from "@/app/_lib/db";
 import { studioOf } from "@/app/_lib/studio";
+import { AutoRefresh } from "./auto-refresh";
 import { FlashToast } from "./flash-toast";
 import { InstallBanner } from "./install-banner";
 import type { Area } from "./nav";
-import { Sidebar } from "./sidebar";
-import { Toaster } from "./toaster";
-import { AutoRefresh } from "./auto-refresh";
 import { PanelProvider } from "./notification-bell";
+import { staffMenu } from "./staff/nav";
+import { StaffSidebar } from "./staff/sidebar";
+import { StaffTabBar } from "./staff/tab-bar";
+import { StaffTopBar } from "./staff/top-bar";
+import { Toaster } from "./toaster";
 
-// Moldura com a sidebar, compartilhada pela área do cliente e pela do admin.
+/**
+ * Moldura do painel (admin e barbeiro): barra de cima e tab bar no celular,
+ * sidebar de 248 px no computador. O cliente usa `client/client-frame.tsx`.
+ */
 export async function PanelFrame({ area: requested, children }: { area: Area; children: ReactNode }) {
   // Uma leitura do banco por tela: estúdio, contadores e sino usam a mesma.
   const db = await readDb();
   const studio = studioOf(db);
   const user = await getCurrentUser();
   // Barbeiro abre telas de /admin (filtradas para ele), mas com o menu dele.
-  const area: Area = requested === "admin" && user?.role === "barbeiro" ? "barbeiro" : requested;
-  // Contador do Chat: a equipe vê as mensagens de clientes (barbeiro: dos clientes dele); o cliente, as do estúdio.
+  const area = requested === "admin" && user?.role !== "barbeiro" ? "admin" : "barbeiro";
   const staff = user && (user.role === "admin" || (user.role === "barbeiro" && user.professional));
-  // Sino de notificações só para a equipe.
   const bell = staff ? await getBell(user, db) : null;
   const profileHref = user?.role === "admin" ? "/admin/perfil" : "/conta";
-  const badges: Record<string, number> =
-    staff && (area === "admin" || area === "barbeiro")
-      ? { "/admin/chat": await getUnreadCount(scopeOf(user), db) }
-      : area === "cliente" && user
-        ? { "/mensagens": await getCustomerUnreadCount(user.id, db) }
-        : {};
+  const accountOnly = area === "barbeiro" && user?.role === "barbeiro" && !user.professional;
+  const homeHref = accountOnly ? "/conta" : area === "admin" ? "/admin" : "/admin/agenda";
+  const badges: Record<string, number> = staff ? { "/admin/chat": await getUnreadCount(scopeOf(user), db) } : {};
+  const menu = staffMenu(area, { myAgenda: user?.role === "admin" && Boolean(user.professional), accountOnly });
+  const who = {
+    name: user?.name ?? "",
+    email: user?.email ?? "",
+    roleLabel: user?.role === "admin" ? "Admin" : "Barbeiro",
+  };
 
   return (
-    <main className="relative flex min-h-screen w-full flex-col gap-4 overflow-clip bg-[#d9d9d9] p-4 lg:h-screen lg:flex-row lg:gap-6 lg:p-6">
-      <Image
-        src="/img/bg-login.jpg"
-        alt=""
-        fill
-        sizes="100vw"
-        className="scale-110 object-cover opacity-70 blur-2xl"
-      />
+    <PanelProvider value={{ bell, profileHref }}>
+      <div className="flex min-h-dvh w-full flex-col bg-[#f5f5f4] text-[#121212] [--toast-offset:calc(65px+env(safe-area-inset-bottom))] lg:h-dvh lg:flex-row lg:[--toast-offset:0px]">
+        <StaffSidebar
+          groups={menu.groups}
+          badges={badges}
+          homeHref={homeHref}
+          profileHref={profileHref}
+          studioName={studio.name}
+          userName={who.name}
+        />
 
-      <Sidebar
-        area={area}
-        studioName={studio.name}
-        badges={badges}
-        myAgenda={user?.role === "admin" && Boolean(user.professional)}
-        accountOnly={area === "barbeiro" && user?.role === "barbeiro" && !user.professional}
-        profileHref={profileHref}
-      />
+        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
+          <StaffTopBar homeHref={homeHref} profileHref={profileHref} studioName={studio.name} />
+          <main className="flex w-full flex-1 flex-col px-4 pt-5 pb-6 lg:min-h-0 lg:px-10 lg:py-8">
+            {/* Convite para instalar o app (só no celular, se ainda não instalou). */}
+            <InstallBanner />
+            {children}
+          </main>
+          <StaffTabBar tabs={menu.tabs} more={menu.more} badges={badges} user={who} profileHref={profileHref} />
+        </div>
 
-      <section className="relative z-10 flex min-h-0 flex-1 flex-col rounded-2xl border border-black/15 bg-white/55 px-5 pb-4 pt-6 backdrop-blur-xl sm:px-8 lg:px-12 lg:pt-10">
-        {/* Convite para instalar o app (só no celular, se ainda não instalou). */}
-        <InstallBanner />
-        <PanelProvider value={{ bell, profileHref }}>
-          {children}
-        </PanelProvider>
-      </section>
-      {/* Equipe: sino e contadores se atualizam a cada 30 s com a tela parada. */}
-      {staff && <AutoRefresh intervalMs={30_000} />}
-
-      <Toaster />
-      <Suspense>
-        <FlashToast />
-      </Suspense>
-    </main>
+        {/* Equipe: sino e contadores se atualizam a cada 30 s com a tela parada. */}
+        {staff && <AutoRefresh intervalMs={30_000} />}
+        <Toaster />
+        <Suspense>
+          <FlashToast />
+        </Suspense>
+      </div>
+    </PanelProvider>
   );
 }

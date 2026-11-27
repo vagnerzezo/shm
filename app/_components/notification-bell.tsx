@@ -39,11 +39,15 @@ export function PanelProvider({ value, children }: { value: PanelValue; children
 
 export const usePanel = () => useContext(Ctx);
 
-const iconButton =
-  "relative grid size-11 place-items-center rounded-full border border-black/15 bg-white text-black transition hover:border-black/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black";
+const iconButton = {
+  /** Barra de cima do celular: redondo, sem borda. */
+  bar: "relative grid size-11 place-items-center rounded-full text-[#121212] transition hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black",
+  /** Alto do conteúdo no computador: quadrado com borda, ao lado das ações da página. */
+  page: "relative grid size-11 place-items-center rounded-xl border border-[#e7e5e4] bg-white text-[#121212] transition hover:border-[#121212] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black",
+};
 
 /** Sino de notificações: número de não vistos; abrir marca tudo como visto. */
-export function NotificationBell() {
+export function NotificationBell({ variant = "page" }: { variant?: "bar" | "page" }) {
   const panel = usePanel();
   const bell = panel?.bell;
   const [open, setOpen] = useState(false);
@@ -88,11 +92,16 @@ export function NotificationBell() {
         onClick={toggle}
         aria-label={unseen > 0 ? `Notificações: ${unseen} ${unseen === 1 ? "nova" : "novas"}` : "Notificações"}
         aria-expanded={open}
-        className={iconButton}
+        className={iconButton[variant]}
       >
-        <Bell aria-hidden="true" className="size-4" />
+        <Bell aria-hidden="true" className={variant === "bar" ? "size-[22px]" : "size-5"} />
         {unseen > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 rounded-full bg-red-600 px-1.5 text-center text-xs leading-5 font-bold text-white">
+          <span
+            className={cn(
+              "absolute min-w-4 rounded-full bg-[#dc2626] px-1 text-center text-[10px] leading-4 font-bold text-white",
+              variant === "bar" ? "top-[7px] right-2 ring-2 ring-[#f5f5f4]" : "-top-1.5 -right-1.5 ring-2 ring-[#f5f5f4]",
+            )}
+          >
             {unseen > 9 ? "9+" : unseen}
           </span>
         )}

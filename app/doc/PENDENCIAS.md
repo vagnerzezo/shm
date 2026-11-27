@@ -61,7 +61,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Conferido no navegador (390 e 1440 px) sem gravar no banco: reservar, remarcar, cancelar e mandar mensagem não foram enviados (as ações do servidor não mudaram). **Falta:** conferir num iPhone de verdade (teclado na conversa, área segura) e um fluxo completo de reserva.
 - `pnpm test` com 253 de 253; `tsc` e lint sem erro.
 - Decisões tomadas durante a execução (estão também no plano, seção de cada tarefa): `viewportFit: "cover"` no app inteiro; barra de cima com o logo some no agendamento, no remarcar e em Mensagens; faixa "Instale o app" só nas telas com a barra de cima; 4 dias sugeridos (com 5 o "Outra data" saía da tela); visitante vê "Entrar" no rodapé da sidebar; voltar da confirmação leva ao horário do último serviço; "Sim, cancelar" em vermelho; tab bar com 65 px + área segura.
-- **Revisão final (2026-11-27): falta corrigir antes de juntar na `main`:**
+- **Revisão final (2026-11-27), as 3 abaixo já corrigidas:**
   1. **Importante, Mensagens no computador:** com conversa longa a página inteira cresce, em vez de rolar só dentro da conversa, e o campo de escrever cai para fora da tela. Causa: `app/(painel)/mensagens/page.tsx` (`lg:h-auto lg:min-h-[480px] lg:flex-1`) dentro do `<main>` sem altura limitada em `app/_components/client/client-frame.tsx`. Correção pensada: no computador, envolver título + conversa num bloco `lg:h-[calc(100dvh-5rem)] lg:flex lg:flex-col` e a grade com `lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]`. Reproduzir antes no navegador (dá para simular colando 40 parágrafos na lista de mensagens, sem gravar no banco).
   2. **"Entrar" da sidebar do visitante perde os serviços escolhidos:** `client-sidebar.tsx` usa `href="/login"` sem `next`; trocar por `loginHref` com o caminho e a busca atuais.
   3. **Confirmação do Remarcar no iPhone:** sem tab bar e sem barra fixa, sobra só `pb-6`; os botões podem ficar sob a barra do iPhone. Somar `env(safe-area-inset-bottom)` ao espaço de baixo quando `hidesTabs` for verdadeiro.
@@ -76,7 +76,7 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-Redesign: na área do cliente (`feat/redesign-cliente`) faltam as 3 correções da revisão final (acima), rodar `pnpm test` de novo, conferir num iPhone e uma reserva de ponta a ponta, e então juntar na `main`. Depois vêm o painel no celular e o painel no computador (canvases "SHM — Redesign mobile" e "SHM — Redesign desktop").
+Redesign: **combinado em 2026-11-27 fazer as três partes no local antes de publicar.** Área do cliente pronta (as 3 correções da revisão final feitas em 2026-11-27). Painel (celular e computador juntos) em andamento no mesmo branch: desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md`. No fim: `pnpm test`, conferir num iPhone, uma reserva de ponta a ponta e então juntar na `main`. Desenhos: o painel no celular e o painel no computador (canvases "SHM — Redesign mobile" e "SHM — Redesign desktop").
 
 Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA (acima) entrou antes deles; falta enviar o branch `feat/pwa` (juntar na `main` e `git push origin main`) e instalar num celular de verdade para conferir.
 

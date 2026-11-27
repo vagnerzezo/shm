@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AutoSubmitSelect } from "@/app/_components/auto-submit-select";
 import { FilterPanel } from "@/app/_components/filter-panel";
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PlusIcon, SearchIcon } from "@/app/_components/icons";
 import { PanelHeader } from "@/app/_components/panel-header";
-import { card, EmptyState, fieldClass, labelClass, PageTitle, primaryButton, scrollArea, secondaryButton, Stat } from "@/app/_components/ui";
+import { card, EmptyState, fieldClass, PageTitle, primaryButton, secondaryButton } from "@/app/_components/ui";
 import { requireMenu } from "@/app/_lib/auth";
 import { addDays, nowInStudio } from "@/app/_lib/availability";
 import { initials } from "@/app/_lib/chat-format";
@@ -29,8 +30,8 @@ type Sort = (typeof sorts)[number]["id"];
 
 const filters = [
   { id: "", label: "Todos" },
-  { id: "marcado", label: "Com horário marcado" },
-  { id: "sumidos", label: "Sem visita há 30+ dias" },
+  { id: "marcado", label: "Com horário" },
+  { id: "sumidos", label: "Sem visita 30+ dias" },
   { id: "nunca", label: "Nunca vieram" },
   { id: "faltas", label: "Com faltas" },
   { id: "desativados", label: "Desativados" },
@@ -94,216 +95,280 @@ export default async function ClientesPage(props: PageProps<"/admin/clientes">) 
       ),
     )}`;
 
+  const listHref = (patch: Record<string, string>) =>
+    `/admin/clientes?${new URLSearchParams(
+      Object.entries({ q, filtro: filter, ordem: sort === "nome" ? "" : sort, ...patch }).filter(([, v]) => v),
+    )}`;
+  const stats = [
+    { label: "Clientes", short: "Clientes", value: String(all.length) },
+    { label: "Novos em 30 dias", short: "Novos 30 d", value: String(all.filter((c) => c.createdAt.slice(0, 10) >= monthAgo).length) },
+    { label: "Com horário marcado", short: "Com horário", value: String(all.filter((c) => c.nextBooking).length) },
+    {
+      label: "Aceitam e-mail / mensagem",
+      short: "E-mail/msg",
+      value: `${all.filter((c) => c.consent.email).length} / ${all.filter((c) => c.consent.mensagem).length}`,
+    },
+  ];
+  const chips = (
+    <div role="group" aria-label="Mostrar" className="flex flex-wrap gap-1.5">
+      {filters.map((f) => {
+        const active = f.id === filter;
+        return (
+          <Link
+            key={f.id}
+            href={listHref({ filtro: f.id })}
+            aria-current={active ? "true" : undefined}
+            className={cn(
+              "flex h-8 items-center rounded-full px-3 text-[13px] font-semibold transition",
+              active ? "bg-[#121212] text-white" : "border border-[#e7e5e4] bg-white text-[#3f3f3d] hover:border-[#121212]",
+            )}
+          >
+            {f.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+  const sortSelect = (
+    <label className="shrink-0">
+      <span className="sr-only">Ordenar por</span>
+      <AutoSubmitSelect name="ordem" defaultValue={sort} className={cn(fieldClass, "h-10 w-auto rounded-[10px] font-semibold")}>
+        {sorts.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.label}
+          </option>
+        ))}
+      </AutoSubmitSelect>
+    </label>
+  );
+  const search = (
+    <label className="relative min-w-[180px] flex-1">
+      <span className="sr-only">Buscar cliente</span>
+      <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-[18px] -translate-y-1/2 text-[#5c5c5a]" />
+      <input
+        type="search"
+        name="q"
+        defaultValue={q}
+        placeholder="Nome, e-mail ou telefone"
+        className={cn(fieldClass, "h-12 rounded-[14px] pl-10 lg:h-10 lg:rounded-[10px] lg:bg-[#fafaf9]")}
+      />
+    </label>
+  );
+
   return (
-    <>
-      <PanelHeader>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <PageTitle
-              title="Clientes"
-              description={
-                scope.all
-                  ? "Cadastro, contato e histórico de cada cliente."
-                  : `Quem você já atendeu (${scope.professional}). Clientes novos aparecem aqui depois do primeiro atendimento.`
-              }
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-4 lg:gap-5">
+      <PanelHeader
+        actions={
+          <span className="flex gap-2.5 max-lg:hidden">
             {scope.all && all.length > 0 && (
-              <a href="/api/admin/exportar/clientes" download className={cn(secondaryButton, "h-10")}>
-                <DownloadIcon className="size-4" />
-                <span className="hidden sm:inline">Exportar CSV</span>
-                <span className="sm:hidden">CSV</span>
+              <a href="/api/admin/exportar/clientes" download className={secondaryButton}>
+                <DownloadIcon className="size-[18px]" />
+                Exportar CSV
               </a>
             )}
-            <Link href="/admin/clientes/novo" className={cn(primaryButton, "h-10")}>
-              <PlusIcon className="size-4" />
+            <Link href="/admin/clientes/novo" className={primaryButton}>
+              <PlusIcon className="size-[18px]" />
               Novo cliente
             </Link>
-          </div>
-        </div>
+          </span>
+        }
+      >
+        <PageTitle
+          title="Clientes"
+          description={
+            scope.all
+              ? "Cadastro, contato e histórico de cada cliente."
+              : `Quem você já atendeu (${scope.professional}). Clientes novos aparecem aqui depois do primeiro atendimento.`
+          }
+        />
       </PanelHeader>
 
-      <div className={`mt-7 ${scrollArea}`}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="CLIENTES" value={String(all.length)} />
-          <Stat
-            label="NOVOS EM 30 DIAS"
-            value={String(all.filter((c) => c.createdAt.slice(0, 10) >= monthAgo).length)}
-          />
-          <Stat label="COM HORÁRIO MARCADO" value={String(all.filter((c) => c.nextBooking).length)} />
-          <Stat
-            label="ACEITAM E-MAIL / MSG"
-            value={`${all.filter((c) => c.consent.email).length} / ${all.filter((c) => c.consent.mensagem).length}`}
-          />
-        </div>
-
-        <div className="mt-4">
-        <FilterPanel activeCount={activeFilters}>
-        <form className={cn(card, "grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_auto] lg:items-end")}>
-          <label className="sm:col-span-2 lg:col-span-1">
-            <span className={labelClass}>Buscar</span>
-            <span className="relative mt-1.5 block">
-              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-black/50" />
-              <input
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Nome, e-mail ou telefone"
-                className={cn(fieldClass, "pl-9")}
-              />
-            </span>
-          </label>
-          <label>
-            <span className={labelClass}>Mostrar</span>
-            <select name="filtro" defaultValue={filter} className={cn(fieldClass, "mt-1.5")}>
-              {filters.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className={labelClass}>Ordenar por</span>
-            <select name="ordem" defaultValue={sort} className={cn(fieldClass, "mt-1.5")}>
-              {sorts.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex gap-2 sm:col-span-2 lg:col-span-1">
-            <button type="submit" className={cn(primaryButton, "flex-1")}>
-              Aplicar
-            </button>
-            {filtering && (
-              <Link href="/admin/clientes" className={secondaryButton}>
-                Limpar
-              </Link>
-            )}
+      <section aria-label="Resumo" className={cn(card, "grid grid-cols-4 lg:rounded-[20px]")}>
+        {stats.map((st, i) => (
+          <div key={st.label} className={cn("min-w-0 px-2.5 py-3 lg:px-[22px] lg:py-4", i > 0 && "border-l border-[#f0efee]")}>
+            <p className="truncate text-[11px] font-semibold text-[#5c5c5a] lg:hidden">{st.short}</p>
+            <p className="truncate text-[13px] font-semibold text-[#5c5c5a] max-lg:hidden">{st.label}</p>
+            <p className="truncate text-xl font-bold lg:mt-0.5 lg:text-[28px]">{st.value}</p>
           </div>
-        </form>
+        ))}
+      </section>
+
+      {/* Celular: busca + filtros recolhidos. */}
+      <div className="lg:hidden">
+        <FilterPanel activeCount={activeFilters}>
+          <form className="flex flex-col gap-3 pt-1">
+            <input type="hidden" name="filtro" value={filter} />
+            {search}
+            {chips}
+            <div className="flex items-center gap-2">
+              {sortSelect}
+              {filtering && (
+                <Link href="/admin/clientes" className="text-sm font-semibold text-[#5c5c5a] underline underline-offset-4">
+                  Limpar
+                </Link>
+              )}
+            </div>
+          </form>
         </FilterPanel>
-        </div>
+        <p className="mt-3 text-[13px] font-semibold text-[#5c5c5a]">
+          {filters.find((f) => f.id === filter)?.label} · ordem: {sorts.find((o) => o.id === sort)?.label.toLowerCase()}
+        </p>
+      </div>
+
+      <section className={cn(card, "overflow-hidden lg:rounded-[20px]")}>
+        {/* Computador: busca, filtros e ordem numa barra só. */}
+        <form className="flex flex-wrap items-center gap-3 border-b border-[#f0efee] px-4 py-3.5 max-lg:hidden">
+          <input type="hidden" name="filtro" value={filter} />
+          {search}
+          {chips}
+          {sortSelect}
+        </form>
 
         {visible.length === 0 ? (
-          <div className="mt-4">
-            <EmptyState>
-              {all.length === 0 ? "Nenhum cliente cadastrado ainda." : "Nenhum cliente encontrado."}
-            </EmptyState>
+          <div className="p-4">
+            <EmptyState>{all.length === 0 ? "Nenhum cliente cadastrado ainda." : "Nenhum cliente encontrado."}</EmptyState>
           </div>
         ) : (
-          <div className={cn(card, "mt-4 overflow-hidden")}>
-            <table className="w-full text-left text-sm">
-              <thead className="hidden border-b border-black/10 text-xs font-semibold tracking-widest text-black/60 md:table-header-group">
-                <tr>
-                  <th className="px-4 py-3">CLIENTE</th>
-                  <th className="px-4 py-3">CONTATO</th>
-                  <th className="px-4 py-3">VISITAS</th>
-                  <th className="px-4 py-3">ÚLTIMA VISITA</th>
-                  <th className="px-4 py-3">PRÓXIMO HORÁRIO</th>
-                  <th className="w-14 px-4 py-3">
-                    <span className="sr-only">Ações</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/10">
-                {visible.map((c) => (
-                  // No mobile cada linha vira um cartão.
-                  <tr key={c.id} className="relative grid grid-cols-2 gap-x-4 gap-y-1 px-4 py-3 pr-14 md:table-row md:p-0">
-                    <td className="col-span-2 md:px-4 md:py-3">
-                      <Link href={`/admin/clientes/${c.id}`} className="group flex items-center gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-black/10 text-sm font-semibold text-black">
-                          {initials(c.name)}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="flex items-center gap-2">
-                            <span className="truncate font-semibold text-black underline-offset-4 group-hover:underline">
-                              {c.name}
-                            </span>
-                            {c.disabledAt && (
-                              <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                                Desativado
-                              </span>
-                            )}
-                          </span>
-                          <span className="block text-xs text-black/60">Desde {shortDate(c.createdAt)}</span>
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="col-span-2 md:px-4 md:py-3">
-                      <span className="block text-black">{formatPhone(c.phone)}</span>
-                      <span className="block truncate text-black/60">{c.email}</span>
-                    </td>
-                    <td className="md:px-4 md:py-3">
-                      <span className="font-semibold text-black">{c.visits}</span>
-                      <span className="block text-xs text-black/60">
-                        {formatPrice(c.spentCents)}
-                        {c.missed > 0 && <span className="text-red-700"> · {c.missed} {c.missed === 1 ? "falta" : "faltas"}</span>}
-                      </span>
-                    </td>
-                    <td className="md:px-4 md:py-3">
-                      {c.lastVisit ? (
-                        <>
-                          <span className="block text-black">{shortDate(c.lastVisit.date)}</span>
-                          <span className="block truncate text-xs text-black/60">
-                            {c.lastVisit.serviceName}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-black/50">—</span>
+          <>
+            {/* Celular: lista. */}
+            <ul className="divide-y divide-[#f0efee] lg:hidden">
+              {visible.map((c) => (
+                <li key={c.id} className="relative flex items-start gap-3 py-3.5 pr-12 pl-4">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#f0efee] text-sm font-bold">
+                    {initials(c.name)}
+                  </span>
+                  <Link href={`/admin/clientes/${c.id}`} className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[15px] font-semibold">{c.name}</span>
+                      {c.disabledAt && (
+                        <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">Desativado</span>
                       )}
-                    </td>
-                    <td className="col-span-2 md:px-4 md:py-3">
-                      {c.nextBooking ? (
-                        <span className="inline-flex rounded-full bg-[#121212] px-2.5 py-0.5 text-xs font-semibold text-white">
-                          {shortDate(c.nextBooking.date)} · {c.nextBooking.time}
-                        </span>
-                      ) : (
-                        <span className="text-black/50">Nenhum</span>
-                      )}
-                    </td>
-                    {/* No mobile, o "⋮" fica no canto do cartão. */}
-                    <td className="absolute top-3 right-3 md:static md:px-4 md:py-3 md:text-right">
-                      <CustomerRowMenu id={c.id} name={c.name} canDelete={scope.all} />
-                    </td>
+                    </span>
+                    <span className="truncate text-[13px] text-[#5c5c5a]">
+                      {formatPhone(c.phone)} · desde {shortDate(c.createdAt, { year: false })}
+                    </span>
+                    <span className="truncate text-[13px] text-[#5c5c5a]">
+                      {c.visits === 0
+                        ? "Nenhuma visita ainda"
+                        : `${c.visits} ${c.visits === 1 ? "visita" : "visitas"} · ${formatPrice(c.spentCents)}${c.lastVisit ? ` · última em ${shortDate(c.lastVisit.date, { year: false })}` : ""}`}
+                      {c.missed > 0 && <span className="text-[#b91c1c]"> · {c.missed} {c.missed === 1 ? "falta" : "faltas"}</span>}
+                    </span>
+                    <span className={cn("text-[13px] font-semibold", c.nextBooking ? "text-[#121212]" : "text-[#6b6b69]")}>
+                      {c.nextBooking ? `Próximo: ${shortDate(c.nextBooking.date, { year: false })} · ${c.nextBooking.time}` : "Sem horário marcado"}
+                    </span>
+                  </Link>
+                  <span className="absolute top-3 right-2">
+                    <CustomerRowMenu id={c.id} name={c.name} canDelete={scope.all} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Computador: tabela (rola dentro do cartão se faltar largura). */}
+            <div className="overflow-x-auto max-lg:hidden">
+              <table className="w-full min-w-[860px] text-left text-sm">
+                <thead className="text-xs font-semibold text-[#5c5c5a]">
+                  <tr className="border-b border-[#f0efee]">
+                    <th className="px-4 py-3 font-semibold">Cliente</th>
+                    <th className="px-4 py-3 font-semibold">Contato</th>
+                    <th className="px-4 py-3 font-semibold">Visitas</th>
+                    <th className="px-4 py-3 font-semibold">Última visita</th>
+                    <th className="px-4 py-3 font-semibold">Próximo horário</th>
+                    <th className="w-12 px-4 py-3">
+                      <span className="sr-only">Ações</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[#f0efee]">
+                  {visible.map((c) => (
+                    <tr key={c.id} className="transition hover:bg-[#fafaf9]">
+                      <td className="max-w-[260px] px-4 py-3.5">
+                        <Link href={`/admin/clientes/${c.id}`} className="group flex items-center gap-3">
+                          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f0efee] text-[13px] font-bold">
+                            {initials(c.name)}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="flex items-center gap-2">
+                              <span className="truncate font-semibold underline-offset-4 group-hover:underline">{c.name}</span>
+                              {c.disabledAt && (
+                                <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">Desativado</span>
+                              )}
+                            </span>
+                            <span className="block text-[13px] text-[#5c5c5a]">Desde {shortDate(c.createdAt)}</span>
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="max-w-[240px] px-4 py-3.5">
+                        <span className="block">{formatPhone(c.phone)}</span>
+                        <span className="block truncate text-[13px] text-[#5c5c5a]">{c.email}</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="block font-semibold">
+                          {c.visits} {c.visits === 1 ? "visita" : "visitas"}
+                        </span>
+                        <span className="block text-[13px] text-[#5c5c5a]">
+                          {formatPrice(c.spentCents)}
+                          {c.missed > 0 && <span className="text-[#b91c1c]"> · {c.missed} {c.missed === 1 ? "falta" : "faltas"}</span>}
+                        </span>
+                      </td>
+                      <td className="max-w-[220px] px-4 py-3.5">
+                        <span className="block">{c.lastVisit ? shortDate(c.lastVisit.date) : "—"}</span>
+                        <span className="block truncate text-[13px] text-[#5c5c5a]">{c.lastVisit?.serviceName ?? "Ainda não veio"}</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={cn(
+                            "inline-flex h-[26px] items-center rounded-full px-2.5 text-xs font-semibold whitespace-nowrap",
+                            c.nextBooking ? "bg-[#121212] text-white" : "bg-[#f0efee] text-[#44403c]",
+                          )}
+                        >
+                          {c.nextBooking ? `${shortDate(c.nextBooking.date, { year: false })} · ${c.nextBooking.time}` : "Sem horário"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <CustomerRowMenu id={c.id} name={c.name} canDelete={scope.all} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        {pages > 1 && (
-          <nav aria-label="Páginas" className="mt-4 flex items-center justify-between gap-3 text-sm">
-            <p className="text-black/70">
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, rows.length)} de {rows.length}
-            </p>
-            <div className="flex gap-2">
+        <div className="flex items-center justify-between gap-3 border-t border-[#f0efee] px-4 py-3.5 text-[13px] text-[#5c5c5a]">
+          <p>
+            {pages > 1
+              ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, rows.length)} de ${rows.length}`
+              : `${rows.length} ${rows.length === 1 ? "cliente" : "clientes"}`}
+          </p>
+          {pages > 1 && (
+            <nav aria-label="Páginas" className="flex gap-2">
               {page > 1 && (
-                <Link
-                  href={pageHref(page - 1)}
-                  className="inline-flex h-10 items-center gap-1 rounded-lg border border-black/20 bg-white px-3 font-semibold text-black hover:bg-black/5"
-                >
+                <Link href={pageHref(page - 1)} className={cn(secondaryButton, "h-9 rounded-[10px] px-3")}>
                   <ChevronLeftIcon className="size-4" />
                   Anterior
                 </Link>
               )}
               {page < pages && (
-                <Link
-                  href={pageHref(page + 1)}
-                  className="inline-flex h-10 items-center gap-1 rounded-lg border border-black/20 bg-white px-3 font-semibold text-black hover:bg-black/5"
-                >
+                <Link href={pageHref(page + 1)} className={cn(secondaryButton, "h-9 rounded-[10px] px-3")}>
                   Próxima
                   <ChevronRightIcon className="size-4" />
                 </Link>
               )}
-            </div>
-          </nav>
-        )}
-      </div>
-    </>
+            </nav>
+          )}
+        </div>
+      </section>
+
+      {/* Celular: ação principal flutuante acima da tab bar. */}
+      <Link
+        href="/admin/clientes/novo"
+        className="fixed right-4 bottom-[calc(65px+env(safe-area-inset-bottom)+16px)] z-30 flex h-14 items-center gap-2 rounded-[18px] bg-[#121212] pr-[22px] pl-[18px] text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] lg:hidden"
+      >
+        <PlusIcon className="size-5" />
+        Novo cliente
+      </Link>
+    </div>
   );
 }

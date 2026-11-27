@@ -50,22 +50,25 @@ export async function AuthShell({
       </section>
 
       <section aria-hidden="true" className="sticky top-3 my-3 mr-3 hidden h-[calc(100dvh-24px)] flex-1 self-start overflow-hidden rounded-[24px] bg-black lg:block">
-        <Image
-          src="/img/bg-login.jpg"
-          alt=""
-          fill
-          preload
-          sizes="(min-width: 1024px) calc(100vw - 572px), 0px"
-          className="object-cover object-[60%_20%] grayscale"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0)_45%)]" />
-        <div className="absolute bottom-14 left-14 text-white">
-          <p className="text-[13px] font-semibold tracking-[3px] text-white/80">BEM-VINDO</p>
-          <p className={`${displayClass} mt-2 text-[72px] leading-[0.92]`}>
-            Seu acesso
-            <br />
-            começa aqui
-          </p>
+        {/* `fill` pede um pai `relative`; o `sticky` acima segura a foto parada ao rolar. */}
+        <div className="relative size-full">
+          <Image
+            src="/img/bg-login.jpg"
+            alt=""
+            fill
+            preload
+            sizes="(min-width: 1024px) calc(100vw - 572px), 0px"
+            className="object-cover object-[60%_20%] grayscale"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0)_45%)]" />
+          <div className="absolute bottom-14 left-14 text-white">
+            <p className="text-[13px] font-semibold tracking-[3px] text-white/80">BEM-VINDO</p>
+            <p className={`${displayClass} mt-2 text-[72px] leading-[0.92]`}>
+              Seu acesso
+              <br />
+              começa aqui
+            </p>
+          </div>
         </div>
       </section>
     </main>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { hidesTabs, hidesTopBar } from "../app/_components/client/tabs";
+import { hidesTabs, hidesTopBar, visitorLoginHref } from "../app/_components/client/tabs";
 import { DEFAULT_SERVICES, professionalColorOf, type Professional } from "../app/_lib/services";
 
 // Moldura do cliente no celular. Não usa o banco.
@@ -50,5 +50,18 @@ describe("cor do profissional no serviço", () => {
   test("sem profissional fixo ou profissional que saiu: sem cor", () => {
     assert.equal(professionalColorOf({ ...svc, professional: undefined }, pros), null);
     assert.equal(professionalColorOf({ ...svc, professional: "Saiu" }, pros), null);
+  });
+});
+
+describe("Entrar do visitante na sidebar", () => {
+  test("volta para a mesma tela, com os serviços escolhidos", () => {
+    assert.equal(
+      visitorLoginHref("/agendamento/confirmacao", "item=barba-heitor_2026-12-04_10%3A00"),
+      "/login?next=%2Fagendamento%2Fconfirmacao%3Fitem%3Dbarba-heitor_2026-12-04_10%253A00",
+    );
+  });
+
+  test("sem busca, só o caminho", () => {
+    assert.equal(visitorLoginHref("/agendamento", ""), "/login?next=%2Fagendamento");
   });
 });

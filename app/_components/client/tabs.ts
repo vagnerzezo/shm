@@ -13,3 +13,9 @@ const OWN_HEADER = [/^\/agendamento/, /^\/reservas\/[^/]+\/remarcar/, /^\/mensag
 export function hidesTopBar(pathname: string) {
   return OWN_HEADER.some((re) => re.test(pathname));
 }
+
+/** Login que volta para a tela atual (mesmo formato de `loginHref`, que é só do servidor). */
+export function visitorLoginHref(pathname: string, search: string) {
+  const next = search ? `${pathname}?${search}` : pathname;
+  return `/login?next=${encodeURIComponent(next)}`;
+}

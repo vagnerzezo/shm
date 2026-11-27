@@ -2,17 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "@/app/_lib/actions";
 import { initials } from "@/app/_lib/services";
 import { cn } from "@/lib/utils";
 import { LogOutIcon, PlusIcon } from "../icons";
 import { isActiveLink, navByArea } from "../nav";
+import { visitorLoginHref } from "./tabs";
 import { CountBadge } from "./ui";
 
 /** Computador: menu à esquerda, 248 px. */
 export function ClientSidebar({ unread, name, studioName }: { unread: number; name: string; studioName: string }) {
   const pathname = usePathname();
+  const search = useSearchParams().toString();
 
   return (
     <aside className="hidden w-[248px] shrink-0 flex-col overflow-y-auto border-r border-[#e7e5e4] bg-white px-3.5 pt-6 pb-4 lg:flex">
@@ -77,7 +79,7 @@ export function ClientSidebar({ unread, name, studioName }: { unread: number; na
         </div>
       ) : (
         <Link
-          href="/login"
+          href={visitorLoginHref(pathname, search)}
           className="mt-auto flex h-11 items-center justify-center rounded-xl border border-[#e7e5e4] text-sm font-semibold transition hover:border-[#121212]"
         >
           Entrar

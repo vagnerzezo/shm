@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSuggestedDays, nowInStudio } from "@/app/_lib/availability";
-import { busyOf, parseItems } from "@/app/_lib/booking";
+import { busyOf, parseItems, withItems } from "@/app/_lib/booking";
 import { getCurrentUser, keepBarberOut } from "@/app/_lib/auth";
 import { getBookingBusy } from "@/app/_lib/reservations";
 import { getAvailabilityRules } from "@/app/_lib/schedule";
 import { getBookableServices } from "@/app/_lib/catalog";
 import { findService } from "@/app/_lib/services";
-import { PanelHeader } from "@/app/_components/panel-header";
+import { BookingHeader } from "@/app/_components/client/booking-header";
 import { TimePicker } from "./time-picker";
 
 export const metadata: Metadata = {
@@ -28,16 +28,13 @@ export default async function HorarioPage(props: PageProps<"/agendamento/horario
   const booked = await getBookingBusy(user?.id);
   const carryItems = parseItems(item, now, booked, rules, services);
   const busy = [...booked, ...busyOf(carryItems)];
-  const suggested = getSuggestedDays(service, now, busy, rules);
+  const suggested = getSuggestedDays(service, now, busy, rules, 4);
   const carry = carryItems.map((i) => i.key);
 
   return (
     <>
-      <PanelHeader step={1} />
-
-      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
-        <TimePicker service={service} now={now} busy={busy} rules={rules} suggested={suggested} carry={carry} />
-      </div>
+      <BookingHeader step={1} back={withItems("/agendamento", carry)} />
+      <TimePicker service={service} now={now} busy={busy} rules={rules} suggested={suggested} carry={carry} />
     </>
   );
 }

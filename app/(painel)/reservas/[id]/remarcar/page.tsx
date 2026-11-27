@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PanelHeader } from "@/app/_components/panel-header";
-import { EmptyState } from "@/app/_components/ui";
+import { RescheduleHeader } from "@/app/_components/client/booking-header";
 import { keepBarberOut, requireUser } from "@/app/_lib/auth";
 import { formatLongDate, formatWeekday, getSlots, getSuggestedDays, nowInStudio } from "@/app/_lib/availability";
 import { getBookableServices } from "@/app/_lib/catalog";
@@ -25,24 +24,15 @@ export default async function RemarcarPage(props: PageProps<"/reservas/[id]/rema
   const now = nowInStudio();
   const reservation = (await getReservations(user.id)).find((r) => r.id === id);
 
-  const header = (
-    <PanelHeader>
-      <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">Remarcar horário</h1>
-      <p className="mt-1 text-sm text-black/70">Escolha o novo dia e horário. O estúdio é avisado na hora.</p>
-    </PanelHeader>
-  );
-
   const unavailable = (message: string) => (
     <>
-      {header}
-      <div className="mt-7">
-        <EmptyState>
-          {message}{" "}
-          <Link href="/reservas" className="font-semibold text-black underline underline-offset-4">
-            Voltar para Minhas reservas
-          </Link>
-        </EmptyState>
-      </div>
+      <RescheduleHeader title />
+      <p className="rounded-[18px] border border-dashed border-[#d6d3d1] px-6 py-14 text-center text-sm text-[#5c5c5a]">
+        {message}{" "}
+        <Link href="/reservas" className="font-semibold text-[#121212] underline underline-offset-4">
+          Voltar para Minhas reservas
+        </Link>
+      </p>
     </>
   );
 
@@ -70,8 +60,8 @@ export default async function RemarcarPage(props: PageProps<"/reservas/[id]/rema
   if (picked) {
     return (
       <>
-        {header}
-        <div className="mt-7 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+        <RescheduleHeader title />
+        <div>
           <ConfirmReschedule
             id={reservation.id}
             serviceName={service.name}
@@ -87,10 +77,10 @@ export default async function RemarcarPage(props: PageProps<"/reservas/[id]/rema
 
   return (
     <>
-      {header}
-      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+      <RescheduleHeader />
+      <div>
         {(date || time) && (
-          <p role="alert" className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+          <p role="alert" className="mb-4 rounded-[14px] bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
             Esse horário não está mais disponível. Escolha outro.
           </p>
         )}
@@ -99,7 +89,7 @@ export default async function RemarcarPage(props: PageProps<"/reservas/[id]/rema
           now={now}
           busy={busy}
           rules={rules}
-          suggested={getSuggestedDays(service, now, busy, rules)}
+          suggested={getSuggestedDays(service, now, busy, rules, 4)}
           carry={[]}
           reschedule={{ id: reservation.id, currentLabel: current }}
         />

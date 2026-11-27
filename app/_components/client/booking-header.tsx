@@ -62,3 +62,29 @@ export function BookingHeader({ step, back }: { step: 0 | 1 | 2; back?: string }
     </>
   );
 }
+
+/**
+ * Cabeçalho do Remarcar. Celular: barra com voltar para Minhas reservas.
+ * Computador: link de volta e, quando `title`, o título da página.
+ */
+export function RescheduleHeader({ title = false }: { title?: boolean }) {
+  return (
+    <>
+      <header className="sticky top-0 z-30 -mx-4 -mt-5 mb-[18px] flex items-center gap-1 border-b border-black/6 bg-[#f5f5f4]/95 px-4 pt-[calc(4px+env(safe-area-inset-top))] pb-1 backdrop-blur-md lg:hidden">
+        <Link href="/reservas" aria-label="Voltar para Minhas reservas" className="-ml-3 grid size-11 place-items-center rounded-full hover:bg-black/5">
+          <ChevronLeftIcon className="size-[22px]" />
+        </Link>
+        <p className="text-[15px] font-bold">Remarcar horário</p>
+      </header>
+      <div className="mb-[22px] flex flex-col gap-3 max-lg:hidden">
+        <Link href="/reservas" className="flex items-center gap-1 self-start text-sm font-semibold text-[#5c5c5a] hover:text-[#121212]">
+          <ChevronLeftIcon className="size-4" />
+          Minhas reservas
+        </Link>
+        {title && (
+          <h1 className="font-[family-name:var(--font-display)] text-[52px] leading-none font-extrabold uppercase">Remarcar horário</h1>
+        )}
+      </div>
+    </>
+  );
+}

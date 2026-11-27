@@ -53,6 +53,13 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 - Pontos menores da revisão **feitos em 2026-11-26** (branch `fix/pontos-menores`): envio agendado com `after()` direto no `updateDb`; tempo limite de 10 s; só endereços de serviços de push conhecidos (Google, Mozilla, Microsoft, Apple); `clients.claim()` e abrir janela nova se não der para navegar; service worker instalado só ao "Ativar"; envio lê só as colunas de usuários; "Verificando…" no cartão. Faixa de instalar: toque duplo não gera erro; "Agora não" vale até recarregar mesmo sem armazenamento. App instalado não trava mais em pé.
 - Ficaram de lado de propósito: ícones um pouco borrados (precisa de um logo maior ou em vetor do dono); marcou-e-cancelou em seguida pode deixar o aviso errado no celular (raro; precisaria de fila com ordem).
 
+**Redesign da área do cliente, 2026-11-26** (branch `feat/redesign-cliente`; desenho `app/doc/specs/2026-11-26-redesign-cliente-design.md`, plano `app/doc/plans/2026-11-26-redesign-cliente.md`; telas no canvas "SHM — Área do cliente"):
+- Primeira de três partes do redesign (depois: painel no celular, painel no computador). Admin e barbeiro não mudaram (barbeiro em Meus dados continua na moldura antiga).
+- Moldura nova só do cliente (`app/_components/client/`): fundo `#f5f5f4` sem a foto; celular com barra de cima de 56 px e **tab bar** embaixo (Início, Agendar, Reservas, Mensagens com contador); computador com sidebar de 248 px (Novo agendamento, nome, Meus dados e Sair no rodapé). Títulos em Barlow Condensed. `viewportFit: "cover"` ligado no app inteiro para as áreas seguras do iPhone.
+- Agendar em 3 passos com barra de progresso: lista compacta de serviços com a cor do profissional; horário com faixa de 4 dias ("N livres") + "Outra data" no celular e calendário + horários no computador; escolher o horário e tocar em **Continuar**. Confirmação com barra fixa no celular (sem Observação, decisão de 25/11) e resumo à direita no computador. Remarcar usa o mesmo seletor.
+- Minhas reservas com abas Próximas/Anteriores (`?ver=anteriores`) e aviso de confirmação que fecha. Mensagens em tela cheia no celular; no computador, próximos horários ao lado.
+- Conferido no navegador (390 e 1440 px) sem gravar no banco: reservar, remarcar, cancelar e mandar mensagem não foram enviados (as ações do servidor não mudaram). **Falta:** conferir num iPhone de verdade (teclado na conversa, área segura) e um fluxo completo de reserva.
+
 **Pontos menores que sobraram** (os feitos estão nos resumos acima):
 - Sino: o número pode atrasar até 30 s ao trocar de página (é o intervalo da atualização automática). Deixado assim de propósito: corrigir pediria recarregar a moldura a cada troca de página (o dobro de consultas).
 - Barbeiro: admin de `ADMIN_EMAILS` não é rebaixado de verdade (hoje `ADMIN_EMAILS` não está ligado na Vercel). Só importa se a 1.2 voltar.
@@ -61,6 +68,8 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 1. **Pelo painel (dono do projeto):** criar o acesso de barbeiro do Heitor com o e-mail real (Configurações → Profissionais; saiu de Serviços em 2026-11-25). Com ele criado: marcar e cancelar uma reserva (fecha o teste de e-mail da 1.6) e conferir o sino e o chat do lado dele. Se precisar, "Nova senha" ao lado do acesso define outra senha provisória.
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
+
+Redesign: depois da área do cliente (`feat/redesign-cliente`, falta juntar na `main`), vêm o painel no celular e o painel no computador (canvases "SHM — Redesign mobile" e "SHM — Redesign desktop").
 
 Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA (acima) entrou antes deles; falta enviar o branch `feat/pwa` (juntar na `main` e `git push origin main`) e instalar num celular de verdade para conferir.
 

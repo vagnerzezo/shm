@@ -5,7 +5,7 @@
 
 Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o produto.
 
-## Onde paramos (2026-11-26)
+## Onde paramos (2026-11-27)
 
 **Feito em 2026-11-19:**
 - 1.1 Admin real em produção (conta pessoal do dono); contas `@shm.test` apagadas da produção.
@@ -76,7 +76,13 @@ Ordem: primeiro o que afeta a segurança da produção, depois o que melhora o p
 2. **Pontos menores que sobraram** (acima): os dois que restam ficaram de lado de propósito.
 3. **Por último, 1.5 — domínio próprio** (combinado deixar para o fim); decidir junto o remetente dos e-mails (hoje `vagnerzezo.com.br`).
 
-Redesign: **combinado em 2026-11-27 fazer as três partes no local antes de publicar.** Área do cliente pronta (as 3 correções da revisão final feitas em 2026-11-27). Painel (celular e computador juntos) em andamento no mesmo branch: desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md`. No fim: `pnpm test`, conferir num iPhone, uma reserva de ponta a ponta e então juntar na `main`. Desenhos: o painel no celular e o painel no computador (canvases "SHM — Redesign mobile" e "SHM — Redesign desktop").
+**Redesign — onde paramos (2026-11-27).** Combinado com o dono: **as três partes ficam prontas no local antes de publicar** (nada foi para a `main` nem para a Vercel). Tudo no branch `feat/redesign-cliente`.
+- **Área do cliente: pronta.** As 3 correções da revisão final feitas; `pnpm test` com 255 de 255 depois delas.
+- **Painel (admin e barbeiro, celular e computador juntos): em andamento.** Desenho `app/doc/specs/2026-11-27-redesign-painel-design.md`, plano `app/doc/plans/2026-11-27-redesign-painel.md` (12 tarefas), andamento e decisões em `.superpowers/sdd/2026-11-27-redesign-painel/progress.md` (fora do git). Desenhos nos canvases "SHM — Redesign mobile" e "SHM — Redesign desktop".
+  - **Feito (tarefas 1 a 6, cada uma com commit):** peças comuns (`ui.tsx`) no visual novo; moldura nova (`PanelFrame` reescrito, menu em `app/_components/staff/`: barra de cima com sino, tab bar com "Mais" em folha de baixo para o admin, 5 itens para o barbeiro, sidebar de 248 px em Operação/Gestão); Início do admin; Agenda (faixa da semana no celular, reserva em folha de baixo com Conversar/Ligar/Ver cliente, "Nova reserva" flutuante); Clientes (chips de filtro, tabela no computador, lista no celular); Histórico (5 números, filtros numa barra, tabela/lista).
+  - **Próximo: tarefa 7, Chat.** Depois: 8 Marketing, 9 Serviços, 10 Configurações por seção (`?secao=`), 11 login no computador, 12 varredura das telas sem desenho (ficha do cliente, novo cliente, nova reserva, perfil, templates de marketing), `pnpm test` e atualizar este arquivo.
+  - Conferido no navegador sem gravar no banco (não cancelei, remarquei nem salvei nada).
+- **No fim das três partes:** `pnpm test`, conferir num iPhone de verdade (teclado no chat, área segura, folhas de baixo), uma reserva de ponta a ponta, revisão final do branch e então juntar na `main` e publicar.
 
 Em 2026-11-26 o dono pediu para deixar o acesso do Heitor (passo 1) e o domínio (passo 3) por último. O PWA (acima) entrou antes deles; falta enviar o branch `feat/pwa` (juntar na `main` e `git push origin main`) e instalar num celular de verdade para conferir.
 

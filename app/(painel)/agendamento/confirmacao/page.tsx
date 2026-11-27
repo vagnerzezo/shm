@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BookingHeader } from "@/app/_components/client/booking-header";
+import { clientField, displayClass } from "@/app/_components/client/ui";
 import { PlusIcon, XIcon } from "@/app/_components/icons";
 import {
   formatLongDate,
@@ -19,7 +21,7 @@ import { getCurrentUser, keepBarberOut, loginHref } from "@/app/_lib/auth";
 import { getBookingBusy } from "@/app/_lib/reservations";
 import { getBookableServices } from "@/app/_lib/catalog";
 import { formatDuration, formatPrice } from "@/app/_lib/services";
-import { PanelHeader } from "@/app/_components/panel-header";
+import { cn } from "@/lib/utils";
 import { SummaryForm } from "./summary-form";
 import { getAvailabilityRules } from "@/app/_lib/schedule";
 
@@ -30,36 +32,32 @@ export const metadata: Metadata = {
 function ItemCard({ item, removeHref }: { item: BookingItem; removeHref: string }) {
   const { service, date, time } = item;
   return (
-    <li className="flex gap-4 rounded-xl border border-black/10 bg-white/85 p-4 sm:gap-6 sm:p-6">
-      <div className="flex w-16 shrink-0 flex-col items-center justify-center border-r border-black/15 pr-4 text-black sm:w-28 sm:pr-6">
-        <span className="text-xs font-semibold tracking-widest">{formatShortMonth(date)}</span>
-        <span className="text-4xl font-bold leading-tight">{Number(date.slice(8))}</span>
-        <span className="text-sm font-semibold">{time}</span>
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-lg font-semibold leading-snug text-black sm:text-xl">{service.name}</h2>
-          <Link
-            href={removeHref}
-            className="flex shrink-0 items-center gap-1.5 pt-1 text-sm font-semibold text-black hover:text-black/60"
-          >
-            <XIcon className="size-4" />
-            Remover
-          </Link>
-        </div>
-        <p className="mt-1 text-sm text-black/70">
-          {/* Celular: a data já está na coluna da esquerda; fica só o dia da semana. */}
-          {formatWeekday(date)}
-          <span className="max-sm:hidden">, {formatLongDate(date)}</span> · {time} às{" "}
-          {endTime(time, service.durationMinutes)}
-        </p>
-        <p className="mt-1 text-sm text-black/70">
-          {service.professional && <>Profissional: {service.professional} · </>}
+    <li className="flex items-start gap-3.5 bg-white p-3.5 max-lg:border-b max-lg:border-[#f0efee] max-lg:last:border-0 lg:items-center lg:gap-5 lg:rounded-[20px] lg:border lg:border-[#e7e5e4] lg:p-5">
+      <span className="w-14 shrink-0 rounded-[14px] bg-[#f5f5f4] py-2 text-center lg:w-[76px] lg:rounded-2xl lg:py-2.5">
+        <span className="block text-[11px] font-bold text-[#5c5c5a] uppercase lg:text-xs">{formatWeekday(date).slice(0, 3)}</span>
+        <span className="block text-[22px] leading-tight font-bold lg:text-[30px]">{Number(date.slice(8))}</span>
+        <span className="block text-xs font-bold lg:text-[13px]">{time}</span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-bold break-words lg:text-xl">{service.name}</span>
+        <span className="block text-[13px] text-[#5c5c5a] lg:mt-1 lg:text-sm">
+          <span className="lg:hidden">{formatLongDate(date).replace(/ de \d{4}$/, "")}</span>
+          <span className="max-lg:hidden">{formatWeekday(date)}, {formatLongDate(date)}</span> · {time} – {endTime(time, service.durationMinutes)}
+        </span>
+        <span className="block text-[13px] text-[#5c5c5a] lg:text-sm">
+          {service.professional ? `${service.professional} · ` : "Qualquer profissional · "}
           {formatDuration(service.durationMinutes)}
-        </p>
-        <p className="mt-2 text-lg font-bold text-black">{formatPrice(service.priceCents)}</p>
-      </div>
+        </span>
+        <span className="mt-1 block text-[15px] font-bold lg:hidden">{formatPrice(service.priceCents)}</span>
+      </span>
+      <span className="text-xl font-bold max-lg:hidden">{formatPrice(service.priceCents)}</span>
+      <Link
+        href={removeHref}
+        aria-label={`Remover ${service.name}`}
+        className="grid size-10 shrink-0 place-items-center rounded-[10px] text-[#5c5c5a] transition hover:bg-[#f5f5f4] hover:text-[#121212]"
+      >
+        <XIcon className="size-[18px]" />
+      </Link>
     </li>
   );
 }
@@ -74,61 +72,66 @@ export default async function ConfirmacaoPage(props: PageProps<"/agendamento/con
   );
   if (items.length === 0) redirect("/agendamento");
   const dropped = toKeys(item).length - items.length;
-
   const keys = items.map((i) => i.key);
-  const total = items.reduce((sum, i) => sum + i.service.priceCents, 0);
+  const last = items.at(-1)!;
 
   return (
     <>
-      <PanelHeader step={2}>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-black sm:text-4xl">
-          Revise e confirme
-        </h1>
-      </PanelHeader>
+      <BookingHeader step={2} back={withItems(`/agendamento/horario?servico=${last.service.id}`, keys.slice(0, -1))} />
+      <h1 className={cn(displayClass, "mb-3.5 text-4xl lg:mb-[22px] lg:text-[52px]")}>Revise e confirme</h1>
 
-      <div className="mt-7 grid min-h-0 flex-1 items-start gap-6 overflow-y-auto pr-1 [scrollbar-width:thin] lg:grid-cols-[1fr_minmax(0,380px)]">
-        <div>
-          {dropped > 0 && (
-            <p
-              role="status"
-              className="mb-4 rounded-lg border border-black/20 bg-white/85 px-4 py-3 text-sm text-black"
-            >
-              {dropped === 1
-                ? "Um horário foi removido porque não está mais disponível ou conflita com outra reserva sua."
-                : `${dropped} horários foram removidos porque não estão mais disponíveis ou conflitam com outras reservas suas.`}
-            </p>
-          )}
-          <h2 className="text-xs font-semibold tracking-widest text-black/70">SEU AGENDAMENTO</h2>
-          <ul className="mt-3 flex flex-col gap-4">
+      <SummaryForm
+        lines={items.map((i) => ({ key: i.key, name: i.service.name, priceCents: i.service.priceCents }))}
+        userName={user?.name ?? null}
+        loginUrl={loginHref(withItems("/agendamento/confirmacao", keys))}
+      >
+        {dropped > 0 && (
+          <p role="status" className="rounded-[14px] border border-[#e7e5e4] bg-white px-4 py-3 text-sm">
+            {dropped === 1
+              ? "Um horário foi removido porque não está mais disponível ou conflita com outra reserva sua."
+              : `${dropped} horários foram removidos porque não estão mais disponíveis ou conflitam com outras reservas suas.`}
+          </p>
+        )}
+
+        <section className="overflow-hidden max-lg:rounded-[18px] max-lg:border max-lg:border-[#e7e5e4] max-lg:bg-white">
+          <ul className="flex flex-col lg:gap-3.5">
             {items.map((i) => {
               const rest = keys.filter((k) => k !== i.key);
               return (
                 <ItemCard
                   key={i.key}
                   item={i}
-                  removeHref={
-                    rest.length ? withItems("/agendamento/confirmacao", rest) : "/agendamento"
-                  }
+                  removeHref={rest.length ? withItems("/agendamento/confirmacao", rest) : "/agendamento"}
                 />
               );
             })}
           </ul>
           <Link
             href={withItems("/agendamento", keys)}
-            className="mt-4 inline-flex h-11 items-center gap-2 rounded-lg border border-black bg-white px-5 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+            className="flex h-12 items-center gap-2 border-t border-[#f0efee] px-3.5 text-sm font-semibold lg:mt-3.5 lg:h-[52px] lg:justify-center lg:rounded-2xl lg:border lg:border-dashed lg:border-[#a8a29e] lg:hover:border-[#121212]"
           >
-            <PlusIcon className="size-4" />
+            <PlusIcon className="size-[18px]" />
             Adicionar outro serviço
           </Link>
-        </div>
+        </section>
 
-        <SummaryForm
-          subtotalCents={total}
-          itemKeys={keys}
-          userName={user?.name ?? null}
-          loginUrl={loginHref(withItems("/agendamento/confirmacao", keys))}
-        />
-      </div>
+        {/* Observação só no computador (decisão de 2026-11-25: confirmação curta no celular). */}
+        {user && (
+          <label className="mt-2 flex flex-col gap-2 text-sm font-bold max-lg:hidden">
+            <span>
+              Observação
+              <span className="block text-[13px] font-medium text-[#5c5c5a]">Opcional · o profissional vê antes do horário</span>
+            </span>
+            <textarea
+              name="observacao"
+              rows={3}
+              maxLength={300}
+              placeholder="Algo que o profissional deva saber?"
+              className={cn(clientField, "resize-y py-3 text-[15px] font-normal")}
+            />
+          </label>
+        )}
+      </SummaryForm>
     </>
   );
 }

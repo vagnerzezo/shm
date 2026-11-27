@@ -1,106 +1,95 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { LockIcon, UserIcon } from "@/app/_components/icons";
+import { useActionState, type ReactNode } from "react";
+import { clientPrimary } from "@/app/_components/client/ui";
 import { confirmBooking } from "@/app/_lib/actions";
 import { formatPrice } from "@/app/_lib/services";
+import { cn } from "@/lib/utils";
 
 type Props = {
-  subtotalCents: number;
-  itemKeys: string[];
+  /** Nome e preço de cada item, para o resumo do computador. */
+  lines: { key: string; name: string; priceCents: number }[];
   /** `null` quando o cliente ainda não entrou. */
   userName: string | null;
   /** Login que volta para esta mesma confirmação. */
   loginUrl: string;
+  /** Coluna da esquerda (itens e observação), dentro do mesmo formulário. */
+  children: ReactNode;
 };
 
-const primaryButton =
-  "mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-[#121212] font-semibold text-white transition hover:bg-black/80 disabled:cursor-wait disabled:opacity-70";
-
-export function SummaryForm({ subtotalCents, itemKeys, userName, loginUrl }: Props) {
+/**
+ * Confirmação inteira num formulário só. Computador: itens à esquerda e resumo
+ * fixo à direita. Celular: o resumo vira a barra presa embaixo.
+ */
+export function SummaryForm({ lines, userName, loginUrl, children }: Props) {
   const [state, action, pending] = useActionState(confirmBooking, { error: null });
+  const total = lines.reduce((sum, l) => sum + l.priceCents, 0);
 
   return (
-    <form action={action} className="rounded-xl border border-black/10 bg-white p-7">
-      {itemKeys.map((key) => (
-        <input key={key} type="hidden" name="item" value={key} />
+    <form action={action} className="flex flex-col gap-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-6">
+      {lines.map((l) => (
+        <input key={l.key} type="hidden" name="item" value={l.key} />
       ))}
 
-      <h2 className="text-xl font-semibold text-black">Resumo</h2>
+      <div className="flex flex-col gap-3.5">{children}</div>
 
-      <fieldset className="mt-5">
-        <legend className="text-xs font-semibold tracking-widest text-black/70">
-          FORMA DE PAGAMENTO
-        </legend>
-        <label className="mt-2.5 flex h-13 cursor-pointer items-center gap-3 rounded-lg border-2 border-black px-4 text-sm font-medium text-black">
-          <input
-            type="radio"
-            name="pagamento"
-            value="presencial"
-            required
-            defaultChecked
-            className="size-5 accent-[#121212]"
-          />
-          Pagar no dia (presencial)
-        </label>
-      </fieldset>
+      <aside className="flex flex-col gap-[18px] lg:sticky lg:top-0 lg:rounded-[20px] lg:border lg:border-[#e7e5e4] lg:bg-white lg:p-6">
+        <h2 className="text-lg font-bold max-lg:hidden">Resumo</h2>
 
-      {/* No celular a observação fica de fora, para a confirmação ser mais curta. */}
-      {userName && (
-        <label className="mt-6 hidden lg:block">
-          <span className="block text-sm font-semibold text-black">Observação</span>
-          <span className="block text-sm text-black/70">(opcional)</span>
-          <textarea
-            name="observacao"
-            rows={3}
-            maxLength={300}
-            placeholder="Algo que o profissional deva saber?"
-            className="mt-2 w-full rounded-lg border border-black/20 px-4 py-3 text-sm text-black placeholder:text-black/50 focus:border-black focus:outline-none"
-          />
-        </label>
-      )}
+        <fieldset>
+          <legend className="mb-2 text-[13px] font-bold">Pagamento</legend>
+          <label className="flex h-[52px] items-center gap-3 rounded-[14px] border-[1.5px] border-[#121212] bg-white px-3.5 text-[15px] font-semibold">
+            <input type="radio" name="pagamento" value="presencial" defaultChecked className="size-5 accent-[#121212]" />
+            Pagar no dia (presencial)
+          </label>
+        </fieldset>
 
-      <dl className="mt-5 border-t border-black/15 pt-4">
-        <div className="flex justify-between text-sm text-black/70">
-          <dt>Subtotal</dt>
-          <dd>{formatPrice(subtotalCents)}</dd>
-        </div>
-        <div className="mt-3 flex items-center justify-between text-black">
-          <dt className="font-semibold">Total</dt>
-          <dd className="text-2xl font-bold">{formatPrice(subtotalCents)}</dd>
-        </div>
-      </dl>
+        <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2.5 border-t border-[#f0efee] pt-4 text-sm max-lg:hidden">
+          {lines.map((l) => (
+            <div key={l.key} className="contents">
+              <dt className="text-[#5c5c5a]">{l.name}</dt>
+              <dd>{formatPrice(l.priceCents)}</dd>
+            </div>
+          ))}
+          <dt className="self-center text-base font-bold">Total</dt>
+          <dd className="text-[26px] font-bold">{formatPrice(total)}</dd>
+        </dl>
 
-      {state.error && (
-        <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-          {state.error}
-        </p>
-      )}
-
-      {userName ? (
-        <>
-          <button type="submit" disabled={pending} className={primaryButton}>
-            <LockIcon className="size-4" />
-            {pending ? "Confirmando..." : "Confirmar reserva"}
-          </button>
-          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-black/70">
-            <UserIcon className="size-3.5" />
-            Confirmando como <strong className="text-black">{userName}</strong>
+        {state.error && (
+          <p role="alert" className="rounded-[14px] bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+            {state.error}
           </p>
-        </>
-      ) : (
-        <>
-          <Link href={loginUrl} className={primaryButton}>
-            <LockIcon className="size-4" />
-            Entrar para confirmar
-          </Link>
-          <p className="mt-4 text-center text-xs text-black/70">
-            É preciso ter uma conta para concluir. Os horários escolhidos ficam guardados
-            enquanto você entra ou cria a conta.
-          </p>
-        </>
-      )}
+        )}
+
+        {/* Celular: espaço da barra fixa. */}
+        <div aria-hidden="true" className="h-[calc(170px+env(safe-area-inset-bottom))] lg:hidden" />
+        <div className="max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:border-t max-lg:border-black/8 max-lg:bg-white/96 max-lg:px-4 max-lg:pt-3.5 max-lg:pb-[calc(12px+env(safe-area-inset-bottom))] max-lg:backdrop-blur-md">
+          <div className="mb-3 flex items-baseline justify-between lg:hidden">
+            <span className="text-sm text-[#5c5c5a]">Total · pago no estúdio</span>
+            <span className="text-[22px] font-bold">{formatPrice(total)}</span>
+          </div>
+          {userName ? (
+            <>
+              <button type="submit" disabled={pending} className={cn(clientPrimary, "h-[54px] w-full text-base")}>
+                {pending ? "Confirmando..." : "Confirmar reserva"}
+              </button>
+              <p className="mt-2 truncate text-center text-xs text-[#5c5c5a] lg:mt-3 lg:text-[13px]">
+                Confirmando como <b className="text-[#121212]">{userName}</b>
+              </p>
+            </>
+          ) : (
+            <>
+              <Link href={loginUrl} className={cn(clientPrimary, "h-[54px] w-full text-base")}>
+                Entrar para confirmar
+              </Link>
+              <p className="mt-2 text-center text-xs text-[#5c5c5a] lg:mt-3">
+                É preciso ter uma conta para concluir. Os horários escolhidos ficam guardados enquanto você entra ou cria a conta.
+              </p>
+            </>
+          )}
+        </div>
+      </aside>
     </form>
   );
 }

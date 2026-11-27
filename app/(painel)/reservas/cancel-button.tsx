@@ -2,8 +2,9 @@
 
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
-import { XIcon } from "@/app/_components/icons";
+import { clientDangerText, clientPrimary, clientSecondary } from "@/app/_components/client/ui";
 import { cancelReservation } from "@/app/_lib/actions";
+import { cn } from "@/lib/utils";
 
 type Props = {
   id: string;
@@ -18,7 +19,7 @@ function ConfirmButton() {
     <button
       type="submit"
       disabled={pending}
-      className="flex h-11 flex-1 items-center justify-center rounded-lg bg-[#121212] px-5 text-sm font-semibold text-white transition hover:bg-black/80 disabled:cursor-wait disabled:opacity-70"
+      className={cn(clientPrimary, "h-12 flex-1 bg-[#b91c1c] text-sm hover:bg-[#991b1b]")}
     >
       {pending ? "Cancelando..." : "Sim, cancelar"}
     </button>
@@ -34,9 +35,8 @@ export function CancelButton({ id, serviceName, when }: Props) {
       <button
         type="button"
         onClick={() => dialog.current?.showModal()}
-        className="flex shrink-0 items-center gap-1.5 pt-1 text-sm font-semibold text-black hover:text-black/60"
+        className={cn(clientDangerText, "h-[38px] text-[13px] lg:h-10 lg:text-sm")}
       >
-        <XIcon className="size-4" />
         Cancelar
       </button>
 
@@ -47,19 +47,19 @@ export function CancelButton({ id, serviceName, when }: Props) {
         onClick={(e) => {
           if (e.target === e.currentTarget) e.currentTarget.close();
         }}
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl bg-white p-0 text-black shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-3xl bg-white p-0 text-[#121212] shadow-2xl backdrop:bg-black/50"
       >
-        <form action={cancelReservation} className="p-7">
+        <form action={cancelReservation} className="p-6">
           <input type="hidden" name="id" value={id} />
-          <h2 id={titleId} className="text-xl font-semibold">
+          <h2 id={titleId} className="text-xl font-bold">
             Cancelar reserva?
           </h2>
-          <p className="mt-3 text-sm text-black/70">
-            <strong className="font-semibold text-black">{serviceName}</strong>
+          <p className="mt-3 text-sm text-[#5c5c5a]">
+            <strong className="font-semibold text-[#121212]">{serviceName}</strong>
             <br />
             {when}
           </p>
-          <p className="mt-3 text-sm text-black/70">
+          <p className="mt-3 text-sm text-[#5c5c5a]">
             O horário fica livre para outros clientes e não dá para desfazer.
           </p>
 
@@ -68,7 +68,7 @@ export function CancelButton({ id, serviceName, when }: Props) {
               type="button"
               autoFocus
               onClick={() => dialog.current?.close()}
-              className="flex h-11 flex-1 items-center justify-center rounded-lg border border-black bg-white px-5 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
+              className={cn(clientSecondary, "h-12 flex-1 rounded-[14px]")}
             >
               Manter reserva
             </button>

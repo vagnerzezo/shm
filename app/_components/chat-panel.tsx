@@ -39,6 +39,7 @@ export function ChatPanel({
   placeholder,
   emptyText,
   variant = "panel",
+  className,
 }: {
   me: Role;
   customerId: string;
@@ -51,6 +52,7 @@ export function ChatPanel({
   emptyText: string;
   /** `client`: visual da área do cliente (tela cheia no celular). O admin usa `panel`. */
   variant?: "panel" | "client";
+  className?: string;
 }) {
   const client = variant === "client";
   // A mensagem aparece na hora; some e volta "de verdade" quando o servidor responde.
@@ -85,6 +87,7 @@ export function ChatPanel({
         client
           ? "bg-[#f5f5f4] lg:rounded-[20px] lg:border lg:border-[#e7e5e4] lg:bg-[#fafaf9]"
           : "rounded-xl border border-black/10 bg-white/85",
+        className,
       )}
     >
       <header

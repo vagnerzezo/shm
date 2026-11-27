@@ -16,6 +16,8 @@ import { StaffTabBar } from "./staff/tab-bar";
 import { StaffTopBar } from "./staff/top-bar";
 import { Toaster } from "./toaster";
 
+const hideOnFullScreen = "contents max-lg:[:root:has([data-tela-cheia])_&]:hidden";
+
 /**
  * Moldura do painel (admin e barbeiro): barra de cima e tab bar no celular,
  * sidebar de 248 px no computador. O cliente usa `client/client-frame.tsx`.
@@ -53,10 +55,15 @@ export async function PanelFrame({ area: requested, children }: { area: Area; ch
         />
 
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
-          <StaffTopBar homeHref={homeHref} profileHref={profileHref} studioName={studio.name} />
+          {/* Celular: a conversa do chat (marcada com `data-tela-cheia`) ocupa a tela e esconde a barra de cima. */}
+          <div className={hideOnFullScreen}>
+            <StaffTopBar homeHref={homeHref} profileHref={profileHref} studioName={studio.name} />
+          </div>
           <main className="flex w-full flex-1 flex-col px-4 pt-5 pb-6 lg:min-h-0 lg:px-10 lg:py-8">
             {/* Convite para instalar o app (só no celular, se ainda não instalou). */}
-            <InstallBanner />
+            <div className={hideOnFullScreen}>
+              <InstallBanner />
+            </div>
             {children}
           </main>
           <StaffTabBar tabs={menu.tabs} more={menu.more} badges={badges} user={who} profileHref={profileHref} />
